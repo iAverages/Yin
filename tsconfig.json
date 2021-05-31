@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "target": "ESNEXT",
+        "module": "ESNext",
+        "alwaysStrict": true,
+        "esModuleInterop": true,
+        "moduleResolution": "Node",
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true
+    }
+}
