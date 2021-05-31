@@ -48,9 +48,8 @@ const logger = async (level: LogLevel, message: string) => {
     const date = new Date().toISOString().replace(/T/, " ").replace(/\..+/, "");
     const logLevelInfo = getLogLevelInfo(level);
     const logMessage = `[${date}] ${logLevelInfo.prefix} ${message}`.replace("[0m", "");
-    const logMessageColor = `${colors.gray(`[${date}]`)} ${logLevelInfo.color(
-        logLevelInfo.prefix
-    )} ${message}`;
+    const logMessageColor = logMessage;
+    // const logMessageColor = `[${date}] ${logLevelInfo.color(logLevelInfo.prefix)} ${message}`;
     if (level === LogLevel.ERROR || level === LogLevel.WARN) {
         console.error(logMessageColor);
     } else {
