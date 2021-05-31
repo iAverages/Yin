@@ -1,12 +1,16 @@
 {
     "compilerOptions": {
         "target": "ESNEXT",
-        "module": "ESNext",
+        "outDir": "./build",
+        "rootDir": "./src",
         "alwaysStrict": true,
         "esModuleInterop": true,
-        "moduleResolution": "Node",
+        "module": "commonjs",
+        "moduleResolution": "node",
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true
-    }
+    },
+    // "exclude": ["node_modules"],
+    "include": ["./src/**/*", "./src/.env"]
 }
