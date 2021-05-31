@@ -18,11 +18,9 @@ export class Yin extends Client {
     }
 
     public async start(token: string) {
-        console.log("Starting");
         this.loadCommands();
         this.loadEvents();
         this.login(token);
-        console.log("Starting");
     }
 
     private async loadCommands() {
