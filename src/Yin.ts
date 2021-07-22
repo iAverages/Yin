@@ -1,14 +1,15 @@
 import { Client, Collection } from "discord.js";
 import { Event } from "./interfaces/event.interface";
 import { Command } from "./interfaces/command.interface";
-import loggerFunctions from "./helpers/logger";
+import logger from "@iaverage/logger";
 import glob from "glob";
 import { promisify } from "util";
 import { basename, extname } from "path";
 
 const globp = promisify(glob);
+
 export class Yin extends Client {
-    public log = loggerFunctions;
+    public log = logger;
     public commands: Collection<String, Command> = new Collection();
     public aliases: Collection<String, Command> = new Collection();
     public events: Collection<String, Event> = new Collection();
