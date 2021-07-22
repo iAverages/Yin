@@ -1,5 +1,5 @@
 import { ShardingManager } from "discord.js";
-import log from "./helpers/logger";
+import log from "@iaverage/logger";
 import * as _ from "./api/server"; // Start API server
 import path from "path";
 require("dotenv").config({ path: path.join(`${__dirname}/../.env`) });
