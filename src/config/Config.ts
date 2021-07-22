@@ -3,25 +3,29 @@ import json from "../helpers/json";
 import fs from "fs";
 import path from "path";
 import { Yin } from "Yin";
+import { IConfig } from "./IConfig";
 
 const configLocation = "../../config.json";
 export class Config {
     private yin: Yin;
-    private config: Object;
+    private configFile: IConfig;
+
     constructor(yin: Yin) {
         this.yin = yin;
         this.updateConfig();
+    }
+
+    get config() {
+        return this.configFile;
     }
 
     async updateConfig() {
         let config: Object;
 
         try {
-            console.log("File exists");
             config = require(configLocation);
         } catch (e) {
-            // this.yin.log.warn("Config was invalid json or didn't exist. Creating new file from defaults.");
-            console.log("erred");
+            this.yin.log.warn("Config was invalid json or didn't exist. Creating new file from defaults.");
             config = {};
         }
 
@@ -36,12 +40,12 @@ export class Config {
         for (const [key, value] of Object.entries(defaults)) {
             const currentValue = json.getPath(config, key);
             if (currentValue || currentValue === "" || currentValue === 0 || typeof currentValue === "boolean") continue;
-            // this.yin.log.warn(`${key} was not set. setting default ${value}`);
+            this.yin.log.warn(`${key} was not set. setting default ${value}`);
             config = json.setPath(config, key, value);
         }
 
         // Write edited json to file
         fs.writeFileSync(path.resolve(__dirname, configLocation), JSON.stringify(config, null, 4), "utf-8");
-        this.config = config;
+        this.configFile = config as IConfig;
     }
 }

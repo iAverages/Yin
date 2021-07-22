@@ -11,7 +11,7 @@ enum Defaults {
     "database.mysql.user" = "root",
     "database.mysql.password" = "password",
     "database.mysql.connectionLimit" = 5,
-    "database.mysql.db" = "discord_bot",
+    "database.mysql.database" = "discord_bot",
 
     // General settings
     "guild.defaults.prefix" = "-",

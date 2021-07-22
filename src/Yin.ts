@@ -6,11 +6,13 @@ import glob from "glob";
 import { promisify } from "util";
 import { basename, extname } from "path";
 import { Config } from "./config/Config";
+import { IConfig } from "config/IConfig";
 
 const globp = promisify(glob);
 
 export class Yin extends Client {
     public log = logger;
+    public config: IConfig;
     public commands: Collection<String, Command> = new Collection();
     public aliases: Collection<String, Command> = new Collection();
     public events: Collection<String, Event> = new Collection();
@@ -20,7 +22,7 @@ export class Yin extends Client {
     }
 
     public async start(token: string) {
-        new Config(this);
+        this.config = new Config(this).config;
         this.loadCommands();
         this.loadEvents();
         this.login(token);
