@@ -1,10 +1,11 @@
-import { Client, Collection } from "discord.js";
+import { Client, Collection, Intents } from "discord.js";
 import { Event } from "./interfaces/event.interface";
 import { Command } from "./interfaces/command.interface";
 import logger from "@iaverage/logger";
 import glob from "glob";
 import { promisify } from "util";
 import { basename, extname } from "path";
+import { Config } from "./config/Config";
 
 const globp = promisify(glob);
 
@@ -15,10 +16,11 @@ export class Yin extends Client {
     public events: Collection<String, Event> = new Collection();
 
     public constructor() {
-        super({ partials: ["MESSAGE", "CHANNEL", "REACTION"] });
+        super({ intents: [Intents.FLAGS.GUILD_MESSAGES], partials: ["MESSAGE", "CHANNEL", "REACTION"] });
     }
 
     public async start(token: string) {
+        new Config(this);
         this.loadCommands();
         this.loadEvents();
         this.login(token);
