@@ -14,14 +14,14 @@
     },
     "dependencies": {
         "@iaverage/logger": "^1.0.2",
-        "axios": "^0.21.1",
+        "axios": "^0.21.3",
         "colors": "^1.4.0",
         "discord.js": "^13.0.0-dev.07017a9.1626869177",
         "dotenv": "^10.0.0",
         "express": "^4.17.1",
         "glob": "^7.1.7",
         "libsodium-wrappers": "^0.7.9",
-        "mongoose": "^5.12.12"
+        "mongoose": "^5.13.9"
     },
     "devDependencies": {
         "@types/express": "^4.17.12",
