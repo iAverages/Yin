@@ -19,7 +19,7 @@
         "discord.js": "^13.0.0-dev.07017a9.1626869177",
         "dotenv": "^10.0.0",
         "express": "^4.17.1",
-        "glob": "^7.1.7",
+        "glob": "^7.2.0",
         "libsodium-wrappers": "^0.7.9",
         "mongoose": "^5.12.12"
     },
