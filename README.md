@@ -1,2 +1,3 @@
 # Yin
-A Discord Bot built with Discord.JS, Typescript and MongoDB
+
+A Micro Services Discord Bot built with Typescript, MongoDB and Redis.

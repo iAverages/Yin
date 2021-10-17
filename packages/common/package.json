@@ -1,0 +1,9 @@
+{
+    "name": "@yin/common",
+    "version": "1.0.0",
+    "main": "src/index.js",
+    "license": "MIT",
+    "dependencies": {
+        "@yin/worker": "1.0.0"
+    }
+}
