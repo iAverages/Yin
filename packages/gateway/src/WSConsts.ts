@@ -1,4 +1,4 @@
-export enum WSEvents {
+export enum DiscordEvents {
     "READY",
     "RESUMED",
     "APPLICATION_COMMAND_CREATE",

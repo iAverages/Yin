@@ -1,7 +1,7 @@
 import WS from "ws";
 import { Opcodes, DiscordEvents } from "./WSConsts";
 import { Base } from "./Base";
-import { DiscordPacket } from "./DiscordPacket";
+import { DiscordPacket } from "./packets/BasePacket";
 import { HelloPacket } from "./packets/HelloPacket";
 import { ReadyPacket } from "./packets/ReadyPacket";
 
@@ -24,14 +24,16 @@ export class WebSocket extends Base {
     public lastHeartbeatAcked: boolean = false;
 
     constructor() {
-        super("WebSocket");
+        super();
     }
 
     onOpen() {
         this.log.success("Connected to websocket!");
     }
 
-    onError(error: WS.ErrorEvent) {}
+    onError(error: WS.ErrorEvent) {
+        console.log(error);
+    }
 
     onMessage({ data }: WS.MessageEvent) {
         const packet: DiscordPacket = JSON.parse(data as string);
@@ -83,8 +85,8 @@ export class WebSocket extends Base {
                 this.sequence = -1;
                 this.sessionId = null;
                 break;
-
-            // default:
+            default:
+                console.log(packet);
             // Handle events
         }
     }

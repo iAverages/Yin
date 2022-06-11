@@ -5,17 +5,19 @@
     "license": "MIT",
     "type": "module",
     "dependencies": {
-        "@types/ws": "^7.4.7",
         "@yin/worker": "1.0.0",
         "bufferutil": "^4.0.3",
         "eventemitter3": "^4.0.7",
         "utf-8-validate": "^5.0.5",
         "ws": "^8.2.1"
     },
+    "devDependencies": {
+        "@types/ws": "^7.4.7"
+    },
     "scripts": {
         "build": "tsc",
         "start": "node --es-module-specifier-resolution=node dist/WebSocket.js",
         "dev:build": "tsc -w",
-        "dev:run": "nodemon --es-module-specifier-resolution=node dist/WebSocket.js"
+        "dev:start": "nodemon --es-module-specifier-resolution=node dist/WebSocket.js"
     }
 }
