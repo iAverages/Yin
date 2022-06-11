@@ -86,9 +86,13 @@ export class WebSocket extends Base {
                 this.sessionId = null;
                 break;
             default:
-                console.log(packet);
+                this.handlePacket(packet);
             // Handle events
         }
+    }
+
+    handlePacket(packet: DiscordPacket) {
+        console.log(packet);
     }
 
     identifyResume() {
