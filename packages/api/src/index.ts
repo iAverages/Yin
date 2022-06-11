@@ -1,4 +1,6 @@
-// import worker from "worker";
-import a from "@yin/worker";
+// // import worker from "worker";
+// import a from "@yin/worker";
 
-console.log(a);
+// console.log(a);
+
+export {};
