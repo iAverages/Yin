@@ -92,6 +92,7 @@ export class WebSocket extends Base {
     }
 
     handlePacket(packet: DiscordPacket) {
+        //
         console.log(packet);
     }
 
