@@ -8,11 +8,14 @@
         "@yin/worker": "1.0.0",
         "bufferutil": "^4.0.3",
         "eventemitter3": "^4.0.7",
+        "jest": "^28.1.1",
+        "typescript": "^4.7.3",
         "utf-8-validate": "^5.0.5",
         "ws": "^8.2.1"
     },
     "devDependencies": {
-        "@types/ws": "^7.4.7"
+        "@types/ws": "^7.4.7",
+        "jest": "^28.1.1"
     },
     "scripts": {
         "build": "tsc",
