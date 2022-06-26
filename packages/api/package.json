@@ -4,7 +4,7 @@
     "main": "src/index.js",
     "license": "MIT",
     "dependencies": {
-        "@yin/worker": "1.0.0"
+        "@iaverage/logger": "^1.1.3"
     },
     "devDependencies": {
         "jest": "^28.1.1",
