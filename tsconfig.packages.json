@@ -26,5 +26,5 @@
         "experimentalDecorators": true,
         "resolveJsonModule": true
     },
-    "references": [{ "path": "./packages/common" }]
+    "references": [{ "path": "./packages/common" }, { "path": "./packages/api" }, { "path": "./packages/gateway" }]
 }

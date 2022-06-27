@@ -16,5 +16,5 @@
         "forceConsistentCasingInFileNames": true,
         "skipLibCheck": true
     },
-    "references": [{ "path": "./packages/worker" }, { "path": "./packages/api" }, { "path": "./packages/gateway" }]
+    "references": [{ "path": "./packages/common" }, { "path": "./packages/api" }, { "path": "./packages/gateway" }]
 }
