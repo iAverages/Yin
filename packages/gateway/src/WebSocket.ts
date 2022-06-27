@@ -1,6 +1,6 @@
 import WS from "ws";
 import { Opcodes, DiscordEvents } from "./WSConsts";
-import { Base } from "./Base";
+import { Base } from "@yin/common";
 import { DiscordPacket } from "./packets/BasePacket";
 import { HelloPacket } from "./packets/HelloPacket";
 import { ReadyPacket } from "./packets/ReadyPacket";

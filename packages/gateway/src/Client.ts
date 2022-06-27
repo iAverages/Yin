@@ -1,4 +1,4 @@
-import { Base } from "./Base";
+import { Base } from "@yin/common";
 import { WebSocket } from "./WebSocket";
 
 export class Client extends Base {
