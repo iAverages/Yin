@@ -1,5 +1,6 @@
 import Snowflake from "../Snowflake";
 import { User, UserDiscordObject } from "./User";
+import { defineSnowflake } from "../utils/definer";
 
 export interface MessagePacket {
     id: string;
@@ -10,7 +11,7 @@ export interface MessagePacket {
     edited_timestamp: string;
     tts: boolean;
     mention_everyone: boolean;
-    mentions: Array<Object>; // TODO: chanage to Array<user>
+    mentions: Array<UserDiscordObject>; // TODO: chanage to Array<user>
     mention_roles: Array<Object>; // TODO: chanage to Array<roles>
     mention_channels?: Array<Object>; // TODO: chanage to Array<mention channels>
     attachments: Array<Object>; // TODO: chanage to Array<attachments>
@@ -36,13 +37,13 @@ export interface MessagePacket {
 export class Message {
     public readonly id: Snowflake;
     public readonly channel_id: Snowflake;
-    public readonly author: User; // TODO: chanage to user
+    public readonly author: User;
     public readonly content: string;
     public readonly timestamp: Date;
     public readonly editedTimestamp: Date;
     public readonly tts: boolean;
     public readonly mentionEveryone: boolean;
-    public readonly mentions: Array<Object>; // TODO: chanage to Array<user>
+    public readonly mentions: Array<User>;
     public readonly mentionRoles: Array<Object>; // TODO: chanage to Array<roles>
     public readonly mentionChannels?: Array<Object>; // TODO: chanage to Array<mention channels>
     public readonly attachments: Array<Object>; // TODO: chanage to Array<attachments>
@@ -50,11 +51,11 @@ export class Message {
     public readonly reactions?: Array<Object>; // TODO: chanage to Array<reactions>
     public readonly nonce?: number | string;
     public readonly pinned: boolean;
-    public readonly webhookId?: Snowflake;
+    public readonly webhookId?: Snowflake | null;
     public readonly type: number;
     public readonly activity?: Object; // TODO: Change to message activity
     public readonly application?: Partial<Object>; // TODO: Change to application
-    public readonly applicationId?: Snowflake;
+    public readonly applicationId?: Snowflake | null;
     public readonly messageReference?: Object; // TODO: Change to message reference
     public readonly flags?: number;
     public readonly referencedMessage?: Message;
@@ -81,11 +82,11 @@ export class Message {
         this.reactions = packet.reactions;
         this.nonce = packet.nonce;
         this.pinned = packet.pinned;
-        this.webhookId = this.defineSnowflake(packet.webhook_id);
+        this.webhookId = defineSnowflake(packet.webhook_id);
         this.type = packet.type;
         this.activity = packet.activity;
         this.application = packet.application;
-        this.applicationId = this.defineSnowflake(packet.application_id);
+        this.applicationId = defineSnowflake(packet.application_id);
         this.messageReference = packet.message_reference;
         this.flags = packet.flags;
         this.referencedMessage = packet.referenced_message;
@@ -100,10 +101,6 @@ export class Message {
     // https://discord.com/developers/docs/resources/channel#message-object
     public fromWebhook(): boolean {
         return !(this.webhookId == null);
-    }
-
-    private defineSnowflake(value: any): Snowflake | undefined {
-        return value ? new Snowflake(value) : undefined;
     }
 
     public reply(message: string) {}
