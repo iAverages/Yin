@@ -1,3 +1,4 @@
+import "source-map-support/register";
 import { Message } from "@yin/common";
 import { Client } from "./Client";
 

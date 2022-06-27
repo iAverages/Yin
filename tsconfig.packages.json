@@ -7,7 +7,7 @@
         "module": "ESNext",
         "lib": ["ESNext", "DOM"],
         "skipLibCheck": true,
-        "sourceMap": false,
+        "sourceMap": true,
         "allowJs": true,
         "moduleResolution": "node",
         "removeComments": true,
