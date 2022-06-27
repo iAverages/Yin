@@ -20,8 +20,8 @@
     },
     "scripts": {
         "build": "tsc",
-        "start": "node --es-module-specifier-resolution=node dist/WebSocket.js",
+        "start": "node --es-module-specifier-resolution=node dist/index.js",
         "dev:build": "tsc -w",
-        "dev:start": "nodemon --es-module-specifier-resolution=node dist/WebSocket.js"
+        "dev:start": "nodemon --es-module-specifier-resolution=node dist/index.js"
     }
 }
