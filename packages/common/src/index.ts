@@ -1,6 +1,4 @@
-// import worker from "worker";
-// import a from "@yin/worker";
-const a = "";
-console.log(a);
+import { Message, MessagePacket } from "./objects/Message";
 
-export default { gamer: "gamer" };
+export { Message, MessagePacket };
+export default { Message };
