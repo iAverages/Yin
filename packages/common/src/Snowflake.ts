@@ -4,7 +4,11 @@ export default class Snowflake {
     public readonly id: bigint;
 
     public constructor(id: string | bigint) {
-        this.id = BigInt(id);
+        try {
+            this.id = BigInt(id);
+        } catch {
+            throw TypeError("Invalid Snowflake");
+        }
     }
 
     public getTimestamp(): number {
