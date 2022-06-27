@@ -1,7 +1,6 @@
 {
     "extends": "../../tsconfig.packages.json",
     "include": ["./src/**/*.ts"],
-    // "references": [{ "path": "../common" }],
     "compilerOptions": {
         "outDir": "./dist",
         "baseUrl": "./src",
