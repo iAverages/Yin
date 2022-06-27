@@ -4,12 +4,15 @@ import { Base } from "./Base";
 import { DiscordPacket } from "./packets/BasePacket";
 import { HelloPacket } from "./packets/HelloPacket";
 import { ReadyPacket } from "./packets/ReadyPacket";
+import EventHandlers from "./events";
+import { Client } from "./Client";
 
 export class WebSocket extends Base {
     // Tmp while testing and experimenting
-    private readonly url = "wss://gateway.discord.gg/?v=9&encoding=json";
+    private readonly url = "wss://gateway.discord.gg/?v=10&encoding=json";
     private readonly token = "NDc5NTk5MjI5MDYxNDMxMjk4.W3VTlg.OXQDIVaHo9SbosDfv4s44ThNJ1s";
 
+    private core: Client;
     public id: string;
     private connection: WS;
     public sessionId: string | null;
@@ -23,8 +26,9 @@ export class WebSocket extends Base {
     public connectedAt: number = -1;
     public lastHeartbeatAcked: boolean = false;
 
-    constructor() {
+    constructor(core: Client) {
         super();
+        this.core = core;
     }
 
     onOpen() {
@@ -86,14 +90,24 @@ export class WebSocket extends Base {
                 this.sessionId = null;
                 break;
             default:
+                // Handle events
                 this.handlePacket(packet);
-            // Handle events
         }
     }
 
-    handlePacket(packet: DiscordPacket) {
-        //
-        console.log(packet);
+    async handlePacket(packet: DiscordPacket) {
+        if (!packet.t) {
+            this.log.debug(`Recevied packet with no event name`);
+            return;
+        }
+        try {
+            (await EventHandlers[packet.t]).default(this.core, packet);
+        } catch (e) {
+            console.log(e);
+            this.log.error(`Failed to handle ${packet.t} packet.`);
+            return;
+        }
+        this.log.info(`Got ${packet.t} packet`);
     }
 
     identifyResume() {
@@ -143,9 +157,9 @@ export class WebSocket extends Base {
             intents: 513,
             token: this.token,
             properties: {
-                $os: "linux",
-                $browser: "YinBot",
-                $device: "YinBot",
+                os: "linux",
+                browser: "Yin",
+                device: "Yin",
             },
         };
         this.send({ op: Opcodes.IDENTIFY, d });
@@ -185,5 +199,3 @@ export class WebSocket extends Base {
         this.log.info(`Setting heartbeat interval of ${time}ms.`);
     }
 }
-
-new WebSocket().connect();
