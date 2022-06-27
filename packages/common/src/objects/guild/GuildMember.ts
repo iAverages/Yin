@@ -13,6 +13,7 @@ export interface GuildMemberObject {
     permissions?: string;
     communication_disabled_until?: Date;
 }
+
 export class GuildMember {
     public readonly user?: User;
     public readonly nick?: string;

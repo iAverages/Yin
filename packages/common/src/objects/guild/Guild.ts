@@ -45,7 +45,7 @@ export interface GuideObject {
     premium_progress_bar_enabled: boolean;
 }
 
-export class Guide {
+export class Guild {
     public readonly id: Snowflake;
     public readonly name: string;
     public readonly icon: string | null;
