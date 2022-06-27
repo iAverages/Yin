@@ -1,7 +1,7 @@
 import Snowflake from "../../Snowflake";
 import { defineSnowflake } from "../../utils/definer";
 
-export interface GuideObject {
+export interface GuildObject {
     id: string;
     name: string;
     icon: string | null;
@@ -88,7 +88,7 @@ export class Guild {
     public readonly stickers?: Array<object>;
     public readonly premiumProgressBarEnabled: boolean;
 
-    constructor(packet: GuideObject) {
+    constructor(packet: GuildObject) {
         this.id = new Snowflake(packet.id);
         this.name = packet.name;
         this.icon = packet.icon;
