@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+
+  yin:
+    image: node:16.15.1
+    stop_grace_period: '1s'
+    tty: true
+    stdin_open: true
+    networks:
+      - yin
+    volumes:
+      - .:/home/node/
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    networks:
+      - yin
+
+  mongo:
+    image: mongo
+    restart: unless-stopped
+    volumes:
+      - mongodb:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: yin
+      MONGO_INITDB_ROOT_PASSWORD: yinbot
+
+networks:
+  yin:
+    driver: bridge
+
+volumes:
+  mongodb:
+    driver: local

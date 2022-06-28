@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [ "$1" == "enter" ]; then
+    # Connect to the main app container
+    ARGS+=(exec yin bash)
+else
+    # Handle other docker compose arguments
+    ARGS+=("$@")
+fi
+
+docker-compose -f docker-compose.dev.yml "${ARGS[@]}"
