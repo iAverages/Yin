@@ -17,7 +17,8 @@
     },
     "devDependencies": {
         "@types/ws": "^7.4.7",
-        "jest": "^28.1.1"
+        "jest": "^28.1.1",
+        "nodemon": "^2.0.18"
     },
     "scripts": {
         "build": "tsc",
