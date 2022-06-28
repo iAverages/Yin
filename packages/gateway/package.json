@@ -2,6 +2,7 @@
     "name": "@yin/gateway",
     "version": "1.0.0",
     "main": "src/index.js",
+    "types": "src/index.d.ts",
     "license": "MIT",
     "type": "module",
     "dependencies": {
@@ -25,7 +26,7 @@
         "build": "tsc",
         "start": "node --es-module-specifier-resolution=node dist/index.js",
         "dev": "concurrently \"yarn:dev:build\" \"yarn:dev:start\"",
-        "dev:build": "tsc -w",
+        "dev:build": "tsc -w --preserveWatchOutput",
         "dev:start": "nodemon --es-module-specifier-resolution=node dist/index.js"
     }
 }
