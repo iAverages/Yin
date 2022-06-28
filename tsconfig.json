@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         /* Basic Options */
-        "target": "es5",
+        "target": "ESNext",
         "module": "commonjs",
         "lib": ["ESNext", "DOM"],
 
