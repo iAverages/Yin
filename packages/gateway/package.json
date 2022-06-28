@@ -17,12 +17,14 @@
     },
     "devDependencies": {
         "@types/ws": "^7.4.7",
+        "concurrently": "^7.2.2",
         "jest": "^28.1.1",
         "nodemon": "^2.0.18"
     },
     "scripts": {
         "build": "tsc",
         "start": "node --es-module-specifier-resolution=node dist/index.js",
+        "dev": "concurrently \"yarn:dev:build\" \"yarn:dev:start\"",
         "dev:build": "tsc -w",
         "dev:start": "nodemon --es-module-specifier-resolution=node dist/index.js"
     }

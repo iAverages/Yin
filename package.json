@@ -14,7 +14,8 @@
         "common": "yarn workspace @yin/common",
         "gateway": "yarn workspace @yin/gateway",
         "worker": "yarn workspace @yin/worker",
-        "installAll": "node ./scripts/installAll.mjs"
+        "installAll": "node ./scripts/installAll.mjs",
+        "dev": "bash ./scripts/devStartAll.sh"
     },
     "devDependencies": {
         "jest": "^28.1.1",

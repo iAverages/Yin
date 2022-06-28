@@ -10,6 +10,7 @@
         "source-map-support": "^0.5.21"
     },
     "devDependencies": {
+        "concurrently": "^7.2.2",
         "jest": "^28.1.1",
         "nodemon": "^2.0.18",
         "typescript": "^4.7.3"
@@ -17,6 +18,7 @@
     "scripts": {
         "build": "tsc",
         "start": "node dist/index.js",
+        "dev": "concurrently \"yarn:dev:build\" \"yarn:dev:start\"",
         "dev:build": "tsc -w",
         "dev:start": "nodemon dist/index.js"
     }
