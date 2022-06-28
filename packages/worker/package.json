@@ -1,11 +1,13 @@
 {
     "name": "@yin/worker",
     "version": "1.0.0",
-    "main": "src/index.js",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
     "license": "MIT",
     "type": "module",
     "dependencies": {
         "@iaverage/logger": "^1.1.3",
+        "@yin/common": "1.0.0",
         "redis": "^4.1.0",
         "source-map-support": "^0.5.21"
     },
@@ -17,9 +19,9 @@
     },
     "scripts": {
         "build": "tsc",
-        "start": "node dist/index.js",
+        "start": "node --es-module-specifier-resolution=node dist/index.js",
         "dev": "concurrently \"yarn:dev:build\" \"yarn:dev:start\"",
-        "dev:build": "tsc -w",
-        "dev:start": "nodemon dist/index.js"
+        "dev:build": "tsc -w --preserveWatchOutput",
+        "dev:start": "nodemon --es-module-specifier-resolution=node dist/index.js"
     }
 }
