@@ -13,6 +13,7 @@
         "api": "yarn workspace @yin/api",
         "common": "yarn workspace @yin/common",
         "gateway": "yarn workspace @yin/gateway",
+        "worker": "yarn workspace @yin/worker",
         "installAll": "node ./scripts/installAll.mjs"
     },
     "devDependencies": {
