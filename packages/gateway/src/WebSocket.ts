@@ -129,8 +129,7 @@ export class WebSocket extends Base {
     }
 
     onClose(close: WS.CloseEvent) {
-        this.log.warn("Disconnected from websocket!");
-        this.log.warn(close);
+        close.wasClean && this.log.warn("Disconnected from websocket! Reason: " + close.reason);
     }
 
     ackHeartbeat() {
@@ -169,6 +168,7 @@ export class WebSocket extends Base {
         if (this.connection) {
             this.connection.close();
         }
+        this.connect();
     }
 
     destroy() {}
