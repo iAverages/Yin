@@ -100,6 +100,7 @@ export class WebSocket extends Base {
             return;
         }
         try {
+            this.log.debug(`Called packet handler for event ${packet.t}`);
             (await EventHandlers[packet.t]).default(this.core, packet);
         } catch (e) {
             console.log(e);
