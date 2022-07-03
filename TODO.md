@@ -1,5 +1,0 @@
-# TODO
-
-- [] Polls
-- [] Tickets
-- [] Analytics
