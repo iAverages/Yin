@@ -3,6 +3,9 @@
 if [ "$1" == "enter" ]; then
     # Connect to the main app container
     ARGS+=(exec yin bash)
+elif [ "$1" == "mongo" ]; then
+    # Connect to the main app container
+    ARGS+=(exec mongo bash)
 else
     # Handle other docker compose arguments
     ARGS+=("$@")
