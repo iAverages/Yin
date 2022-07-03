@@ -1,7 +1,7 @@
-// import {   } from "@yin/common";
+import { DiscordEvents } from "@yin/common";
 import { Client } from "../Client";
 import { DiscordPacket } from "../packets/BasePacket";
 
 export default (core: Client, packet: DiscordPacket) => {
-    core.emit("ready");
+    core.redis.publish(DiscordEvents.READY, packet);
 };
