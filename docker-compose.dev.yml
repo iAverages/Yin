@@ -13,6 +13,7 @@ services:
       - .:/home/node/
     environment:
       YIN_TOKEN: ${YIN_TOKEN}
+      NODE_ENV: development
 
   redis:
     image: redis:alpine
