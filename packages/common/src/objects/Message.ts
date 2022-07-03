@@ -103,5 +103,8 @@ export class Message {
         return !(this.webhookId == null);
     }
 
-    public reply(message: string) {}
+    public reply(message: string) {
+        // so i stop getting pinged about failed builds :3
+        console.log(message);
+    }
 }
