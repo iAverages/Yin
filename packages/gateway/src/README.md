@@ -1,3 +1,0 @@
-# Gateway
-
-gateway service

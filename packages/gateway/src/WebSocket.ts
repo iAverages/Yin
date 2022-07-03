@@ -8,9 +8,8 @@ import EventHandlers from "./events";
 import { Client } from "./Client";
 
 export class WebSocket extends Base {
-    // Tmp while testing and experimenting
     private readonly url = "wss://gateway.discord.gg/?v=10&encoding=json";
-    private readonly token = "NDc5NTk5MjI5MDYxNDMxMjk4.W3VTlg.OXQDIVaHo9SbosDfv4s44ThNJ1s";
+    private readonly token = process.env.YIN_TOKEN;
 
     private core: Client;
     public id: string;

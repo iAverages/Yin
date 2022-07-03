@@ -11,6 +11,8 @@ services:
       - yin
     volumes:
       - .:/home/node/
+    environment:
+      YIN_TOKEN: ${YIN_TOKEN}
 
   redis:
     image: redis:alpine
