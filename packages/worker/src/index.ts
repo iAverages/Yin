@@ -1,18 +1,19 @@
 import "source-map-support/register";
 
-import { createClient } from "redis";
-import { Message } from "@yin/common";
+import { Message, Redis } from "@yin/common";
+import log from "@iaverage/logger";
 
-const client = createClient({ url: "redis://redis:6379" });
-
-client.on("error", (err) => console.log("Failed to connect to Redis server", err));
+const client = new Redis();
 
 await client.connect();
 
-const subscriber = client.duplicate();
+client.on("error", (error) => {
+    log.error("Failed to connect to Redis");
+    log.error(error);
+    process.exit(1);
+});
 
-await subscriber.connect();
-await subscriber.subscribe("1.0.0:messageCreate", (data: string) => {
+client.subscribe("1.0.0:messageCreate", (data: string) => {
     console.log(`[1.0.0:messageCreate] ${data}`);
     if (data === "Testing listeniner") return;
     const message = new Message(JSON.parse(data));

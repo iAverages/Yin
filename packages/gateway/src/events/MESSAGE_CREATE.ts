@@ -7,5 +7,5 @@ export default (core: Client, packet: DiscordPacket<MessagePacket>) => {
         return;
     }
     // const message = new Message(packet.d);
-    core.redis.instance.publish("1.0.0:messageCreate", JSON.stringify(packet.d));
+    core.redis.publish("1.0.0:messageCreate", packet.d);
 };
