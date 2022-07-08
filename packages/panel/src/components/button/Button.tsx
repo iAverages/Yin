@@ -21,6 +21,7 @@ export const Button: FCWithChildren<ButtonProps> = ({ disabled, loading, childre
                     <Spinner color="white" />
                 </div>
             )}
+
             <span style={{ opacity: loading ? 0 : 100, ...(loading ? { transition: "opacity 0s" } : {}) }}>{children}</span>
         </BaseButton>
     );
