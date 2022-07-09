@@ -1,6 +1,6 @@
 import Wrapper from "./Spinner.style";
 
-interface SpinnerProps {
+export interface SpinnerProps {
     color?: string;
 }
 
