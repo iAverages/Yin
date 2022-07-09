@@ -1,11 +1,9 @@
-import { useState } from "react";
-import logo from "./logo.svg";
 import "./App.css";
 import Spinner from "./components/spinner/Spinner";
 import { Table } from "./components/spinner/table/Table";
 
 function App() {
-    const [count, setCount] = useState(0);
+    // const [count, setCount] = useState(0);
 
     return (
         <div className="App">

@@ -1,7 +1,7 @@
 import Wrapper from "./Spinner.style";
 
 interface SpinnerProps {
-    color: string;
+    color?: string;
 }
 
 export const Spinner: React.FC<SpinnerProps> = (props) => (
