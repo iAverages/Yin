@@ -5,7 +5,6 @@ import BaseButton from "./Button.style";
 export interface ButtonProps {
     loading?: boolean;
     disabled?: boolean;
-    variant?: any;
     fullWidth?: boolean;
 }
 
