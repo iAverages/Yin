@@ -1,6 +1,14 @@
-# Yin [![Build Status](<https://ci.danielraybone.com/app/rest/builds/buildType:(id:Yin_Build)/statusIcon>)](https://ci.danielraybone.com/buildConfiguration/Yin_Build?mode=branches&guest=1)
+# Yin
 
 A Micro Services Discord Bot built with Typescript, MongoDB and Redis.
+
+| Package                                               | Build Status                                                                                                                                                                                   |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Common                                                | [![Build Status](<https://ci.danielraybone.com/app/rest/builds/buildType:(id:Yin_Common)/statusIcon>)](https://ci.danielraybone.com/buildConfiguration/Yin_Common?mode=branches&guest=1)       |
+| Gateway                                               | [![Build Status](<https://ci.danielraybone.com/app/rest/builds/buildType:(id:Yin_Gateway)/statusIcon>)](https://ci.danielraybone.com/buildConfiguration/Yin_Gateway?mode=branches&guest=1)     |
+| Worker                                                | [![Build Status](<https://ci.danielraybone.com/app/rest/builds/buildType:(id:Yin_Worker)/statusIcon>)](https://ci.danielraybone.com/buildConfiguration/Yin_Worker?mode=branches&guest=1)       |
+| Panel                                                 | [![Build Status](<https://ci.danielraybone.com/app/rest/builds/buildType:(id:Yin_Panel)/statusIcon>)](https://ci.danielraybone.com/buildConfiguration/Yin_Panel?mode=branches&guest=1)         |
+| [Storybook](https://yin-storybook.danielraybone.com/) | [![Build Status](<https://ci.danielraybone.com/app/rest/builds/buildType:(id:Yin_Storybook)/statusIcon>)](https://ci.danielraybone.com/buildConfiguration/Yin_Storybook?mode=branches&guest=1) |
 
 ## Development
 
