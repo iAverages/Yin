@@ -1,5 +1,5 @@
 import { ThemeProvider } from "styled-components";
-import { FCWithChildren } from "./types/WithChildren";
+import { FCWithChildren } from "../types/WithChildren";
 import theme from "./yinTheme";
 
 export interface ThemeProps {}

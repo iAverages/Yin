@@ -1,4 +1,4 @@
-import { Theme } from "../src/Theme";
+import { Theme } from "../src/theme/Theme";
 import "../src/index.css";
 
 export const parameters = {
