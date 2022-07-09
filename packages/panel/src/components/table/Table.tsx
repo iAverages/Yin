@@ -1,8 +1,8 @@
-import { FCWithChildren } from "../../../types/WithChildren";
-import { isNoneEmptyArray } from "../../../utils";
+import { FCWithChildren } from "../../types/WithChildren";
+import { isNoneEmptyArray } from "../../utils";
 import { TableHeader, TableHeaderProp } from "./TableHeader";
 
-interface TableProps {
+export interface TableProps {
     header?: (string | TableHeaderProp)[] | undefined;
     autoAddBody?: boolean;
 }
@@ -22,3 +22,5 @@ export const Table: FCWithChildren<TableProps> = ({ children, header, autoAddBod
         {autoAddBody ? <tbody>{children}</tbody> : <>{children}</>}
     </table>
 );
+
+export default Table;
