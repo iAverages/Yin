@@ -1,6 +1,6 @@
 import "./App.css";
 import Spinner from "./components/spinner/Spinner";
-import { Table } from "./components/spinner/table/Table";
+import { Table } from "./components/table/Table";
 
 function App() {
     // const [count, setCount] = useState(0);
