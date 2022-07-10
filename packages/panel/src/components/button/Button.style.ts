@@ -5,7 +5,7 @@ export default styled.button<ButtonProps>`
     padding: 1rem;
     background-color: var(--primary);
     border: 0;
-    border-radius: 1em;
+    border-radius: ${(props) => props.theme.sizing.borderRadius};
     color: white;
     font-size: medium;
     font-weight: bold;
