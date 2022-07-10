@@ -9,5 +9,11 @@ declare module "styled-components" {
                 primaryDarker: string;
             };
         };
+        colors: {
+            grey: string[];
+        };
+        sizing: {
+            borderRadius: string;
+        };
     }
 }
