@@ -1,6 +1,7 @@
 import React from "react";
 import { FCWithChildren } from "../../types/WithChildren";
 import { isNoneEmptyArray } from "../../utils";
+import { ConditionalWrapper } from "../conditional/ConditionalWrapper";
 import Paper from "../paper/Paper";
 import TableStyle from "./Table.style";
 import { TableHeader, TableHeaderProp } from "./TableHeader";
@@ -17,7 +18,7 @@ export const Table: FCWithChildren<TableProps> = ({ children, header, autoAddBod
     return (
         <ContainerComponent>
             <TableStyle className={""} cellSpacing="0">
-                {isNoneEmptyArray(header) ? (
+                {isNoneEmptyArray(header) && (
                     <thead>
                         <tr>
                             {header.map((row, key) => {
@@ -28,10 +29,10 @@ export const Table: FCWithChildren<TableProps> = ({ children, header, autoAddBod
                             })}
                         </tr>
                     </thead>
-                ) : (
-                    <></>
                 )}
-                {autoAddBody ? <tbody>{children}</tbody> : <>{children}</>}
+                <ConditionalWrapper condition={autoAddBody} component={"tbody"}>
+                    {children}
+                </ConditionalWrapper>
             </TableStyle>
         </ContainerComponent>
     );
