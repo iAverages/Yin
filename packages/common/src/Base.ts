@@ -1,7 +1,6 @@
 import log from "@iaverage/logger";
-import EventEmitter from "eventemitter3";
 
-export class Base extends EventEmitter {
+export class Base {
     public readonly log = {
         debug: (m: any) => log.uwu(`[${this.constructor.name}] ${m}`),
         info: (m: any) => log.info(`[${this.constructor.name}] ${m}`),
