@@ -6,6 +6,9 @@ if [ "$1" == "enter" ]; then
 elif [ "$1" == "mongo" ]; then
     # Connect to the main app container
     ARGS+=(exec mongo bash)
+elif [ "$1" == "redis" ]; then
+    # Connect to the main app container
+    ARGS+=(exec redis redis-cli)
 else
     # Handle other docker compose arguments
     ARGS+=("$@")
