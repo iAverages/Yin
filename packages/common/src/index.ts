@@ -4,5 +4,7 @@ import { Guild, GuildObject } from "./objects/guild/Guild";
 import { Base } from "./Base";
 import { Redis } from "./Redis";
 import { DiscordEvents } from "./DiscordEvents";
+import { Service } from "./Service";
+import { ServiceType } from "./ServiceType";
 
-export { Message, MessagePacket, Base, Guild, GuildObject, Redis, DiscordEvents };
+export { Message, MessagePacket, Base, Guild, GuildObject, Redis, DiscordEvents, Service, ServiceType };
