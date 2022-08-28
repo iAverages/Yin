@@ -1,5 +1,4 @@
-import { Service } from "@yin/common";
-import { ServiceType } from "@yin/common/src/ServiceType";
+import { Service, ServiceType } from "@yin/common";
 import { WebSocket } from "./WebSocket";
 
 export class Client extends Service {

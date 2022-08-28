@@ -8,4 +8,4 @@ RUN yarn install && \
 
 ENV PACKAGE "null"
 
-ENTRYPOINT [ "node", "./scripts/docker-entry.sh" ]
+ENTRYPOINT [ "bash", "./scripts/docker-entry.sh" ]
