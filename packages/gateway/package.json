@@ -22,7 +22,7 @@
         "nodemon": "^2.0.18"
     },
     "scripts": {
-        "build": "tsc",
+        "build": "tsc --build --clean",
         "start": "node --es-module-specifier-resolution=node dist/index.js",
         "dev": "concurrently \"yarn:dev:build\" \"yarn:dev:start\"",
         "dev:build": "tsc -w --preserveWatchOutput",
