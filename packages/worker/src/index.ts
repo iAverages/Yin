@@ -1,5 +1,17 @@
 import "source-map-support/register";
 
+import { Service, ServiceType } from "@yin/common";
+
+export class Worker extends Service {
+    constructor() {
+        super(ServiceType.WORKER, "1.0.0");
+        this.registerService();
+        this.redis.subscribe("1.0.0:messageCreate", (data) => {
+            console.log(data);
+        });
+    }
+}
+
 console.log("");
 // import { Message, Redis } from "@yin/common";
 // import log from "@iaverage/logger";
