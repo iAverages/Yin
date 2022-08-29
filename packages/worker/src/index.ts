@@ -12,6 +12,7 @@ export class Worker extends Service {
     }
 }
 
+new Worker();
 console.log("");
 // import { Message, Redis } from "@yin/common";
 // import log from "@iaverage/logger";
@@ -23,6 +24,11 @@ console.log("");
 // //     log.error(error);
 // //     process.exit(1);
 // // });
+
+// echo "Building image..."
+// docker build -t localhost:5000/yinbot:latest .
+// echo "Pushing image to localhost:5000"
+// docker image push localhost:5000/yinbot
 
 // client.subscribe("1.0.0:messageCreate", (data: string) => {
 //     console.log(`[1.0.0:messageCreate] ${data}`);
