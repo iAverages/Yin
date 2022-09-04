@@ -11,6 +11,8 @@ declare module "styled-components" {
         };
         colors: {
             grey: string[];
+            red: string[];
+            error: string[];
         };
         sizing: {
             borderRadius: string;
