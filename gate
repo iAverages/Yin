@@ -4,10 +4,10 @@ if [ "$1" == "enter" ]; then
     # Connect to the main app container
     ARGS+=(exec yin bash)
 elif [ "$1" == "mongo" ]; then
-    # Connect to the main app container
+    # Connect to the mongo app container
     ARGS+=(exec mongo bash)
 elif [ "$1" == "redis" ]; then
-    # Connect to the main app container
+    # Connect to the redis app container
     ARGS+=(exec redis redis-cli)
 else
     # Handle other docker compose arguments
