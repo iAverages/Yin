@@ -1,5 +1,6 @@
 import { Service, ServiceType } from "@yin/common";
 import { WebSocket } from "./WebSocket";
+import { WorkRequest } from "./WorkRequest";
 
 export class Client extends Service {
     private websocket: WebSocket;
@@ -12,5 +13,10 @@ export class Client extends Service {
 
     getWebsocket(): WebSocket {
         return this.websocket;
+    }
+
+    work(channel: string, data: object) {
+        const workRequest = new WorkRequest(this, channel, data);
+        workRequest.request();
     }
 }

@@ -8,6 +8,7 @@
     "dependencies": {
         "@iaverage/logger": "^1.1.3",
         "@yin/common": "1.0.0",
+        "axios": "^0.27.2",
         "redis": "^4.1.0",
         "source-map-support": "^0.5.21"
     },
@@ -20,7 +21,7 @@
     "scripts": {
         "build": "tsc --build",
         "start": "node --es-module-specifier-resolution=node dist/index.js",
-        "dev": "concurrently \"yarn:dev:build\" \"yarn:dev:start\"",
+        "dev": "concurrently --handle-input \"yarn:dev:build\" \"yarn:dev:start\"",
         "dev:build": "tsc -w --preserveWatchOutput",
         "dev:start": "nodemon --es-module-specifier-resolution=node dist/index.js"
     }

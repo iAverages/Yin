@@ -6,6 +6,7 @@ import { HelloPacket } from "./packets/HelloPacket";
 import { ReadyPacket } from "./packets/ReadyPacket";
 import EventHandlers from "./events";
 import { Client } from "./Client";
+import { randomUUID } from "crypto";
 
 export class WebSocket extends Base {
     private readonly url = "wss://gateway.discord.gg/?v=10&encoding=json";
@@ -18,7 +19,7 @@ export class WebSocket extends Base {
     public expectedGuilds: any;
     private sequence: number = -1;
     private closeSequence: number = 0;
-    public ping: number;
+    public ping: number = -1;
     public lastPingTime: number = -1;
     public lastHeartbeat: boolean = false;
     private heartbeatTimer: NodeJS.Timer | null;
@@ -101,6 +102,12 @@ export class WebSocket extends Base {
         }
         try {
             this.log.debug(`Called packet handler for event ${packet.t}`);
+            if (!packet.d) {
+                packet.d = {};
+            }
+            packet.d._yinReqId = randomUUID();
+            // Maybe capture this info right as we receieve the event from discord
+            packet.d._yinProcessStart = process.hrtime.bigint().toString();
             (await EventHandlers[packet.t]).default(this.core, packet);
         } catch (e) {
             console.log(e);
@@ -153,7 +160,7 @@ export class WebSocket extends Base {
 
     identify() {
         const d = {
-            intents: 513,
+            intents: 3276799, // TODO: Change this later on, this number is everything for now
             token: this.token,
             properties: {
                 os: "linux",
@@ -178,6 +185,13 @@ export class WebSocket extends Base {
     }
 
     sendHeartbeat() {
+        // Second part of this (After ||) helps with network dropouts. I should
+        // Probably think of a better way to handle this but for now this will do :)
+        if ((!this.lastHeartbeatAcked && this.ping != -1) || this.lastPingTime + 600000 < Date.now()) {
+            this.log.warn("Last heartbeat did not ack, reconnecting to websocket.");
+            this.reconnect();
+            return;
+        }
         this.lastHeartbeatAcked = false;
         this.lastPingTime = Date.now();
         this.send({ op: Opcodes.HEARTBEAT, d: this.sequence });

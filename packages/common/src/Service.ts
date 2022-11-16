@@ -3,7 +3,7 @@ import { ServiceType } from "./ServiceType";
 import { randomUUID } from "crypto";
 import { Redis } from "./Redis";
 
-const REFRESH_MS = 25;
+const REFRESH_MS = 25 * 1000;
 
 export class Service extends Base {
     public readonly uuid: string;
@@ -22,21 +22,25 @@ export class Service extends Base {
     }
 
     public async registerService() {
-        this._redis.idenfity();
         await this.refreshServiceRegistion();
-        this.heartbeatTimer = setInterval(this.refreshServiceRegistion, REFRESH_MS);
+        this.heartbeatTimer = setInterval(() => this.refreshServiceRegistion(), REFRESH_MS);
     }
 
-    public deregister() {
+    // TODO: Actually use this function on shutdown
+    // I need to work out how to get async shut down logic
+    // otherwise this will never run correctly
+    public async deregister() {
         if (this.heartbeatTimer == null) {
+            this.log.warn(`deregister was called but heartbeatTimer timer was null`);
             return;
         }
         clearInterval(this.heartbeatTimer);
         this.heartbeatTimer = null;
+        await this._redis.removeIdentification();
     }
 
     private async refreshServiceRegistion() {
-        // this._redis.
+        await this._redis.identify();
     }
 
     get redis(): Redis {

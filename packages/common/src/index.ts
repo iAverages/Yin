@@ -6,5 +6,6 @@ import { Redis } from "./Redis";
 import { DiscordEvents } from "./DiscordEvents";
 import { Service } from "./Service";
 import { ServiceType } from "./ServiceType";
+import { Consts } from "./Consts";
 
-export { Message, MessagePacket, Base, Guild, GuildObject, Redis, DiscordEvents, Service, ServiceType };
+export { Message, MessagePacket, Base, Guild, GuildObject, Redis, DiscordEvents, Service, ServiceType, Consts };

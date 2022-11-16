@@ -24,7 +24,7 @@
     "scripts": {
         "build": "tsc --build",
         "start": "node --es-module-specifier-resolution=node dist/index.js",
-        "dev": "concurrently \"yarn:dev:build\" \"yarn:dev:start\"",
+        "dev": "concurrently --handle-input \"yarn:dev:build\" \"yarn:dev:start\"",
         "dev:build": "tsc -w --preserveWatchOutput",
         "dev:start": "nodemon --es-module-specifier-resolution=node dist/index.js"
     }

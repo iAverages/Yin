@@ -7,6 +7,6 @@ export default (core: Client, packet: DiscordPacket<GuildObject>) => {
         return;
     }
     // const guild = new Guild(packet.d);
-    core.redis.publish("1.0.0:messageCreate", packet.d);
+    core.redis.publish("dwad", packet.d);
     // core.emit("guildCreate", guild);
 };

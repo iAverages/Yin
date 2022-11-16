@@ -1,4 +1,4 @@
-export interface DiscordPacket<T extends Object = {}> {
+export interface DiscordPacket<T extends Object = { _yinReqId?: string; _yinProcessStart?: string }> {
     d?: T;
     op: number;
     s?: number;
