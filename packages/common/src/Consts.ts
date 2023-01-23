@@ -1,10 +1,7 @@
-export const Consts = {
-    redis: {
-        stream: "yin:events",
-        prefix: "yin",
-    },
+export const consts = {
     discord: {
         api: "",
         cdn: "",
+        gateway: "wss://gateway.discord.gg/?v=10&encoding=json"
     },
 };

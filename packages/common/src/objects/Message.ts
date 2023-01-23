@@ -1,4 +1,4 @@
-import Snowflake from "../Snowflake";
+import Snowflake from "../discord/Snowflake";
 import { User, UserDiscordObject } from "./User";
 import { defineSnowflake } from "../utils/definer";
 

@@ -1,4 +1,4 @@
-import Snowflake from "../../Snowflake";
+import Snowflake from "../../discord/Snowflake";
 import { defineSnowflake } from "../../utils/definer";
 
 export interface GuildObject {
