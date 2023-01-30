@@ -9,7 +9,7 @@ import { randomUUID } from "crypto";
 
 export class WebSocket {
     private url = consts.discord.gateway;
-    private readonly token = process.env.YIN_TOKEN;
+    private readonly token = process.env.DISCORD_TOKEN;
 
     public id: string;
     private connection: WS;
@@ -55,7 +55,7 @@ export class WebSocket {
 
     onMessage({ data }: WS.MessageEvent) {
         const packet: DiscordPacket = JSON.parse(data as string);
-        console.log(packet);
+        // console.log(packet);
         if (packet.s && packet.s > this.sequence) {
             this.sequence = packet.s;
         }
@@ -103,6 +103,7 @@ export class WebSocket {
                 }
                 this.sequence = -1;
                 this.sessionId = null;
+                this.disconnect();
                 break;
             default:
                 // Handle events
@@ -120,6 +121,8 @@ export class WebSocket {
         if (packet.d?.resumeGatewayUrl) {
             // @ts-ignore
             this.url = packet.d.resumeGatewayUrl;
+            // @ts-ignore
+            console.log("Setting new resume url", packet.d.resumeGatewayUrl);
         }
         try {
             this.log.debug(`Called packet handler for event ${packet.t}`);
@@ -158,6 +161,7 @@ export class WebSocket {
 
     onClose(close: WS.CloseEvent) {
         close.wasClean && this.log.warn("Disconnected from websocket! Reason: " + close.reason);
+        !close.wasClean && this.log.warn("Bad disconnect from websocket! Reason: " + close.reason);
     }
 
     ackHeartbeat() {
@@ -177,6 +181,10 @@ export class WebSocket {
         ws.onmessage = this.onMessage.bind(this);
         ws.onerror = this.onError.bind(this);
         ws.onclose = this.onClose.bind(this);
+    }
+
+    disconnect() {
+        this.connection.close();
     }
 
     identify() {
@@ -208,7 +216,7 @@ export class WebSocket {
     sendHeartbeat() {
         // Second part of this (After ||) helps with network dropouts. I should
         // Probably think of a better way to handle this but for now this will do :)
-        if ((!this.lastHeartbeatAcked && this.ping != -1) || this.lastPingTime + 600000 < Date.now()) {
+        if (!this.lastHeartbeatAcked && this.ping != -1) {
             this.log.warn("Last heartbeat did not ack, reconnecting to websocket.");
             this.reconnect();
             return;
