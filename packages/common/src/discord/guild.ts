@@ -33,6 +33,73 @@ export const guildFeatures = [
     "WELCOME_SCREEN_ENABLED",
 ] as const;
 
+export const integrationAccountSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+});
+
+export const integrationApplicationSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    icon: z.string().nullable(),
+    description: z.string(),
+    bot: userSchema.optional(),
+});
+
+export const integrationExpireBehaviors = [0, 1] as const;
+
+export const applicationScopes = [
+    "activities.read",
+    "activities.write",
+    "applications.builds.read",
+    "applications.builds.upload",
+    "applications.commands",
+    "applications.commands.update",
+    "applications.commands.permissions.update",
+    "applications.entitlements",
+    "applications.store.update",
+    "bot",
+    "connections",
+    "dm_channels.read",
+    "email",
+    "gdm.join",
+    "guilds",
+    "guilds.join",
+    "guilds.members.read",
+    "identify",
+    "messages.read",
+    "relationships.read",
+    "role_connections.write",
+    "rpc",
+    "rpc.activities.write",
+    "rpc.notifications.read",
+    "rpc.voice.read",
+    "rpc.voice.write",
+    "voice",
+    "webhook.incoming",
+] as const;
+
+export const integrationSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    type: z.string(),
+    enabled: z.boolean(),
+    syncing: z.boolean().optional(),
+    role_id: z.boolean().optional(),
+    enabled_emoticons: z.boolean().optional(),
+    // use enum with number?
+    // expire_behaviour: z.enum<number, number>(integrationExpireBehaviors).optional(),
+    expire_behaviour: z.number().optional(),
+    expire_grace_period: z.number().optional(),
+    user: userSchema.optional(),
+    account: integrationAccountSchema,
+    synced_at: z.date().optional(),
+    subscriber_count: z.number().optional(),
+    revoked: z.boolean().optional(),
+    application: integrationApplicationSchema,
+    scopes: z.array(z.enum(applicationScopes)),
+});
+
 export const welcomeScreenChannelSchema = z.object({
     channel_id: z.string(),
     description: z.string(),

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { guildSchema } from "./guild";
 import { userSchema } from "./user";
+import { channelSchema } from "./channel";
 
 export const webhookTypes = {
     1: "Incoming",
@@ -20,6 +21,7 @@ export const webhookSchema = z.object({
     avatar: z.string().nullable(),
     token: z.string().optional(),
     application_id: z.string().nullable(),
-    source_guild: guildSchema.partial(),
-    source_channel: 
+    source_guild: guildSchema.partial().optional(),
+    source_channel: channelSchema.partial().optional(),
+    url: z.string().optional(),
 });

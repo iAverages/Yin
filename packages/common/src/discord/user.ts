@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { integrationSchema } from "./guild";
 
 export const userSchema = z.object({
     id: z.string(),
@@ -19,3 +20,37 @@ export const userSchema = z.object({
 });
 
 export type User = z.infer<typeof userSchema>;
+
+export const services = [
+    "battlenet",
+    "ebay",
+    "epicgames",
+    "facebook",
+    "github",
+    "leagueoflegends",
+    "paypal",
+    "playstation",
+    "reddit",
+    "riotgames",
+    "spotify",
+    "skype",
+    "steam",
+    "tiktok",
+    "twitch",
+    "twitter",
+    "xbox",
+    "youtube",
+] as const;
+
+export const connectionSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    type: z.string(),
+    revoked: z.boolean().optional(),
+    integrations: z.array(integrationSchema).optional(),
+    verified: z.boolean(),
+    friend_sync: z.boolean(),
+    show_activity: z.boolean(),
+    two_way_link: z.boolean(),
+    visibility: z.number(),
+});
