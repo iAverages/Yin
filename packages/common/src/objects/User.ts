@@ -1,7 +1,5 @@
-import Snowflake from "../Snowflake";
-
 export interface UserDiscordObject {
-    id: Snowflake;
+    id: string;
     username: string;
     discriminator: string;
     avatar: string;
@@ -19,7 +17,7 @@ export interface UserDiscordObject {
 }
 
 export class User {
-    public id: Snowflake;
+    public id: string;
     public username: string;
     public discriminator: string;
     public avatar: string;

@@ -1,4 +1,4 @@
-import Snowflake from "../discord/Snowflake";
+// import Snowflake from "../discord/Snowflake";
 import { User, UserDiscordObject } from "./User";
 import { defineSnowflake } from "../utils/definer";
 
@@ -35,8 +35,8 @@ export interface MessagePacket {
 }
 
 export class Message {
-    public readonly id: Snowflake;
-    public readonly channel_id: Snowflake;
+    public readonly id: string;
+    public readonly channel_id: string;
     public readonly author: User;
     public readonly content: string;
     public readonly timestamp: Date;
@@ -51,11 +51,11 @@ export class Message {
     public readonly reactions?: Array<Object>; // TODO: chanage to Array<reactions>
     public readonly nonce?: number | string;
     public readonly pinned: boolean;
-    public readonly webhookId?: Snowflake | null;
+    public readonly webhookId?: string | null;
     public readonly type: number;
     public readonly activity?: Object; // TODO: Change to message activity
     public readonly application?: Partial<Object>; // TODO: Change to application
-    public readonly applicationId?: Snowflake | null;
+    public readonly applicationId?: string | null;
     public readonly messageReference?: Object; // TODO: Change to message reference
     public readonly flags?: number;
     public readonly referencedMessage?: Message;
@@ -66,8 +66,8 @@ export class Message {
     public readonly stickers?: Array<Object>; // TODO: Change to stickers
 
     constructor(packet: MessagePacket) {
-        this.id = new Snowflake(packet.id);
-        this.channel_id = new Snowflake(packet.channel_id);
+        this.id = packet.id;
+        this.channel_id = packet.channel_id;
         this.author = new User(packet.author);
         this.content = packet.content;
         this.timestamp = new Date(packet.timestamp);

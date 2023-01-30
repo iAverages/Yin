@@ -1,4 +1,3 @@
-import Snowflake from "../../discord/Snowflake";
 import { defineSnowflake } from "../../utils/definer";
 
 export interface GuildObject {
@@ -46,20 +45,20 @@ export interface GuildObject {
 }
 
 export class Guild {
-    public readonly id: Snowflake;
+    public readonly id: string;
     public readonly name: string;
     public readonly icon: string | null;
     public readonly iconHash?: string | null;
     public readonly splash: string | null;
     public readonly discoverySplash: string | null;
     public readonly owner?: boolean;
-    public readonly ownerId: Snowflake;
+    public readonly ownerId: string;
     public readonly permissions?: string;
     public readonly region?: string | null;
-    public readonly afkChannelId: Snowflake | null;
+    public readonly afkChannelId: string | null;
     public readonly afkTimeout: number;
     public readonly widgetEnabled?: boolean;
-    public readonly widgetChannelId?: Snowflake | null;
+    public readonly widgetChannelId?: string | null;
     public readonly verificationLevel: number;
     public readonly defaultMessageNotifications: number;
     public readonly explicitContentFilter: number;
@@ -67,10 +66,10 @@ export class Guild {
     public readonly emojis: Array<object>;
     public readonly features: Array<object>;
     public readonly mfaLevel: number;
-    public readonly applicationId: Snowflake | null;
-    public readonly systemChannelId: Snowflake | null;
+    public readonly applicationId: string | null;
+    public readonly systemChannelId: string | null;
     public readonly systemChannelFlags: number;
-    public readonly rulesChannelId: Snowflake | null;
+    public readonly rulesChannelId: string | null;
     public readonly maxPresences?: number | null;
     public readonly maxMembers?: number;
     public readonly vanityUrlCode: string | null;
@@ -79,7 +78,7 @@ export class Guild {
     public readonly premiumTier: number;
     public readonly premiumSubscriptionCount?: number;
     public readonly preferredLocale: string;
-    public readonly publicUpdatesChannelId: Snowflake | null;
+    public readonly publicUpdatesChannelId: string | null;
     public readonly maxVideoChannelUsers?: number;
     public readonly approximateMemberCount?: number;
     public readonly approximatePresenceCount?: number;
@@ -89,14 +88,14 @@ export class Guild {
     public readonly premiumProgressBarEnabled: boolean;
 
     constructor(packet: GuildObject) {
-        this.id = new Snowflake(packet.id);
+        this.id = packet.id;
         this.name = packet.name;
         this.icon = packet.icon;
         this.iconHash = packet.icon_hash;
         this.splash = packet.splash;
         this.discoverySplash = packet.discovery_splash;
         this.owner = packet.owner;
-        this.ownerId = new Snowflake(packet.owner_id);
+        this.ownerId = packet.owner_id;
         this.permissions = packet.permissions;
         this.region = packet.region;
         this.afkChannelId = defineSnowflake(packet.afk_channel_id);

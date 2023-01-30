@@ -8,7 +8,7 @@ import EventHandlers from "./events";
 import { randomUUID } from "crypto";
 
 export class WebSocket {
-    private readonly url = consts.discord.gateway;
+    private url = consts.discord.gateway;
     private readonly token = process.env.YIN_TOKEN;
 
     public id: string;
@@ -24,27 +24,26 @@ export class WebSocket {
     public connectedAt: number = -1;
     public lastHeartbeatAcked: boolean = false;
 
-    constructor() { 
-    }
+    constructor() {}
 
     // tmp until I sort out logger again
     private log = {
         success: (...props: any[]) => {
-            console.log(...props)
+            console.log(...props);
         },
-        info: (...props: any[]) =>{
-            console.log(...props)
+        info: (...props: any[]) => {
+            console.log(...props);
         },
-        warn: (...props: any[]) =>{
-            console.warn(...props)
+        warn: (...props: any[]) => {
+            console.warn(...props);
         },
-        debug: (...props: any[]) =>{
-            console.log(...props)
+        debug: (...props: any[]) => {
+            console.log(...props);
         },
-        error: (...props: any[]) =>{
-            console.error(...props)
-        }
-    } 
+        error: (...props: any[]) => {
+            console.error(...props);
+        },
+    };
 
     onOpen() {
         this.log.success("Connected to websocket!");
@@ -56,6 +55,7 @@ export class WebSocket {
 
     onMessage({ data }: WS.MessageEvent) {
         const packet: DiscordPacket = JSON.parse(data as string);
+        console.log(packet);
         if (packet.s && packet.s > this.sequence) {
             this.sequence = packet.s;
         }
@@ -115,6 +115,12 @@ export class WebSocket {
             this.log.debug(`Recevied packet with no event name`);
             return;
         }
+
+        // @ts-ignore
+        if (packet.d?.resumeGatewayUrl) {
+            // @ts-ignore
+            this.url = packet.d.resumeGatewayUrl;
+        }
         try {
             this.log.debug(`Called packet handler for event ${packet.t}`);
             if (!packet.d) {
@@ -123,7 +129,7 @@ export class WebSocket {
             packet.d._yinReqId = randomUUID();
             // Maybe capture this info right as we receieve the event from discord
             packet.d._yinProcessStart = process.hrtime.bigint().toString();
-            (await EventHandlers[packet.t]).default(this.core, packet);
+            (await EventHandlers[packet.t]).default(packet);
         } catch (e) {
             console.log(e);
             this.log.error(`Failed to handle ${packet.t} packet.`);

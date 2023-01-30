@@ -81,4 +81,4 @@ type Thread = {
     member: {};
 };
 
-type TextChannel = Channel | Thread;
+export type TextChannel = Channel | Thread;

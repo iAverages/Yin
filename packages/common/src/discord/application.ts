@@ -1,1 +1,1 @@
-applicationRoleConnectionMetadata;
+export {};
