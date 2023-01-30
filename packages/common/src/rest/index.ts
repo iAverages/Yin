@@ -16,7 +16,7 @@ type Props<T> = {
     method: Http;
     body?: Record<string, any>;
     queryParams?: Record<string, JsonValue>;
-    schema: z.ZodObject<any>;
+    schema: z.AnyZodObject;
 };
 
 export const makeUrl = <T extends Routes>(url: string, parts: UrlParts<T>) => {
