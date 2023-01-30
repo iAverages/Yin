@@ -1,11 +1,8 @@
 import "source-map-support/register";
 import { Message, MessagePacket } from "./objects/Message";
 import { Guild, GuildObject } from "./objects/guild/Guild";
-import { Base } from "./Base";
-import { Redis } from "./Redis";
-import { DiscordEvents } from "./DiscordEvents";
-import { Service } from "./Service";
-import { ServiceType } from "./ServiceType";
-import { Consts } from "./Consts";
+import { DiscordEvents } from "./discord/events";
+import { consts } from "./consts";
+import { schema as envSchema } from "./env/schema";
 
-export { Message, MessagePacket, Base, Guild, GuildObject, Redis, DiscordEvents, Service, ServiceType, Consts };
+export { Message, MessagePacket, Guild, GuildObject, DiscordEvents, consts, envSchema };

@@ -1,18 +1,16 @@
 import WS from "ws";
 import { Opcodes, DiscordEvents } from "./WSConsts";
-import { Base } from "@yin/common";
+import { consts } from "@yin/common";
 import { DiscordPacket } from "./packets/BasePacket";
 import { HelloPacket } from "./packets/HelloPacket";
 import { ReadyPacket } from "./packets/ReadyPacket";
 import EventHandlers from "./events";
-import { Client } from "./Client";
 import { randomUUID } from "crypto";
 
-export class WebSocket extends Base {
-    private readonly url = "wss://gateway.discord.gg/?v=10&encoding=json";
+export class WebSocket {
+    private readonly url = consts.discord.gateway;
     private readonly token = process.env.YIN_TOKEN;
 
-    private core: Client;
     public id: string;
     private connection: WS;
     public sessionId: string | null;
@@ -26,10 +24,27 @@ export class WebSocket extends Base {
     public connectedAt: number = -1;
     public lastHeartbeatAcked: boolean = false;
 
-    constructor(core: Client) {
-        super();
-        this.core = core;
+    constructor() { 
     }
+
+    // tmp until I sort out logger again
+    private log = {
+        success: (...props: any[]) => {
+            console.log(...props)
+        },
+        info: (...props: any[]) =>{
+            console.log(...props)
+        },
+        warn: (...props: any[]) =>{
+            console.warn(...props)
+        },
+        debug: (...props: any[]) =>{
+            console.log(...props)
+        },
+        error: (...props: any[]) =>{
+            console.error(...props)
+        }
+    } 
 
     onOpen() {
         this.log.success("Connected to websocket!");
@@ -46,7 +61,7 @@ export class WebSocket extends Base {
         }
 
         if (packet.t != null) {
-            switch (parseInt(packet.t)) {
+            switch (packet.t) {
                 case DiscordEvents.READY:
                     const readyData = packet.d as ReadyPacket;
                     this.sessionId = readyData.session_id;
