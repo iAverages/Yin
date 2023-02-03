@@ -1,41 +1,19 @@
 version: '3.8'
 
 services:
-
-  yin:
-    image: node:16.15.1
-    stop_grace_period: '1s'
-    tty: true
-    stdin_open: true
-    networks:
-      - yin
-    volumes:
-      - .:/home/node/
-    environment:
-      YIN_TOKEN: ${YIN_TOKEN}
-      NODE_ENV: development
-
-  redis:
-    image: redis:alpine
-    restart: unless-stopped
-    networks:
-      - yin
-
-  mongo:
-    image: mongo
+  mysql:
+    image: mysql:8.0.26
     restart: unless-stopped
     ports:
-      - 27017:27017
+      - 3306:3306
     volumes:
-      - mongodb:/data/db
+      - mysql:/var/lib/mysql
     environment:
-      MONGO_INITDB_ROOT_USERNAME: yin
-      MONGO_INITDB_ROOT_PASSWORD: yinbot
-
-networks:
-  yin:
-    driver: bridge
+      MYSQL_ROOT_PASSWORD: yin
+      MYSQL_DATABASE: yin
+      MYSQL_USER: yin
+      MYSQL_PASSWORD: yin
 
 volumes:
-  mongodb:
+  mysql:
     driver: local

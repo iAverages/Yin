@@ -6,14 +6,19 @@
     "license": "GPL-3.0",
     "type": "module",
     "dependencies": {
+        "@prisma/client": "^4.9.0",
+        "dotenv-cli": "^7.0.0",
         "source-map-support": "^0.5.21"
     },
     "devDependencies": {
+        "prisma": "^4.9.0",
         "typescript": "^4.7.3"
     },
     "scripts": {
         "build": "tsc --build",
-        "dev": "yarn run dev:build",
-        "dev:build": "tsc -w --preserveWatchOutput"
+        "dev": "yarn with-env run dev:build",
+        "dev:build": "tsc -w --preserveWatchOutput",
+        "with-env": "dotenv -e ../../.env --",
+        "prisma": "yarn with-env prisma"
     }
 }
