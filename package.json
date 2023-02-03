@@ -7,7 +7,8 @@
     "author": "Daniel Raybone",
     "license": "MIT",
     "workspaces": [
-        "packages/*"
+        "packages/*",
+        "services/*"
     ],
     "scripts": {
         "api": "yarn workspace @yin/api",
