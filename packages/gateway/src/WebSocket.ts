@@ -1,18 +1,16 @@
 import WS from "ws";
 import { Opcodes, DiscordEvents } from "./WSConsts";
-import { Base } from "@yin/common";
+import { consts } from "@yin/common";
 import { DiscordPacket } from "./packets/BasePacket";
 import { HelloPacket } from "./packets/HelloPacket";
 import { ReadyPacket } from "./packets/ReadyPacket";
 import EventHandlers from "./events";
-import { Client } from "./Client";
 import { randomUUID } from "crypto";
 
-export class WebSocket extends Base {
-    private readonly url = "wss://gateway.discord.gg/?v=10&encoding=json";
-    private readonly token = process.env.YIN_TOKEN;
+export class WebSocket {
+    private url = consts.discord.gateway;
+    private readonly token = process.env.DISCORD_TOKEN;
 
-    private core: Client;
     public id: string;
     private connection: WS;
     public sessionId: string | null;
@@ -26,10 +24,26 @@ export class WebSocket extends Base {
     public connectedAt: number = -1;
     public lastHeartbeatAcked: boolean = false;
 
-    constructor(core: Client) {
-        super();
-        this.core = core;
-    }
+    constructor() {}
+
+    // tmp until I sort out logger again
+    private log = {
+        success: (...props: any[]) => {
+            console.log(...props);
+        },
+        info: (...props: any[]) => {
+            console.log(...props);
+        },
+        warn: (...props: any[]) => {
+            console.warn(...props);
+        },
+        debug: (...props: any[]) => {
+            console.log(...props);
+        },
+        error: (...props: any[]) => {
+            console.error(...props);
+        },
+    };
 
     onOpen() {
         this.log.success("Connected to websocket!");
@@ -41,12 +55,13 @@ export class WebSocket extends Base {
 
     onMessage({ data }: WS.MessageEvent) {
         const packet: DiscordPacket = JSON.parse(data as string);
+        // console.log(packet);
         if (packet.s && packet.s > this.sequence) {
             this.sequence = packet.s;
         }
 
         if (packet.t != null) {
-            switch (parseInt(packet.t)) {
+            switch (packet.t) {
                 case DiscordEvents.READY:
                     const readyData = packet.d as ReadyPacket;
                     this.sessionId = readyData.session_id;
@@ -88,6 +103,7 @@ export class WebSocket extends Base {
                 }
                 this.sequence = -1;
                 this.sessionId = null;
+                this.disconnect();
                 break;
             default:
                 // Handle events
@@ -100,6 +116,14 @@ export class WebSocket extends Base {
             this.log.debug(`Recevied packet with no event name`);
             return;
         }
+
+        // @ts-ignore
+        if (packet.d?.resumeGatewayUrl) {
+            // @ts-ignore
+            this.url = packet.d.resumeGatewayUrl;
+            // @ts-ignore
+            console.log("Setting new resume url", packet.d.resumeGatewayUrl);
+        }
         try {
             this.log.debug(`Called packet handler for event ${packet.t}`);
             if (!packet.d) {
@@ -108,7 +132,7 @@ export class WebSocket extends Base {
             packet.d._yinReqId = randomUUID();
             // Maybe capture this info right as we receieve the event from discord
             packet.d._yinProcessStart = process.hrtime.bigint().toString();
-            (await EventHandlers[packet.t]).default(this.core, packet);
+            (await EventHandlers[packet.t]).default(packet);
         } catch (e) {
             console.log(e);
             this.log.error(`Failed to handle ${packet.t} packet.`);
@@ -137,6 +161,7 @@ export class WebSocket extends Base {
 
     onClose(close: WS.CloseEvent) {
         close.wasClean && this.log.warn("Disconnected from websocket! Reason: " + close.reason);
+        !close.wasClean && this.log.warn("Bad disconnect from websocket! Reason: " + close.reason);
     }
 
     ackHeartbeat() {
@@ -156,6 +181,10 @@ export class WebSocket extends Base {
         ws.onmessage = this.onMessage.bind(this);
         ws.onerror = this.onError.bind(this);
         ws.onclose = this.onClose.bind(this);
+    }
+
+    disconnect() {
+        this.connection.close();
     }
 
     identify() {
@@ -187,7 +216,7 @@ export class WebSocket extends Base {
     sendHeartbeat() {
         // Second part of this (After ||) helps with network dropouts. I should
         // Probably think of a better way to handle this but for now this will do :)
-        if ((!this.lastHeartbeatAcked && this.ping != -1) || this.lastPingTime + 600000 < Date.now()) {
+        if (!this.lastHeartbeatAcked && this.ping != -1) {
             this.log.warn("Last heartbeat did not ack, reconnecting to websocket.");
             this.reconnect();
             return;

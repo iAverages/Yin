@@ -1,20 +1,9 @@
+// Makes logs use ts mappings
 import "source-map-support/register";
-// import { Guild, Message } from "@yin/common";
-import { Client } from "./Client";
+import { WebSocket } from "./WebSocket";
+import { validateEnvVars } from "@yin/common";
 
-const client = new Client();
-client.getWebsocket().connect();
+validateEnvVars();
 
-// client.on("messageCreate", (message: Message) => {
-//     console.log(message);
-//     console.log("Got message create event");
-// });
-
-// client.on("ready", () => {
-//     console.log("READY!!");
-// });
-
-// client.on("guildCreate", (guild: Guild) => {
-//     console.log("Created Guild");
-//     console.log(guild);
-// });
+const socket = new WebSocket();
+socket.connect();

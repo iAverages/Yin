@@ -1,7 +1,6 @@
-import { DiscordEvents } from "@yin/common";
-import { Client } from "../Client";
 import { DiscordPacket } from "../packets/BasePacket";
 
-export default (core: Client, packet: DiscordPacket) => {
-    core.redis.publish(DiscordEvents.READY, packet);
+export default (_packet: DiscordPacket<any>) => {
+    // core.redis.publish(DiscordEvents.READY, packet);
+    console.log("Ready packet recevied");
 };
