@@ -5,7 +5,7 @@
     "main": "index.js",
     "repository": "https://github.com/iAverages/Yin.git",
     "author": "Daniel Raybone",
-    "license": "MIT",
+    "license": "GPL-3.0",
     "workspaces": [
         "packages/*",
         "services/*"

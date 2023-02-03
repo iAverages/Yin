@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
-    "license": "MIT",
+    "license": "GPL-3.0",
     "type": "module",
     "dependencies": {
         "@iaverage/logger": "^1.1.3",
