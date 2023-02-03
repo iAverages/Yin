@@ -26,10 +26,12 @@
         "experimentalDecorators": true,
         "resolveJsonModule": true
     },
+    // This doesnt get picked up correctly by configs
+    // that extend this one. Annoying but it is here anyway
     "references": [
         { "path": "./packages/common" },
-        { "path": "./packages/api" },
-        { "path": "./packages/gateway" },
-        { "path": "./packages/worker" }
+        { "path": "./packages/trpc" },
+        { "path": "./packages/db" },
+        { "path": "./packages/auth" }
     ]
 }
