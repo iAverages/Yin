@@ -1,8 +1,8 @@
 "api":
-  - "packages/api"
+  - "packages/api/**"
 "gateway": 
-  - "packages/gateway"
+  - "packages/gateway/**"
 "panel": 
-  - "packages/panel"
+  - "packages/panel/**"
 "worker": 
-  - "packages/worker"
+  - "packages/worker/**"
