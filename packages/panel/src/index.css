@@ -5,5 +5,5 @@
 html,
 head,
 body {
-  @apply bg-slate-900 text-white;
+    @apply bg-neutral-800 text-white w-full h-full;
 }
