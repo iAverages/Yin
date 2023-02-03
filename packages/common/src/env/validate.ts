@@ -1,5 +1,5 @@
 import { globalSchema } from "./schema";
-import type { z, ZodFormattedError } from "zod";
+import { z, type ZodFormattedError } from "zod";
 
 export const formatErrors = (errors: ZodFormattedError<Map<string, string>, string>) =>
     Object.entries(errors)
@@ -8,7 +8,7 @@ export const formatErrors = (errors: ZodFormattedError<Map<string, string>, stri
         })
         .filter(Boolean);
 
-export const validateEnvVars = (passedSchema: z.AnyZodObject) => {
+export const validateEnvVars = (passedSchema: z.AnyZodObject = z.object({})) => {
     const schema = passedSchema.merge(globalSchema);
     const _serverEnv = schema.safeParse(process.env);
 

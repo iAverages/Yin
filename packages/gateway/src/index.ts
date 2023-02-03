@@ -1,14 +1,9 @@
 // Makes logs use ts mappings
 import "source-map-support/register";
 import { WebSocket } from "./WebSocket";
-// import { validateEnvVars } from "@yin/common";
-// import { z } from "zod";
+import { validateEnvVars } from "@yin/common";
 
-// validateEnvVars(
-//     z.object({
-//         TEST: z.string(),
-//     })
-// );
+validateEnvVars();
 
 const socket = new WebSocket();
 socket.connect();
