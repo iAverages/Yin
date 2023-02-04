@@ -4,7 +4,16 @@
     "pipeline": {
         "build": {
             "dependsOn": ["^build"],
-            "outputs": [".next/**", "dist/**"]
+            "outputs": [".next/**", "dist/**"],
+            "inputs": [
+                "package.json",
+                "next.config.js",
+                "tsconfig.json",
+                "tsconfig.build.json",
+                "src/**",
+                "public/**",
+                "prisma/schema.prisma"
+            ]
         },
         "db:generate": {
             "inputs": ["prisma/schema.prisma"],

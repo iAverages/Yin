@@ -1,3 +1,5 @@
+import sourceMapSupport from "source-map-support";
+sourceMapSupport.install();
 import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
 import fastify from "fastify";
 import { appRouter, createContext } from "@yin/trpc";
