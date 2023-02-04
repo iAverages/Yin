@@ -12,7 +12,7 @@ server.register(fastifyTRPCPlugin, {
     trpcOptions: { router: appRouter, createContext },
 });
 
-server.get("/", async () => {
+server.get("/get", async () => {
     await prisma.guild.create({
         data: {
             id: "123",
@@ -24,14 +24,9 @@ server.get("/", async () => {
 
 (async () => {
     try {
-        await server.listen({ port: 3000 });
+        await server.listen({ port: 3001 });
     } catch (err) {
         server.log.error(err);
         process.exit(1);
     }
 })();
-
-// work out turbo repo
-// work out why i do not need "build" scripts on db package
-//  - can i do this for packages?
-// checkout and pr this please thanks

@@ -1,5 +1,5 @@
 // Makes logs use ts mappings
-import "source-map-support/register";
+// import "source-map-support/register";
 import { WebSocket } from "./WebSocket";
 import { validateEnvVars } from "@yin/common";
 

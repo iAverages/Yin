@@ -8,6 +8,7 @@
     "license": "GPL-3.0",
     "workspaces": [
         "packages/*",
+        "packages/config/*",
         "services/*"
     ],
     "scripts": {
@@ -20,7 +21,11 @@
         "auth": "yarn workspace @yin/auth",
         "trpc": "yarn workspace @yin/trpc",
         "installAll": "node ./scripts/installAll.mjs",
-        "clean": "turbo run clean && rm -rf node_modules"
+        "clean": "turbo run clean && rm -rf node_modules",
+        "build": "turbo run build",
+        "dev": "turbo run dev",
+        "dev:web": "turbo run dev --scope @yin/panel --scope @yin/api",
+        "dev:bot": "turbo run dev --scope \\!@yin/panel --scope \\!@yin/api"
     },
     "devDependencies": {
         "jest": "^28.1.1",

@@ -1,0 +1,16 @@
+{
+    "name": "@yin/tsup",
+    "version": "0.1.0",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "license": "GPL-3.0",
+    "type": "module",
+    "devDependencies": {
+        "tsup": "^6.5.0",
+        "typescript": "^4.7.3"
+    },
+    "scripts": {
+        "clean": "rm -rf .turbo node_modules dist",
+        "build": "tsc"
+    }
+}
