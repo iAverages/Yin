@@ -20,12 +20,12 @@
         "auth": "yarn workspace @yin/auth",
         "trpc": "yarn workspace @yin/trpc",
         "installAll": "node ./scripts/installAll.mjs",
-        "dev": "bash ./scripts/devStartAll.sh",
-        "build": "bash ./scripts/buildAll.sh"
+        "clean": "turbo run clean && rm -rf node_modules"
     },
     "devDependencies": {
         "jest": "^28.1.1",
         "ora": "^6.1.0",
-        "typescript": "^4.7.3"
+        "typescript": "^4.7.3",
+        "turbo": "^1.7.3"
     }
 }

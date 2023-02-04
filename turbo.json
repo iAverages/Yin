@@ -1,0 +1,20 @@
+{
+    "$schema": "https://turbo.build/schema.json",
+    "pipeline": {
+        "build": {
+            "dependsOn": ["^build"],
+            "outputs": [".next/**", "dist/**"]
+        },
+        "db:generate": {
+            "inputs": ["prisma/schema.prisma"],
+            "cache": false
+        },
+        "db:push": {
+            "inputs": ["prisma/schema.prisma"],
+            "cache": false
+        },
+        "clean": {
+            "cache": false
+        }
+    }
+}
