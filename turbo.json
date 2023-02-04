@@ -1,0 +1,35 @@
+{
+    "$schema": "https://turbo.build/schema.json",
+    "globalDependencies": [".env"],
+    "pipeline": {
+        "build": {
+            "dependsOn": ["^build"],
+            "outputs": [".next/**", "dist/**"],
+            "inputs": [
+                "package.json",
+                "next.config.js",
+                "tsconfig.json",
+                "tsconfig.build.json",
+                "src/**",
+                "public/**",
+                "prisma/schema.prisma"
+            ]
+        },
+        "db:generate": {
+            "inputs": ["prisma/schema.prisma"],
+            "cache": false
+        },
+        "db:push": {
+            "inputs": ["prisma/schema.prisma"],
+            "cache": false
+        },
+        "clean": {
+            "cache": false
+        },
+        "dev": {
+            "dependsOn": ["^db:generate"],
+            "cache": false,
+            "persistent": true
+        }
+    }
+}

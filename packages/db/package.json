@@ -1,8 +1,8 @@
 {
     "name": "@yin/db",
-    "version": "1.0.0",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
+    "version": "0.1.0",
+    "main": "src/index.ts",
+    "types": "src/index.ts",
     "license": "GPL-3.0",
     "type": "module",
     "dependencies": {
@@ -15,10 +15,10 @@
         "typescript": "^4.7.3"
     },
     "scripts": {
-        "build": "tsc --build",
-        "dev": "yarn with-env run dev:build",
-        "dev:build": "tsc -w --preserveWatchOutput",
-        "with-env": "dotenv -e ../../.env --",
-        "prisma": "yarn with-env prisma"
+        "clean": "rm -rf .turbo node_modules",
+        "db:generate": "yarn with-env prisma generate",
+        "db:push": "yarn with-env prisma db push --skip-generate",
+        "studio": "yarn with-env prisma studio --port 5556",
+        "with-env": "dotenv -e ../../.env --"
     }
 }
