@@ -4,14 +4,19 @@ import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
 import fastify from "fastify";
 import { appRouter, createContext } from "@yin/trpc";
 import { prisma } from "@yin/db";
+import cors from "@fastify/cors";
 
 const server = fastify({
     maxParamLength: 5000,
 });
 
 server.register(fastifyTRPCPlugin, {
-    prefix: "/trpc",
+    prefix: "/api/trpc",
     trpcOptions: { router: appRouter, createContext },
+});
+
+server.register(cors, {
+    origin: "*",
 });
 
 server.get("/get", async () => {

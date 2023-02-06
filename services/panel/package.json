@@ -18,7 +18,11 @@
   },
   "dependencies": {
     "@solidjs/router": "^0.7.0",
+    "@tanstack/solid-query": "^4.24.4",
+    "@trpc/client": "^10.10.0",
     "clsx": "^1.2.1",
-    "solid-js": "^1.6.6"
+    "solid-js": "^1.6.6",
+    "solid-trpc": "^0.0.11-rc.2",
+    "superjson": "^1.12.2"
   }
 }
