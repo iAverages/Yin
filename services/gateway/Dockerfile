@@ -1,36 +1,43 @@
-# Base for all stages
-FROM node:lts-alpine AS base
-
+FROM node:alpine AS builder
+RUN apk add --no-cache libc6-compat
+RUN apk update
+# Set working directory
 WORKDIR /app
+RUN yarn global add turbo
+COPY . .
+RUN turbo prune --scope=@yin/gateway --docker
+ 
+# Add lockfile and package.json's of isolated subworkspace
+FROM node:alpine AS installer
+RUN apk add --no-cache libc6-compat
+RUN apk update
+WORKDIR /app
+ 
+# First install the dependencies (as they change less often)
+COPY .gitignore .gitignore
+COPY --from=builder /app/out/json/ .
+COPY --from=builder /app/out/yarn.lock ./yarn.lock
+RUN yarn install
+ 
+# Build the project
+COPY --from=builder /app/out/full/ .
+COPY turbo.json turbo.json
+COPY tsconfig.packages.json tsconfig.packages.json
+RUN yarn turbo run build --filter=@yin/gateway...
 
-# Download dependencies
-# and build packages
-FROM base AS dependencies
+FROM node:alpine AS runner
+WORKDIR /app/services/gateway
+ 
+# Don't run production as root
+RUN addgroup --system --gid 1001 yin
+RUN adduser --system --uid 1001 yin
+USER yin
+ 
+COPY --from=installer /app/services/gateway/package.json /app/services/gateway/package.json
+COPY --from=installer --chown=yin:yin /app/node_modules /app/node_modules
+COPY --from=installer --chown=yin:yin /app/services/gateway/dist /app/services/gateway/dist
+COPY --from=installer --chown=yin:yin /app/services/gateway/dist /app/services/gateway/dist
 
-# Global package.json
-COPY package.json .
-COPY yarn.lock .
-COPY tsconfig.json .
-COPY tsconfig.packages.json . 
-
-# Packages
-COPY packages/common packages/common
-COPY packages/gateway packages/gateway
-
-RUN yarn install  --pure-lockfile --non-interactive --cache-folder ./yarncache; rm -rf ./yarncache
-
-WORKDIR /app/packages/common
-
-RUN yarn build 
-
-FROM base
-
-WORKDIR /app/packages/gateway
-
-COPY --from=dependencies /app/ /app/
-
-RUN yarn build
-
-EXPOSE 4000
+EXPOSE 3000
 
 CMD [ "yarn", "start" ]
