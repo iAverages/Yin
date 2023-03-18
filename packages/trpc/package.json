@@ -10,7 +10,7 @@
         "@yin/db": "*",
         "source-map-support": "^0.5.21",
         "superjson": "^1.12.2",
-        "zod": "^3.20.2"
+        "zod": "^3.21.4"
     },
     "devDependencies": {
         "typescript": "^4.7.3"

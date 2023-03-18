@@ -12,7 +12,7 @@
         "source-map-support": "^0.5.21",
         "utf-8-validate": "^5.0.5",
         "ws": "^8.2.1",
-        "zod": "^3.20.2"
+        "zod": "^3.21.4"
     },
     "devDependencies": {
         "@types/source-map-support": "^0.5.6",
@@ -25,7 +25,8 @@
         "dev": "run-p watch dev:start",
         "dev:start": "nodemon --watch dist --exec node --es-module-specifier-resolution=node dist/index.js",
         "watch": "tsup --watch . --watch ../../packages/db/src/ --watch ../../packages/common/src/",
-        "start": "node dist/index.js",
+        "dev2": "tsup --watch . --watch ../../packages/db/src/ --watch ../../packages/common/src/ --onSuccess \"yarn start\"",
+        "start": "node --es-module-specifier-resolution=node dist/index.js",
         "clean": "rm -rf .turbo node_modules dist"
     }
 }
