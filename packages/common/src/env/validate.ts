@@ -22,7 +22,7 @@ export const validateEnvVars = <T extends z.AnyZodObject>(passedSchema?: T) => {
         throw new Error("Invalid environment variables");
     }
 
-    env = _serverEnv.data as DefaultEnv;
+    env = _serverEnv.data as unknown as DefaultEnv & T;
     return env;
 };
 

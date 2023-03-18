@@ -6,8 +6,6 @@ import dotenv from "dotenv";
 dotenv.config({ path: path.resolve("../../.env") });
 
 import { consts } from "./consts";
-import { globalSchema, validateEnvVars } from "./env";
-import { tsupConfig } from "./tsup.config";
-import * as api from "./rest";
+import { globalSchema, validateEnvVars, envWithPrefix } from "./env/index";
 
-export { consts, validateEnvVars, globalSchema, tsupConfig, api };
+export { consts, validateEnvVars, globalSchema, envWithPrefix };
