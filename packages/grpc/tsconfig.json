@@ -1,0 +1,10 @@
+{
+    "extends": "../../tsconfig.packages.json",
+    "include": ["./src/**/*.ts"],
+    "references": [{ "path": "../../packages/common" }, { "path": "../../packages/db" }],
+    "compilerOptions": {
+        "outDir": "./dist",
+        "baseUrl": "./src",
+        "rootDir": "./src"
+    }
+}
