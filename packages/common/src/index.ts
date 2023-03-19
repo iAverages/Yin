@@ -6,6 +6,6 @@ import dotenv from "dotenv";
 dotenv.config({ path: path.resolve("../../.env") });
 
 import { consts } from "./consts";
-import { globalSchema, validateEnvVars, envWithPrefix } from "./env/index";
+import { globalSchema, validateEnvVars } from "./env/index";
 
-export { consts, validateEnvVars, globalSchema, envWithPrefix };
+export { consts, validateEnvVars, globalSchema };

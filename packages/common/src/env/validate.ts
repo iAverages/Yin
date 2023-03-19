@@ -13,8 +13,8 @@ type DefaultEnv = z.infer<typeof globalSchema>;
 // it wont be able to access the env vars from other packages which is fine
 let env = process.env as DefaultEnv;
 
-export const validateEnvVars = <T extends z.AnyZodObject>(passedSchema?: T) => {
-    const schema = globalSchema.merge(passedSchema ?? z.object({}));
+export const validateEnvVars = <T extends z.AnyZodObject>(passedSchema: T) => {
+    const schema = globalSchema.merge(passedSchema);
     const _serverEnv = schema.safeParse(process.env);
 
     if (!_serverEnv.success) {
@@ -22,8 +22,8 @@ export const validateEnvVars = <T extends z.AnyZodObject>(passedSchema?: T) => {
         throw new Error("Invalid environment variables");
     }
 
-    env = _serverEnv.data as unknown as DefaultEnv & T;
-    return env;
+    env = _serverEnv.data as unknown as DefaultEnv;
+    return _serverEnv.data;
 };
 
 export { env };

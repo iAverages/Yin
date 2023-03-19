@@ -1,9 +1,7 @@
-import { envWithPrefix, validateEnvVars } from "@yin/common";
+import { validateEnvVars } from "@yin/common";
 import { z } from "zod";
 
-const schema = envWithPrefix("YIN_WORKER", {
-    GRPC_PORT: z.string(),
-});
+const schema = z.object({});
 
 const env = validateEnvVars(schema);
 
