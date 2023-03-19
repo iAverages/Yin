@@ -29,7 +29,7 @@
         "dev:bot": "turbo run dev --scope \\!@yin/panel --scope \\!@yin/api"
     },
     "devDependencies": {
-        "typescript": "^4.7.3",
+        "typescript": "^5.0.0",
         "turbo": "^1.7.3"
     }
 }
