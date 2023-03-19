@@ -4965,10 +4965,10 @@ solid-refresh@^0.4.1:
     "@babel/helper-module-imports" "^7.16.7"
     "@babel/types" "^7.18.4"
 
-solid-trpc@^0.0.11-rc.2:
-  version "0.0.11-rc.2"
-  resolved "https://registry.yarnpkg.com/solid-trpc/-/solid-trpc-0.0.11-rc.2.tgz#4b8db3e07fc913ecc2956b7117466ec12cd6e6ac"
-  integrity sha512-hmxf1svB6qf40t81WFMT9329Je7T+hF0/kfLZH/XSkT3jtzjjI8PeZMjc3CRFpMY/BubQQ0gWCFpUhxvlnNl+w==
+solid-trpc@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/solid-trpc/-/solid-trpc-0.1.0.tgz#fdfb251c72976c48bea706fb32d21cfe96f33f16"
+  integrity sha512-NuWexC27yt9z332HR0O+gjTCSZRrzpDYgTQMLME58RpBlWWcqToTf1lRq+0GdCxIdcwi6aagkBXIBhuvgw1nsw==
 
 sonic-boom@^3.1.0:
   version "3.2.1"
