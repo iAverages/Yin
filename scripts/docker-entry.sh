@@ -1,1 +1,0 @@
-yarn workspace @yin/$PACKAGE start
