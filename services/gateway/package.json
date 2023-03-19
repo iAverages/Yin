@@ -10,7 +10,7 @@
         "@yin/tsup": "*",
         "bufferutil": "^4.0.3",
         "source-map-support": "^0.5.21",
-        "utf-8-validate": "^5.0.5",
+        "utf-8-validate": "^6.0.0",
         "ws": "^8.2.1",
         "zod": "^3.21.4"
     },
