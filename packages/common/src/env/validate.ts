@@ -8,12 +8,22 @@ export const formatErrors = (errors: ZodFormattedError<Map<string, string>, stri
         })
         .filter(Boolean);
 
-export const validateEnvVars = (passedSchema: z.AnyZodObject = z.object({})) => {
-    const schema = passedSchema.merge(globalSchema);
+type DefaultEnv = z.infer<typeof globalSchema>;
+// This is here so common package can still use global env vars
+// it wont be able to access the env vars from other packages which is fine
+let env = process.env as DefaultEnv;
+
+export const validateEnvVars = <T extends z.AnyZodObject>(passedSchema?: T) => {
+    const schema = globalSchema.merge(passedSchema ?? z.object({}));
     const _serverEnv = schema.safeParse(process.env);
 
     if (!_serverEnv.success) {
         console.error("❌ Invalid environment variables:\n", ...formatErrors(_serverEnv.error.format()));
         throw new Error("Invalid environment variables");
     }
+
+    env = _serverEnv.data as unknown as DefaultEnv & T;
+    return env;
 };
+
+export { env };
