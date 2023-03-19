@@ -1,4 +1,9 @@
 import sourceMapSupport from "source-map-support";
 sourceMapSupport.install();
 
-console.log("worker");
+import { start } from "./grpc";
+
+import { env } from "./env";
+
+console.log(env);
+start();
