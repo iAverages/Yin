@@ -1177,10 +1177,10 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@solidjs/router@^0.7.0":
-  version "0.7.0"
-  resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-0.7.0.tgz#5f8f1289caf4a1eb24e57cbe93e6dde639b04a6e"
-  integrity sha512-8HI84twe5FjYRebSLMAhtkL9bRuTDIlxJK56kjfjU9WKGoUCTaWpCnkuj8Hqde1bWZ0X+GOZxKDfNkn1CjtjxA==
+"@solidjs/router@^0.8.0":
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-0.8.0.tgz#409b347e4041bbe689880f2b5b085ea83fc393b2"
+  integrity sha512-gvKAfYbuq6rpuNM9E7qIRXOrUEHY4AoOiok3xo/Slw5ph+hvJ+gKRhQgW0Et8xcsq2NZcc4AvJF8VTBmXfwEyA==
 
 "@swc/core-darwin-arm64@1.3.32":
   version "1.3.32"
