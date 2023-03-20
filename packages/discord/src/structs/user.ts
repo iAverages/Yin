@@ -1,7 +1,7 @@
 import { req } from "manage";
 import { Routes } from "routes";
 import { z } from "zod";
-import { GuildSchema } from "./guild";
+import { guild } from "./index";
 // import { GuildSchema, integrationSchema } from "./guild";
 
 export const userSchema = z.object({
@@ -58,13 +58,32 @@ export const connectionSchema = z.object({
     visibility: z.number(),
 });
 
+export type GetUserUrlParts = {
+    "user.id": string;
+};
+
 export const handler = {
     getCurrentUser: () => {
         return req({ method: "GET", schema: userSchema, url: Routes.USERS_ME, urlParts: null });
     },
-    getCurrentUserGuilds: () => {},
-    getCurrentUserGuildMember: ({ id }: { id: string }) => {
-        console.log(id);
-        return {} as GuildSchema;
+    getUser: (parts: GetUserUrlParts) => {
+        return req({ method: "GET", schema: userSchema, url: Routes.USER, urlParts: parts });
     },
+    modifyCurrentUser: () => {
+        return req({
+            method: "PATCH",
+            schema: z.object({ username: z.string() }),
+            url: Routes.USERS_ME,
+            urlParts: null,
+        });
+    },
+    getCurrentUserGuilds: () => {
+        return req({
+            method: "GET",
+            schema: guild.guildPartialSchema.array(),
+            url: Routes.USERS_ME_GUILDS,
+            urlParts: null,
+        });
+    },
+    getCurrentUserGuildMember: ({ id }: { id: string }) => {},
 };

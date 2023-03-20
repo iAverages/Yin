@@ -1,6 +1,6 @@
 import { RequestResponses, UrlParts } from "./requestResponses";
 import { Routes } from "./routes";
-import axios, { Method } from "axios";
+import axios, { Method, AxiosError } from "axios";
 import z from "zod";
 
 const API_URL = "https://discord.com/api/v10";
@@ -15,7 +15,7 @@ type Props<T> = {
     method: Method;
     body?: Record<string, any>;
     queryParams?: Record<string, JsonValue>;
-    schema: z.AnyZodObject;
+    schema: z.AnyZodObject | z.ZodArray<z.AnyZodObject>;
 };
 
 export const makeUrl = <T extends Routes>(url: string, parts: UrlParts<T>) => {
@@ -26,19 +26,79 @@ export const makeUrl = <T extends Routes>(url: string, parts: UrlParts<T>) => {
     return formattedUrl;
 };
 
-export const req = async <T extends Routes>(input: Props<T>) => {
+type SuccessfulResponse<T> = {
+    success: true;
+    data: RequestResponses<T>;
+};
+
+type DiscordErrorResponse = {
+    success: false;
+    _discordError: true;
+    _zodError: false;
+    message: string;
+    code: number;
+    errors: Record<string, unknown>;
+};
+
+type NonDiscordErrorResponse = {
+    success: false;
+    _discordError: false;
+    _zodError: false;
+    message: string;
+    name: string;
+};
+
+type ValidationErrorResponse = {
+    success: false;
+    _discordError: false;
+    _zodError: true;
+    message: string;
+    _zod: z.ZodIssue[];
+};
+type RequestResponse<T> =
+    | DiscordErrorResponse
+    | ValidationErrorResponse
+    | SuccessfulResponse<T>
+    | NonDiscordErrorResponse;
+
+export const req = async <T extends Routes>(input: Props<T>): Promise<RequestResponse<T>> => {
     const { url, method, body, queryParams, schema, urlParts } = input;
-    const { data } = await axios({
-        url: API_URL + makeUrl(url, urlParts),
-        method,
-        data: body,
-        params: queryParams,
-        headers: {
-            Authorization: `Bot `,
-            "User-Agent": "Yin Rest API Wrapper (https://github.com/iAverages/Yin, 0.0.1)",
-        },
-    });
-    console.log("[DISCORD] Response: ", data);
-    const validated = schema.parse(data);
-    return validated as RequestResponses<T>;
+    try {
+        const { data } = await axios({
+            url: API_URL + makeUrl(url, urlParts),
+            method,
+            data: body,
+            params: queryParams,
+            headers: {
+                Authorization: `Bot Njk0NTYyMDM4NjU5NDE2MDc0.GH2-4C.dJ4j8PdZBQ2_crcWxj04iMbWy7wzhf2K5oVADA`,
+                "User-Agent": "Yin Rest API Wrapper (https://github.com/iAverages/Yin, 0.0.1)",
+            },
+        });
+        console.log("[DISCORD] Response: ", data);
+        const validated = schema.parse(data);
+        return { success: true, data: validated as RequestResponses<T> };
+    } catch (err) {
+        if (err instanceof AxiosError) {
+            return {
+                success: false,
+                _discordError: true,
+                _zodError: false,
+                message: err.response?.data.message ?? "No messaged provided from Discord",
+                code: err.response?.data.code,
+                errors: err.response?.data.errors,
+            };
+        } else if (err instanceof z.ZodError) {
+            return {
+                success: false,
+                _discordError: false,
+                _zodError: true,
+                message: "Zod Validation Error",
+                _zod: err.issues,
+            };
+        } else {
+            const _err = err as Error;
+            console.log(err);
+            return { success: false, _discordError: false, _zodError: false, message: _err.message, name: _err.name };
+        }
+    }
 };

@@ -1,8 +1,5 @@
 export enum Routes {
     USERS_ME = "/users/@me",
-    AUDIT_LOGS = "/guilds/{guild.id}/audit-logs",
-    CHANNEL = "",
+    USER = "/users/{user.id}",
+    USERS_ME_GUILDS = "/users/@me/guilds",
 }
-
-export const Http = ["GET", "POST", "PATCH", "DELETE"] as const;
-// export type Http = typeof http;

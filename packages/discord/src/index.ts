@@ -1,6 +1,6 @@
 // import * as guilds from "./guilds";
-import { handler as user } from "./structs/user";
+import { user } from "./structs";
 
 export default {
-    user,
+    user: user.handler,
 };
