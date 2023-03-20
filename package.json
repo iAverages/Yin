@@ -21,6 +21,7 @@
         "auth": "yarn workspace @yin/auth",
         "trpc": "yarn workspace @yin/trpc",
         "discord": "yarn workspace @yin/discord",
+        "grpc": "yarn workspace @yin/grpc",
         "installAll": "node ./scripts/installAll.mjs",
         "clean": "turbo run clean && rm -rf node_modules",
         "build": "turbo run build",
@@ -29,9 +30,7 @@
         "dev:bot": "turbo run dev --scope \\!@yin/panel --scope \\!@yin/api"
     },
     "devDependencies": {
-        "jest": "^28.1.1",
-        "ora": "^6.1.0",
-        "typescript": "^4.7.3",
+        "typescript": "^5.0.0",
         "turbo": "^1.7.3"
     }
 }

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package worker;
+ 
+service Worker {
+  rpc handlePacket(Packet) returns (StatusReply);
+}
+
+message Packet {
+  string body = 1;
+}
+
+message StatusReply {
+  bool success = 1;
+  optional string message = 2;
+}

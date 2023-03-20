@@ -1,4 +1,4 @@
-import { req } from "rest";
+import { req } from "../request";
 import { Http, Routes } from "rest/routes";
 import { z } from "zod";
 

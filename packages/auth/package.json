@@ -7,10 +7,10 @@
     "type": "module",
     "dependencies": {
         "source-map-support": "^0.5.21",
-        "zod": "^3.20.2"
+        "zod": "^3.21.4"
     },
     "devDependencies": {
-        "typescript": "^4.7.3"
+        "typescript": "^5.0.0"
     },
     "scripts": {
         "clean": "rm -rf .turbo node_modules dist"
