@@ -9,8 +9,8 @@ RUN turbo prune --scope=@yin/gateway --docker
  
 # Add lockfile and package.json's of isolated subworkspace
 FROM node:18 AS installer
-RUN apk add --no-cache libc6-compat
-RUN apk update
+# RUN apk add --no-cache libc6-compat
+# RUN apk update
 WORKDIR /app
  
 # First install the dependencies (as they change less often)
