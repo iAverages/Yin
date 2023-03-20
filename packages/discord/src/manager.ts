@@ -2,6 +2,7 @@ import { RequestResponses, UrlParts } from "./requestResponses";
 import { Routes } from "./routes";
 import axios, { Method, AxiosError } from "axios";
 import z from "zod";
+import { __env } from "@yin/common";
 
 const API_URL = "https://discord.com/api/v10";
 
@@ -70,7 +71,7 @@ export const req = async <T extends Routes>(input: Props<T>): Promise<RequestRes
             data: body,
             params: queryParams,
             headers: {
-                Authorization: `Bot Njk0NTYyMDM4NjU5NDE2MDc0.GH2-4C.dJ4j8PdZBQ2_crcWxj04iMbWy7wzhf2K5oVADA`,
+                Authorization: `Bot ${__env.YIN_DISCORD_TOKEN}`,
                 "User-Agent": "Yin Rest API Wrapper (https://github.com/iAverages/Yin, 0.0.1)",
             },
         });
