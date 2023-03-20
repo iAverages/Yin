@@ -9,11 +9,11 @@ const socket = new WebSocket();
 socket.connect();
 
 import grpc from "./grpc";
-import { Packet } from "@yin/grpc";
+import { worker } from "@yin/grpc";
 
 // console.log(env);
 setInterval(() => {
-    grpc.handlePacket(Packet.create({ body: "hello this is a test" }), (err, lol) => {
+    grpc.handlePacket(worker.Packet.create({ body: "hello this is a test" }), (err, lol) => {
         console.log(err);
         console.log(lol);
     });

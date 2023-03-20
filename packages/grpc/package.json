@@ -17,6 +17,7 @@
     },
     "scripts": {
         "build": "tsx scripts/build.ts",
+        "dev": "nodemon -e proto,ts --watch proto --watch src/indx.ts --exec yarn build",
         "clean": "rm -rf .turbo node_modules dist"
     }
 }
