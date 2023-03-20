@@ -1,6 +1,6 @@
 import clsx from "clsx";
-import type { Component, JSX } from "solid-js";
-import { splitProps, children } from "solid-js";
+import { children, splitProps, type Component, type JSX } from "solid-js";
+
 import Spinner from "./spinner";
 
 type ButtonProps = {

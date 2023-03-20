@@ -1,8 +1,9 @@
+import axios from "axios";
+import { env } from "env";
+import z from "zod";
+
 import { RequestResponses, UrlParts } from "./requestResponses";
 import { Http, Routes } from "./routes";
-import axios from "axios";
-import z from "zod";
-import { env } from "env";
 
 const API_URL = "https://discord.com/api/v10";
 

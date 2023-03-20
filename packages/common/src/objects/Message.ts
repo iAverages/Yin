@@ -1,6 +1,7 @@
 // import Snowflake from "../discord/Snowflake";
-import { User, UserDiscordObject } from "./User";
+
 import { defineSnowflake } from "../utils/definer";
+import { User, UserDiscordObject } from "./User";
 
 export interface MessagePacket {
     id: string;

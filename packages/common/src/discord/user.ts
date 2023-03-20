@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { integrationSchema } from "./guild";
 
 export const userSchema = z.object({

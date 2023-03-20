@@ -1,7 +1,8 @@
 import { z } from "zod";
+
+import { channelSchema } from "./channel";
 import { guildSchema } from "./guild";
 import { userSchema } from "./user";
-import { channelSchema } from "./channel";
 
 export const webhookTypes = {
     1: "Incoming",

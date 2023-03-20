@@ -1,11 +1,12 @@
-import WS from "ws";
-import { Opcodes, DiscordEvents } from "./WSConsts";
+import { randomUUID } from "crypto";
 import { consts } from "@yin/common";
+import WS from "ws";
+
+import { DiscordEvents, Opcodes } from "./WSConsts";
+import EventHandlers from "./events";
 import { DiscordPacket } from "./packets/BasePacket";
 import { HelloPacket } from "./packets/HelloPacket";
 import { ReadyPacket } from "./packets/ReadyPacket";
-import EventHandlers from "./events";
-import { randomUUID } from "crypto";
 
 export class WebSocket {
     private url = consts.discord.gateway;
