@@ -13,6 +13,7 @@
     "devDependencies": {
         "@types/source-map-support": "^0.5.6",
         "nodemon": "^2.0.18",
+        "tsup": "^6.7.0",
         "typescript": "^5.0.0"
     },
     "scripts": {
