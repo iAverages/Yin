@@ -5,12 +5,12 @@ RUN apk update
 WORKDIR /app
 RUN yarn global add turbo
 COPY . .
-RUN turbo prune --scope=@yin/gateway --docker
+RUN turbo prune --scope=@yin/worker --docker
  
 # Add lockfile and package.json's of isolated subworkspace
-FROM node:18 AS installer
-# RUN apk add --no-cache libc6-compat
-# RUN apk update
+FROM node:alpine AS installer
+RUN apk add --no-cache libc6-compat
+RUN apk update
 WORKDIR /app
  
 # First install the dependencies (as they change less often)
@@ -23,20 +23,20 @@ RUN yarn install
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
 COPY tsconfig.packages.json tsconfig.packages.json
-RUN yarn turbo run build --filter=@yin/gateway...
+RUN yarn turbo run build --filter=@yin/worker...
 
 FROM node:alpine AS runner
-WORKDIR /app/services/gateway
+WORKDIR /app/services/worker
  
 # Don't run production as root
 RUN addgroup --system --gid 1001 yin
 RUN adduser --system --uid 1001 yin
 USER yin
  
-COPY --from=installer /app/services/gateway/package.json /app/services/gateway/package.json
+COPY --from=installer /app/services/worker/package.json /app/services/worker/package.json
 COPY --from=installer --chown=yin:yin /app/node_modules /app/node_modules
-COPY --from=installer --chown=yin:yin /app/services/gateway/dist /app/services/gateway/dist
-COPY --from=installer --chown=yin:yin /app/services/gateway/dist /app/services/gateway/dist
+COPY --from=installer --chown=yin:yin /app/services/worker/dist /app/services/worker/dist
+COPY --from=installer --chown=yin:yin /app/services/worker/dist /app/services/worker/dist
 
 EXPOSE 3000
 
