@@ -1,4 +1,4 @@
-import { req } from "manage";
+import { req } from "manager";
 import { Routes } from "routes";
 import { z } from "zod";
 import { guild } from "./index";
