@@ -28,6 +28,8 @@
         "watch": "tsup --watch . --watch ../../packages/db/src/ --watch ../../packages/common/src/",
         "dev2": "tsup --watch . --watch ../../packages/db/src/ --watch ../../packages/common/src/ --onSuccess \"yarn start\"",
         "start": "node --es-module-specifier-resolution=node dist/index.js",
-        "clean": "rm -rf .turbo node_modules dist"
+        "clean": "rm -rf .turbo node_modules dist",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
     }
 }

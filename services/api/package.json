@@ -26,6 +26,8 @@
         "dev:start": "nodemon --watch dist --exec node dist/index.js",
         "watch": "tsup --watch . --watch ../../packages/db/src/ --watch ../../packages/common/src/ --watch ../../packages/trpc",
         "start": "node dist/index.js",
-        "clean": "rm -rf .turbo node_modules dist"
+        "clean": "rm -rf .turbo node_modules dist",
+        "format": "prettier --write .",
+        "format:check": "prettier --config ../../ --check ."
     }
 }
