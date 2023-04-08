@@ -2,9 +2,8 @@
 
 import { worker } from "@yin/grpc";
 import sourceMapSupport from "source-map-support";
-
-import { WebSocket } from "./WebSocket";
-import grpc from "./grpc";
+import { WebSocket } from "~/WebSocket";
+import grpc from "~/grpc";
 
 sourceMapSupport.install();
 

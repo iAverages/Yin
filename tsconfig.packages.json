@@ -13,6 +13,7 @@
         "removeComments": true,
         "noImplicitAny": true,
         "strictNullChecks": true,
+        "isolatedModules": true,
         "strictFunctionTypes": true,
         "noImplicitThis": true,
         "noUnusedLocals": true,

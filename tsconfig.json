@@ -1,21 +1,22 @@
 {
     "compilerOptions": {
-        /* Basic Options */
-        "target": "ESNext",
-        "module": "commonjs",
+        "module": "esnext",
         "lib": ["ESNext", "DOM"],
-
-        /* Strict Type-Checking Options */
         "strict": true,
-
-        /* Module Resolution Options */
         "moduleResolution": "node",
         "esModuleInterop": true,
-
-        /* Advanced Options */
         "forceConsistentCasingInFileNames": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "allowJs": true,
+        "checkJs": true,
+        "noEmit": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "jsx": "preserve",
+        "incremental": true,
+        "noUncheckedIndexedAccess": true
     },
+    "include": [".eslintrc.js", "prettier.config.cjs"],
     "references": [
         { "path": "./packages/common" },
         { "path": "./packages/api" },
