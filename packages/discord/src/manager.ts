@@ -80,6 +80,7 @@ export const req = async <T extends Routes>(input: Props<T>): Promise<RequestRes
         return { success: true, data: validated as RequestResponses<T> };
     } catch (err) {
         if (err instanceof AxiosError) {
+            console.log(err);
             return {
                 success: false,
                 _discordError: true,

@@ -1,7 +1,9 @@
 // import { AuditLogs, AuditLogsUrlParts } from "./guilds/audit-logs";
-import { GetUserUrlParts, User } from "./structs/user";
+
 import { Routes } from "./routes";
+import { GetUserUrlParts, User } from "./structs/user";
 import { GuildPartialSchema } from "structs/guild";
+import { InterationResponseUrlParts } from "structs/interaction";
 
 // prettier-ignore
 export type RequestResponses<T> = 
@@ -13,4 +15,5 @@ export type RequestResponses<T> =
 // prettier-ignore
 export type UrlParts<T> = 
     T extends Routes.USER ? GetUserUrlParts :
+    T extends Routes.INTERACTION_CREATE ? InterationResponseUrlParts :
     null;
