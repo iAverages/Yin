@@ -75,7 +75,9 @@ export const req = async <T extends Routes>(input: Props<T>): Promise<RequestRes
                 "User-Agent": consts.rest.userAgent,
             },
         });
-        console.log("[DISCORD] Response: ", data);
+        if (__env.YIN_DEBUG) {
+            console.log("[REST][DISCORD] Response: ", data);
+        }
         const validated = schema.parse(data);
         return { success: true, data: validated as RequestResponses<T> };
     } catch (err) {
