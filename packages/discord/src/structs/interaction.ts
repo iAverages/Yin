@@ -2,8 +2,6 @@ import { req } from "../manager";
 import { Routes } from "../routes";
 import { z } from "zod";
 
-// const interactionType = z.enum([1, 2, 3, 4, 5]);
-
 export type InterationResponseUrlParts = {
     "interaction.id": string;
     "interaction.token": string;

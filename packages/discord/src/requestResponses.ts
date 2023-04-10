@@ -1,5 +1,3 @@
-// import { AuditLogs, AuditLogsUrlParts } from "./guilds/audit-logs";
-
 import { Routes } from "./routes";
 import { GetUserUrlParts, User } from "./structs/user";
 import { GuildPartialSchema } from "structs/guild";
