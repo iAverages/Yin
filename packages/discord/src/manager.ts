@@ -2,9 +2,7 @@ import { RequestResponses, UrlParts } from "./requestResponses";
 import { Routes } from "./routes";
 import axios, { Method, AxiosError } from "axios";
 import z from "zod";
-import { __env, consts, CONSTS } from "@yin/common";
-
-const API_URL = "https://discord.com/api/v10";
+import { __env, consts } from "@yin/common";
 
 // Can't reference self
 type _JsonValue = string | number | boolean | null;
@@ -27,46 +25,50 @@ export const makeUrl = <T extends Routes>(url: string, parts: UrlParts<T>) => {
     return formattedUrl;
 };
 
+export const responseTypes = {
+    SUCCESS: 0,
+    DISCORD_ERROR: 1,
+    VALIDATION_ERROR: 2,
+    UNKNOWN_ERROR: 3,
+} as const;
+
+type ResponseTypes = typeof responseTypes;
+
 type SuccessfulResponse<T> = {
     success: true;
+    type: ResponseTypes["SUCCESS"];
     data: RequestResponses<T>;
 };
 
 type DiscordErrorResponse = {
     success: false;
-    _discordError: true;
-    _zodError: false;
+    type: ResponseTypes["DISCORD_ERROR"];
     message: string;
     code: number;
     errors: Record<string, unknown>;
 };
 
-type NonDiscordErrorResponse = {
+type UnknownErrorResponse = {
     success: false;
-    _discordError: false;
-    _zodError: false;
+    type: ResponseTypes["UNKNOWN_ERROR"];
     message: string;
     name: string;
 };
 
 type ValidationErrorResponse = {
     success: false;
-    _discordError: false;
-    _zodError: true;
+    type: ResponseTypes["VALIDATION_ERROR"];
     message: string;
-    _zod: z.ZodIssue[];
+    issues: z.ZodIssue[];
 };
-type RequestResponse<T> =
-    | DiscordErrorResponse
-    | ValidationErrorResponse
-    | SuccessfulResponse<T>
-    | NonDiscordErrorResponse;
+
+type RequestResponse<T> = DiscordErrorResponse | ValidationErrorResponse | SuccessfulResponse<T> | UnknownErrorResponse;
 
 export const req = async <T extends Routes>(input: Props<T>): Promise<RequestResponse<T>> => {
     const { url, method, body, queryParams, schema, urlParts } = input;
     try {
         const { data } = await axios({
-            url: API_URL + makeUrl(url, urlParts),
+            url: consts.discord.api + makeUrl(url, urlParts),
             method,
             data: body,
             params: queryParams,
@@ -79,14 +81,13 @@ export const req = async <T extends Routes>(input: Props<T>): Promise<RequestRes
             console.log("[REST][DISCORD] Response: ", data);
         }
         const validated = schema.parse(data);
-        return { success: true, data: validated as RequestResponses<T> };
+        return { success: true, type: responseTypes.SUCCESS, data: validated as RequestResponses<T> };
     } catch (err) {
         if (err instanceof AxiosError) {
             console.log(err);
             return {
                 success: false,
-                _discordError: true,
-                _zodError: false,
+                type: responseTypes.DISCORD_ERROR,
                 message: err.response?.data.message ?? "No messaged provided from Discord",
                 code: err.response?.data.code,
                 errors: err.response?.data.errors,
@@ -94,15 +95,14 @@ export const req = async <T extends Routes>(input: Props<T>): Promise<RequestRes
         } else if (err instanceof z.ZodError) {
             return {
                 success: false,
-                _discordError: false,
-                _zodError: true,
+                type: responseTypes.VALIDATION_ERROR,
                 message: "Zod Validation Error",
-                _zod: err.issues,
+                issues: err.issues,
             };
         } else {
             const _err = err as Error;
             console.log(err);
-            return { success: false, _discordError: false, _zodError: false, message: _err.message, name: _err.name };
+            return { success: false, type: responseTypes.UNKNOWN_ERROR, message: _err.message, name: _err.name };
         }
     }
 };
