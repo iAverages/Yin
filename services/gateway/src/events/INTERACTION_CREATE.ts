@@ -1,5 +1,6 @@
-import { DiscordPacket } from "../packets/BasePacket";
 import api from "@yin/discord";
+
+import { DiscordPacket } from "../packets/BasePacket";
 
 // import { InteractionResponseType } from "@yin/discord";
 

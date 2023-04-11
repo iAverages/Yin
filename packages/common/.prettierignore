@@ -1,0 +1,7 @@
+
+# Sorting import means dotenv will not be loaded first which breaks env validation
+src/index.ts
+
+# Giving the full path to the same file in the root .prettierignore file 
+# does not working, probably due to turbo repo using the working directory
+# as the path packages/common which means the pathing is incorrect.
