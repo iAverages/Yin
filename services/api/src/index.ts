@@ -1,9 +1,10 @@
 import cors from "@fastify/cors";
 import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
-import { prisma } from "@yin/db";
-import { appRouter, createContext } from "@yin/trpc";
 import fastify from "fastify";
 import sourceMapSupport from "source-map-support";
+
+import { prisma } from "@yin/db";
+import { appRouter, createContext } from "@yin/trpc";
 
 sourceMapSupport.install();
 

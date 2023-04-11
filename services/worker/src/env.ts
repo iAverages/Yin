@@ -1,5 +1,6 @@
-import { validateEnvVars } from "@yin/common";
 import { z } from "zod";
+
+import { validateEnvVars } from "@yin/common";
 
 const schema = z.object({});
 

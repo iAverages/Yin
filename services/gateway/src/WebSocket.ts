@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
-import { consts } from "@yin/common";
 import WS from "ws";
+
+import { consts } from "@yin/common";
 
 import { DiscordEvents, Opcodes } from "./WSConsts";
 import EventHandlers from "./events";

@@ -1,12 +1,9 @@
-// import { env } from "./envVars";
+import _sourceMap from "@yin/common/src/sourceMap";
 
 import { worker } from "@yin/grpc";
-import sourceMapSupport from "source-map-support";
 
 import { WebSocket } from "~/WebSocket";
 import grpc from "~/grpc";
-
-sourceMapSupport.install();
 
 const socket = new WebSocket();
 socket.connect();
