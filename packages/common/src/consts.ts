@@ -3,7 +3,7 @@ export const consts = {
     github: "https://github.com/iAverages/Yin",
     discord: {
         api: "https://discord.com/api/v10",
-        cdn: "",
+        cdn: "https://cdn.discordapp.com",
         gateway: "wss://gateway.discord.gg/?v=10&encoding=json",
     },
     rest: {
