@@ -1,6 +1,7 @@
+import { req } from "../manager";
+import { Routes } from "../routes";
 import { z } from "zod";
-
-import { integrationSchema } from "./guild";
+import { guild } from "./index";
 
 export const userSchema = z.object({
     id: z.string(),
@@ -48,10 +49,40 @@ export const connectionSchema = z.object({
     name: z.string(),
     type: z.string(),
     revoked: z.boolean().optional(),
-    integrations: z.array(integrationSchema).optional(),
+    // integrations: z.array(integrationSchema).optional(),
     verified: z.boolean(),
     friend_sync: z.boolean(),
     show_activity: z.boolean(),
     two_way_link: z.boolean(),
     visibility: z.number(),
 });
+
+export type GetUserUrlParts = {
+    "user.id": string;
+};
+
+export const handler = {
+    getCurrentUser: () => {
+        return req({ method: "GET", schema: userSchema, url: Routes.USERS_ME, urlParts: null });
+    },
+    getUser: (parts: GetUserUrlParts) => {
+        return req({ method: "GET", schema: userSchema, url: Routes.USER, urlParts: parts });
+    },
+    modifyCurrentUser: () => {
+        return req({
+            method: "PATCH",
+            schema: z.object({ username: z.string() }),
+            url: Routes.USERS_ME,
+            urlParts: null,
+        });
+    },
+    getCurrentUserGuilds: () => {
+        return req({
+            method: "GET",
+            schema: guild.guildPartialSchema.array(),
+            url: Routes.USERS_ME_GUILDS,
+            urlParts: null,
+        });
+    },
+    getCurrentUserGuildMember: ({ id }: { id: string }) => {},
+};

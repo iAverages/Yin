@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: yin
+  labels:
+    app: gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+        - image: ctr.avrg.dev/yin/gateway:rest-test
+          name: gateway
+          env:
+            - name: DISCORD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: discord-token
+                  key: token
+
+          # always pull because im lazy and just use latest for dev image
+          imagePullPolicy: Always
+          resources:
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+      #     volumeMounts:
+      #       - mountPath: "/app/certs"
+      #         name: tls
+      # volumes:
+      #   - name: tls
+      #     csi:
+      #       driver: csi.cert-manager.io
+      #       volumeAttributes:
+      #             csi.cert-manager.io/issuer-name: ca-issuer
+      #             csi.cert-manager.io/dns-names: ${POD_NAME}.${POD_NAMESPACE}.svc.cluster.local

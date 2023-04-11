@@ -20,6 +20,7 @@
         "db": "yarn workspace @yin/db",
         "auth": "yarn workspace @yin/auth",
         "trpc": "yarn workspace @yin/trpc",
+        "discord": "yarn workspace @yin/discord",
         "grpc": "yarn workspace @yin/grpc",
         "installAll": "node ./scripts/installAll.mjs",
         "clean": "turbo run clean && rm -rf node_modules",
