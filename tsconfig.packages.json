@@ -31,6 +31,7 @@
         { "path": "./packages/common" },
         { "path": "./packages/trpc" },
         { "path": "./packages/db" },
-        { "path": "./packages/auth" }
+        { "path": "./packages/auth" },
+        { "path": "./packages/discord" }
     ]
 }

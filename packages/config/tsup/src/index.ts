@@ -8,6 +8,6 @@ export const tsConfig: Options = {
     sourcemap: true,
     minify: true,
     target: "node18",
-    noExternal: ["@yin/db", "@yin/trpc", "@yin/common", "@yin/auth", "@yin/grpc"],
+    noExternal: ["@yin/db", "@yin/trpc", "@yin/common", "@yin/auth", "@yin/grpc", "@yin/discord"],
     splitting: false,
 };

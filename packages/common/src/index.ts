@@ -6,6 +6,8 @@ import dotenv from "dotenv";
 dotenv.config({ path: path.resolve("../../.env") });
 
 import { consts } from "./consts";
-import { globalSchema, validateEnvVars } from "./env/index";
+import { globalSchema, validateEnvVars, env as __env } from "./env/index";
 
-export { consts, validateEnvVars, globalSchema };
+// __env export is used for other packages, services should not use this export directly
+// instead, use validateEnvVars
+export { consts, validateEnvVars, globalSchema, __env };

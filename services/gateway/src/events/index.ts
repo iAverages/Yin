@@ -4,6 +4,7 @@ export const events: Record<string, Promise<{ default: (packet: DiscordPacket<an
     MESSAGE_CREATE: import("./MESSAGE_CREATE"),
     READY: import("./READY"),
     GUILD_CREATE: import("./GUILD_CREATE"),
+    INTERACTION_CREATE: import("./INTERACTION_CREATE"),
 };
 
 export default events;

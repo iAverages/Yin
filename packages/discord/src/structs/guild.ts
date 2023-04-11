@@ -1,8 +1,12 @@
 import { z } from "zod";
-import { emojiSchema } from "./emoji";
-import { roleSchema } from "./role";
-import { stickerSchema } from "./sticker";
+
+// Do not change the import order of these, they are placed this way to make
+// things get imported in the correct order, I should probably move some things around
+// but that fuckeds up the structure
 import { userSchema } from "./user";
+import { roleSchema } from "./role";
+import { emojiSchema } from "./emoji";
+import { stickerSchema } from "./sticker";
 
 export const guildFeatures = [
     "ANIMATED_BANNER",
@@ -153,6 +157,22 @@ export const guildSchema = z.object({
     stickers: z.array(stickerSchema),
     premium_progress_bar_enabled: z.boolean(),
 });
+
+/**
+ * Schema for "partial guild objects"
+ * Used for Get Current User Guilds api
+ */
+export const guildPartialSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    icon: z.string(),
+    owner: z.boolean(),
+    permissions: z.string().optional(),
+    features: z.array(z.enum(guildFeatures)),
+});
+
+export type GuildSchema = z.infer<typeof guildSchema>;
+export type GuildPartialSchema = z.infer<typeof guildPartialSchema>;
 
 export const guildUserSchema = z.object({
     user: userSchema,

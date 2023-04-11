@@ -1,12 +1,11 @@
 import { z } from "zod";
-import { roleSchema } from "./role";
-import { userSchema } from "./user";
+import { user, role } from "./index";
 
 export const emojiSchema = z.object({
     id: z.string().nullable(),
     name: z.string().nullable(),
-    roles: z.array(roleSchema).optional(),
-    user: userSchema.optional(),
+    roles: z.array(role.roleSchema).optional(),
+    user: user.userSchema.optional(),
     require_colons: z.boolean().optional(),
     managed: z.boolean().optional(),
     animated: z.boolean().optional(),
