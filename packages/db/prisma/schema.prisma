@@ -7,12 +7,6 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Post {
-    id      String @id @default(cuid())
-    title   String
-    content String
-}
-
 // NextAuth.js Models - https://next-auth.js.org/schemas/models
 model Account {
     id                String  @id @default(cuid())
@@ -58,8 +52,28 @@ model VerificationToken {
     @@unique([identifier, token])
 }
 
-// Will add more properties later just testing for now
+model DiscordUser {
+    id          String        @id @default(cuid())
+    name        String
+    email       String        @unique
+    password    String
+    guildMember GuildMember[]
+}
+
+model GuildMember {
+    id      String      @id @default(cuid())
+    guildId String
+    userId  String
+    guild   Guild       @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    user    DiscordUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model Guild {
-    id    String @id
-    owner String
+    id        String   @id
+    name      String
+    icon      String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    guildMember GuildMember[]
 }

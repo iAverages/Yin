@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package database;
+ 
+import "common.proto";
+
+service Database {
+  rpc LogEvent(Event) returns (common.StatusReply);
+  rpc AddGuild(Guild) returns (common.StatusReply);
+  rpc RemoveGuild(GuildSearchId) returns (common.StatusReply);
+  rpc GetGuild(GuildSearchId) returns (Guild);
+
+}
+
+message Guild {
+  string id = 1;
+  string name = 2;
+  string icon = 5;
+}
+
+message GuildSearchId {
+  string id = 1;
+}
+
+message Event {
+  string name = 1;
+  string data = 2;
+}
+

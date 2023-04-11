@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package common;
+
+message StatusReply {
+  bool success = 1;
+  optional string message = 2;
+}
