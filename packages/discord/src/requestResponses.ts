@@ -1,7 +1,7 @@
 import { Routes } from "./routes";
+import { GuildPartialSchema } from "./structs/guild";
+import { InterationResponseUrlParts } from "./structs/interaction";
 import { GetUserUrlParts, User } from "./structs/user";
-import { GuildPartialSchema } from "structs/guild";
-import { InterationResponseUrlParts } from "structs/interaction";
 
 // prettier-ignore
 export type RequestResponses<T> = 
