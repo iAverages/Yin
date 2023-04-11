@@ -1,5 +1,6 @@
-import { worker } from "@yin/grpc";
 import grpc from "@grpc/grpc-js";
+import { worker } from "@yin/grpc";
+
 import { env } from "./env";
 
 const { WorkerService, StatusReply } = worker;

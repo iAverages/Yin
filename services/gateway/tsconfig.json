@@ -8,8 +8,9 @@
         { "path": "../../packages/auth" }
     ],
     "compilerOptions": {
-        "outDir": "./dist",
-        "baseUrl": "./src",
-        "rootDir": "./src"
+        "baseUrl": ".",
+        "paths": {
+            "~/*": ["./src/*"]
+        }
     }
 }

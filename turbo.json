@@ -15,6 +15,14 @@
                 "prisma/schema.prisma"
             ]
         },
+        "format": {
+            "inputs": ["src/**", "prisma/schema.prisma"],
+            "cache": false
+        },
+        "format:check": {
+            "inputs": ["src/**", "prisma/schema.prisma"],
+            "cache": false
+        },
         "db:generate": {
             "inputs": ["prisma/schema.prisma"],
             "cache": false

@@ -10,7 +10,10 @@
     ],
     "compilerOptions": {
         "outDir": "./dist",
-        "baseUrl": "./src",
-        "rootDir": "./src"
+        "baseUrl": ".",
+        "rootDir": "./src",
+        "paths": {
+            "~/*": ["./src/*"]
+        }
     }
 }

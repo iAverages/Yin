@@ -1,7 +1,7 @@
+import { QueryClient } from "@tanstack/solid-query";
+import { httpBatchLink } from "@trpc/client";
 import { AppRouterType } from "@yin/trpc";
 import { createTRPCSolid } from "solid-trpc";
-import { httpBatchLink } from "@trpc/client";
-import { QueryClient } from "@tanstack/solid-query";
 import superjson from "superjson";
 
 export const trpc = createTRPCSolid<AppRouterType>();

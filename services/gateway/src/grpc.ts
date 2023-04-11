@@ -1,5 +1,6 @@
-import { worker as workerService } from "@yin/grpc";
 import grpc from "@grpc/grpc-js";
+import { worker as workerService } from "@yin/grpc";
+
 import { env } from "./env";
 
 const worker = new workerService.WorkerClient(

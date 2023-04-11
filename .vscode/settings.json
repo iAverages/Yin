@@ -3,5 +3,6 @@
     "protoc": {
         "path": "node_modules/grpc-tools/bin/protoc",
         "options": ["-I ./proto", "proto/*.proto"]
-    }
+    },
+    "javascript.preferences.importModuleSpecifier": "shortest"
 }

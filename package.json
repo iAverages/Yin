@@ -30,7 +30,10 @@
         "dev:bot": "turbo run dev --scope \\!@yin/panel --scope \\!@yin/api"
     },
     "devDependencies": {
-        "typescript": "^5.0.0",
-        "turbo": "^1.7.3"
+        "@ianvs/prettier-plugin-sort-imports": "^3.7.1",
+        "@types/prettier": "^2.7.2",
+        "prettier": "^2.8.5",
+        "turbo": "^1.7.3",
+        "typescript": "^5.0.0"
     }
 }

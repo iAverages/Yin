@@ -2,7 +2,6 @@ import { req } from "../manager";
 import { Routes } from "../routes";
 import { z } from "zod";
 import { guild } from "./index";
-// import { GuildSchema, integrationSchema } from "./guild";
 
 export const userSchema = z.object({
     id: z.string(),

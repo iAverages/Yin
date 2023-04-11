@@ -1,2 +1,6 @@
 *.yml
 *.yaml
+dist/*
+
+# Sorting import means dotenv will not be loaded first which breaks env validation
+packages/common/src/index.ts
