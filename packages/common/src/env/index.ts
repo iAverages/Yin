@@ -1,4 +1,4 @@
 import { globalSchema } from "./schema";
-import { env, validateEnvVars } from "./validate";
+import { env, validateEnvVars, type DefaultEnv } from "./validate";
 
-export { globalSchema, validateEnvVars, env };
+export { globalSchema, validateEnvVars, env, type DefaultEnv };

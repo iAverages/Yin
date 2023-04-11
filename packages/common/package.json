@@ -9,6 +9,7 @@
         "axios": "^1.1.3",
         "dotenv": "^16.0.3",
         "source-map-support": "^0.5.21",
+        "uuidv4": "^6.2.13",
         "zod": "^3.21.4"
     },
     "devDependencies": {

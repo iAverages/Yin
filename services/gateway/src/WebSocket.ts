@@ -8,12 +8,13 @@ import EventHandlers from "./events";
 import { DiscordPacket } from "./packets/BasePacket";
 import { HelloPacket } from "./packets/HelloPacket";
 import { ReadyPacket } from "./packets/ReadyPacket";
+import { ServiceMeta } from "./service";
 
 export class WebSocket {
     private url = consts.discord.gateway;
     private readonly token = process.env.DISCORD_TOKEN;
 
-    public id: string;
+    private service: ServiceMeta;
     private connection: WS;
     public sessionId: string | null;
     public expectedGuilds: any;
@@ -26,7 +27,9 @@ export class WebSocket {
     public connectedAt: number = -1;
     public lastHeartbeatAcked: boolean = false;
 
-    constructor() {}
+    constructor(service: ServiceMeta) {
+        this.service = service;
+    }
 
     // tmp until I sort out logger again
     private log = {
@@ -134,7 +137,9 @@ export class WebSocket {
             packet.d._yinReqId = randomUUID();
             // Maybe capture this info right as we receieve the event from discord
             packet.d._yinProcessStart = process.hrtime.bigint().toString();
-            (await EventHandlers[packet.t]).default(packet);
+
+            const handler = await EventHandlers[packet.t];
+            handler.default(this.service, packet);
         } catch (e) {
             console.log(e);
             this.log.error(`Failed to handle ${packet.t} packet.`);

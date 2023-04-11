@@ -24,6 +24,10 @@ spec:
                 secretKeyRef:
                   name: discord-token
                   key: token
+            - name: K3S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
 
           # always pull because im lazy and just use latest for dev image
           imagePullPolicy: Always
@@ -31,13 +35,3 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1"
-      #     volumeMounts:
-      #       - mountPath: "/app/certs"
-      #         name: tls
-      # volumes:
-      #   - name: tls
-      #     csi:
-      #       driver: csi.cert-manager.io
-      #       volumeAttributes:
-      #             csi.cert-manager.io/issuer-name: ca-issuer
-      #             csi.cert-manager.io/dns-names: ${POD_NAME}.${POD_NAMESPACE}.svc.cluster.local

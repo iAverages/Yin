@@ -1,6 +1,7 @@
+import { ServiceMeta } from "~/service";
 import { DiscordPacket } from "../packets/BasePacket";
 
-export default (packet: DiscordPacket<any>) => {
+export default (service: ServiceMeta, packet: DiscordPacket<any>) => {
     if (!packet.d) {
         return;
     }

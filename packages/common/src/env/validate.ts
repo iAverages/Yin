@@ -9,7 +9,7 @@ export const formatErrors = (errors: ZodFormattedError<Map<string, string>, stri
         })
         .filter(Boolean);
 
-type DefaultEnv = z.infer<typeof globalSchema>;
+export type DefaultEnv = z.infer<typeof globalSchema>;
 // This is here so common package can still use global env vars
 // it wont be able to access the env vars from other packages which is fine
 let env = process.env as DefaultEnv;
