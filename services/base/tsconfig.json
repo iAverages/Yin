@@ -1,0 +1,16 @@
+{
+    "extends": "../../tsconfig.packages.json",
+    "include": ["./src/**/*.ts"],
+    "references": [
+        { "path": "../../packages/common" },
+        { "path": "../../packages/trpc" },
+        { "path": "../../packages/db" },
+        { "path": "../../packages/auth" }
+    ],
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "~/*": ["./src/*"]
+        }
+    }
+}

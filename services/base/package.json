@@ -1,0 +1,26 @@
+{
+    "name": "@yin/base",
+    "version": "0.1.0",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "license": "GPL-3.0",
+    "type": "module",
+    "dependencies": {
+        "@yin/common": "*"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.18",
+        "typescript": "^5.0.0"
+    },
+    "scripts": {
+        "build": "tsup",
+        "dev": "run-p watch dev:start",
+        "dev:start": "nodemon --watch dist --exec node --es-module-specifier-resolution=node dist/index.js",
+        "watch": "tsup --watch . --watch ../../packages/db/src/ --watch ../../packages/common/src/",
+        "dev2": "tsup --watch . --watch ../../packages/db/src/ --watch ../../packages/common/src/ --onSuccess \"yarn start\"",
+        "start": "node --es-module-specifier-resolution=node dist/index.js",
+        "clean": "rm -rf .turbo node_modules dist",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
+    }
+}
