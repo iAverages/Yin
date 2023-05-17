@@ -1,14 +1,14 @@
 import api from "@yin/discord";
 
+import { ServiceMeta } from "~/service";
 import { DiscordPacket } from "../packets/BasePacket";
 
 // import { InteractionResponseType } from "@yin/discord";
 
-export default async (packet: DiscordPacket<any>) => {
+export default async (service: ServiceMeta, packet: DiscordPacket<any>) => {
     if (!packet.d) {
         return;
     }
-    // api.user.getCurrentUser();
     console.log(packet);
     const res = await api.interaction.respond(
         {

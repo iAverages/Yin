@@ -8,4 +8,5 @@ export const globalSchema = z.object({
 
     // Server specific but are shared
     YIN_WORKER_GRPC_PORT: z.string(),
+    YIN_DATABASE_GRPC_PORT: z.string(),
 });

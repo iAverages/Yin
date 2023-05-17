@@ -1,6 +1,11 @@
 import _sourceMap from "@yin/common/src/sourceMap";
-import { z } from "zod";
 
-import { validateEnvVars } from "@yin/common";
+// import sourceMapSupport from "source-map-support";
 
-const env = validateEnvVars(z.object({}));
+import { env } from "./env";
+import { start } from "./grpc";
+
+// sourceMapSupport.install();
+
+console.log(env);
+start();

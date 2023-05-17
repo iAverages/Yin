@@ -8,4 +8,4 @@ export { setup, type DefaultServiceMeta } from "./setup";
 
 // __env export is used for other packages, services should not use this export directly
 // instead, use validateEnvVars
-export { env as __env, globalSchema, validateEnvVars } from "./env";
+export { env as __env, globalSchema, validateEnvVars, type DefaultEnv } from "./env";
