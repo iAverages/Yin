@@ -14,13 +14,12 @@ export default async (service: ServiceMeta, packet: DiscordPacket<any>) => {
 
     try {
         const eventGuild = await guild.guildSchema.parseAsync(packet.d);
-
         service.services.database.addGuild(
-            database.Guild.create({
+            {
                 icon: eventGuild.icon,
                 id: eventGuild.id,
                 name: eventGuild.name,
-            }),
+            },
             (err, b) => {
                 if (err) {
                     logger.error(err);
@@ -32,7 +31,7 @@ export default async (service: ServiceMeta, packet: DiscordPacket<any>) => {
         );
     } catch (err) {
         if (err instanceof ZodError) {
-            console.log(err.message);
+            logger.error(err.message);
             return;
         }
 

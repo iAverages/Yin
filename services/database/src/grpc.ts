@@ -5,71 +5,30 @@ import { prisma } from "@yin/db";
 import { database } from "@yin/grpc";
 
 import { env } from "~/env";
+import { createGuildService } from "~/guilds";
+import { createInternalService } from "~/internal";
 
-const { DatabaseService } = database;
+export type InternalServiceProps = {
+    prisma: typeof prisma;
+    logger: typeof logger;
+};
+
+export type InternalService<K extends keyof database.DatabaseServer> = (
+    props: InternalServiceProps
+) => Pick<database.DatabaseServer, K>;
 
 export const startGrpcServer = async () => {
     const server = new grpc.Server();
 
-    const DatabaseServiceImp: database.DatabaseServer = {
-        addGuild: async (call, callback) => {
-            try {
-                const data = await prisma.guild.create({
-                    data: {
-                        icon: call.request.icon,
-                        id: call.request.id,
-                        name: call.request.name,
-                    },
-                });
+    const guildService = createGuildService({ prisma, logger });
+    const internalService = createInternalService({ prisma, logger });
 
-                console.log(data);
-                callback(null, { success: true });
-            } catch (err) {
-                logger.error(err);
-                callback({ message: "Failed to add guild", name: "RECORD_CREATE_FAILURE" }, { success: false });
-            }
-        },
-        getGuild: (call, callback) => {
-            console.log(call.request);
-            callback(null, { icon: "", name: "", id: "" });
-        },
-        logEvent: async ({ request: event }, callback) => {
-            try {
-                const data = await prisma.eventLog.create({
-                    data: {
-                        createdAt: new Date(),
-                        discordEvent: {
-                            connect: {
-                                name: event.discordEvent,
-                            },
-                        },
-                        guild: {
-                            connect: {
-                                id: event.discordGuildId,
-                            },
-                        },
-                        user: {
-                            connect: {
-                                id: event.discordUserId,
-                            },
-                        },
-                    },
-                });
-
-                console.log(data);
-                callback(null, { success: true });
-            } catch (err) {
-                logger.error(err);
-                callback({ message: "Failed to update event log", name: "RECORD_CREATE_FAILURE" }, { success: false });
-            }
-        },
-        removeGuild: (call, callback) => {
-            console.log(call.request);
-            callback(null, { success: true });
-        },
+    const databaseServiceImp: database.DatabaseServer = {
+        ...guildService,
+        ...internalService,
     };
 
-    server.addService(DatabaseService, DatabaseServiceImp);
+    server.addService(database.DatabaseService, databaseServiceImp);
 
     server.bindAsync(
         `localhost:${env.YIN_DATABASE_GRPC_PORT}`,
@@ -79,7 +38,7 @@ export const startGrpcServer = async () => {
                 logger.error(err);
                 return;
             }
-            logger.info(`Listening on ${port}`);
+            logger.info(`gRPC server listening on ${port}`);
             server.start();
         }
     );

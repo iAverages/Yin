@@ -2,10 +2,8 @@ import { logger } from "@yin/common";
 import api, { type interaction } from "@yin/discord";
 import { database } from "@yin/grpc";
 
+import { DiscordPacket } from "~/packets/BasePacket";
 import { ServiceMeta } from "~/service";
-import { DiscordPacket } from "../packets/BasePacket";
-
-// import { InteractionResponseType } from "@yin/discord";
 
 export default async (service: ServiceMeta, packet: DiscordPacket<interaction.Interaction>) => {
     if (!packet.d) {
@@ -22,12 +20,12 @@ export default async (service: ServiceMeta, packet: DiscordPacket<interaction.In
     }
 
     service.services.database.logEvent(
-        database.Event.create({
+        {
             createdAt: new Date(),
             discordEvent: "INTERACTION_CREATE",
             discordGuildId: guildId,
             discordUserId: userId,
-        }),
+        },
         (err, b) => {
             if (err) {
                 logger.error(err);
@@ -38,6 +36,7 @@ export default async (service: ServiceMeta, packet: DiscordPacket<interaction.In
         }
     );
 
+    // service.services.worker.
     const res = await api.interaction.respond(
         {
             type: 4,
@@ -50,5 +49,4 @@ export default async (service: ServiceMeta, packet: DiscordPacket<interaction.In
             "interaction.token": packet.d.token,
         }
     );
-    console.log(res);
 };

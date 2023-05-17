@@ -74,6 +74,7 @@ export class WebSocket {
                     this.log.success(`Gateway ready, Session ${this.sessionId}.`);
                     this.lastHeartbeatAcked = true;
                     this.sendHeartbeat();
+                    this.handlePacket(packet);
                     break;
 
                 case DiscordEvents.RESUMED:
