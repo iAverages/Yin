@@ -3,6 +3,7 @@ syntax = "proto3";
 package database;
  
 import "common.proto";
+import "google/protobuf/timestamp.proto";
 
 service Database {
   rpc LogEvent(Event) returns (common.StatusReply);
@@ -23,7 +24,9 @@ message GuildSearchId {
 }
 
 message Event {
-  string name = 1;
-  string data = 2;
+  google.protobuf.Timestamp  createdAt = 1;
+  string discordEvent = 2;
+  string discordGuildId = 3;
+  string discordUserId = 4;
 }
 

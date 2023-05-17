@@ -1,6 +1,7 @@
+import { z } from "zod";
+
 import { req } from "../manager";
 import { Routes } from "../routes";
-import { z } from "zod";
 import { guild } from "./index";
 
 export const userSchema = z.object({
@@ -61,7 +62,7 @@ export type GetUserUrlParts = {
     "user.id": string;
 };
 
-export const handler = {
+export const userHandler = {
     getCurrentUser: () => {
         return req({ method: "GET", schema: userSchema, url: Routes.USERS_ME, urlParts: null });
     },
