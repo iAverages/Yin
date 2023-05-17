@@ -2,9 +2,5 @@
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "extends": ["config:base"],
     "automerge": true,
-    "lockFileMaintenance": {
-        "enabled": true,
-        "automerge": true
-    },
     "ignorePaths": ["templates/**"]
 }
