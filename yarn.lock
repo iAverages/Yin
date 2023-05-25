@@ -908,14 +908,14 @@
     "@tanstack/query-core" "4.29.7"
 
 "@trpc/client@^10.10.0":
-  version "10.27.1"
-  resolved "https://registry.yarnpkg.com/@trpc/client/-/client-10.27.1.tgz#bf1fb90198f890c8cad50f8877ff96a28c87a6e9"
-  integrity sha512-e9Syj6F41OHDSUg3JvT67fgoD22UbxPzYgp9Bno13NFpyeJc6vkXRlAgDc8ZuouqUPQuouJWll/I90CsuxEqvA==
+  version "10.28.0"
+  resolved "https://registry.yarnpkg.com/@trpc/client/-/client-10.28.0.tgz#fb474107b480e3446eb9ff39104d30cbf31048b4"
+  integrity sha512-Xhl2xdGI4PkI/a8xaTbsdpIXOy7PeOZaBBdvBgs2kpKiznNAI10qPrK+GLIDkSxvekLqDSnVYIhS0kU0FkhEXw==
 
 "@trpc/server@^10.16.0", "@trpc/server@^10.9.1":
-  version "10.27.1"
-  resolved "https://registry.yarnpkg.com/@trpc/server/-/server-10.27.1.tgz#5a3e996c7ac83ab7a366f9517b66af1287bcf275"
-  integrity sha512-oMTNpei0+CAet0BuDdBE9cup0SseJAOlWRhWhcTAU05rETsJnzCA5DfNkf+aP3XiAM8rMJfrTfC0Z3aeADhHaA==
+  version "10.28.0"
+  resolved "https://registry.yarnpkg.com/@trpc/server/-/server-10.28.0.tgz#9c70d56dbe20b7726cf752006f815b2f7177c95e"
+  integrity sha512-PrJ/VgRuujMCtNkgrldCPbqv3+yk1LKweKEfvQHTN2L0WIaKJPXzSsOTJS9PqNpFOTqzaK5mgDbypIFvq7SYow==
 
 "@types/babel__core@^7.1.20":
   version "7.20.0"
