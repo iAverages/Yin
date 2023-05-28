@@ -59,7 +59,7 @@ export const createGuildService: InternalService<"addGuild" | "removeGuild" | "g
 
             callback(null, {
                 success: !!data,
-                message: !!data ? `Deleted guild ${call.request.id}` : `Failed to find guild ${call.request.id}`,
+                message: data ? `Deleted guild ${call.request.id}` : `Failed to find guild ${call.request.id}`,
             });
         } catch (err) {
             logger.error(err);

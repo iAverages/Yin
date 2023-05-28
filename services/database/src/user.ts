@@ -52,7 +52,7 @@ export const createUserService: InternalService<"addUser" | "removeUser" | "getU
 
             callback(null, {
                 success: !!data,
-                message: !!data
+                message: data
                     ? `Deleted discord user ${call.request.id}`
                     : `Failed to find discord user ${call.request.id}`,
             });

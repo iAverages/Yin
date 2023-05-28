@@ -2,7 +2,6 @@ import { ZodError } from "zod";
 
 import { logger } from "@yin/common";
 import { guild } from "@yin/discord";
-import { database } from "@yin/grpc";
 
 import { ServiceMeta } from "~/service";
 import { DiscordPacket } from "../packets/BasePacket";

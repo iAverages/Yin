@@ -12,7 +12,7 @@ export const start = () => {
     const WorkerServiceImp: worker.WorkerServer = {
         handlePacket: async (call, callback) => {
             console.log(call.request);
-            const packet = JSON.parse(call.request.body) as any;
+            const packet = JSON.parse(call.request.body);
             const res = await api.interaction.respond(
                 {
                     type: 4,
