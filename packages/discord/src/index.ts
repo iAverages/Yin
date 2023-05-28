@@ -7,4 +7,5 @@ const api = {
     user: user.userHandler,
     interaction: interaction.interactionHandler,
 };
+
 export default api;

@@ -40,4 +40,6 @@ COPY --from=installer --chown=yin:yin /app/services/worker/dist /app/services/wo
 
 EXPOSE 3000
 
+ENV NODE_ENV=production
+
 CMD [ "yarn", "start" ]

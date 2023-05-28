@@ -1,8 +1,10 @@
+import axios, { AxiosError, Method } from "axios";
+import z from "zod";
+
+import { __env, consts, logger } from "@yin/common";
+
 import { RequestResponses, UrlParts } from "./requestResponses";
 import { Routes } from "./routes";
-import axios, { Method, AxiosError } from "axios";
-import z from "zod";
-import { __env, consts } from "@yin/common";
 
 // Can't reference self
 type _JsonValue = string | number | boolean | null;
@@ -77,9 +79,7 @@ export const req = async <T extends Routes>(input: Props<T>): Promise<RequestRes
                 "User-Agent": consts.rest.userAgent,
             },
         });
-        if (__env.YIN_DEBUG) {
-            console.log("[REST][DISCORD] Response: ", data);
-        }
+        logger.debug(`[REST][DISCORD] Response:`, data);
         const validated = schema.parse(data);
         return { success: true, type: responseTypes.SUCCESS, data: validated as RequestResponses<T> };
     } catch (err) {

@@ -6,8 +6,9 @@
     "license": "GPL-3.0",
     "type": "module",
     "dependencies": {
-        "@yin/common": "*",
         "@grpc/grpc-js": "^1.8.12",
+        "@yin/common": "*",
+        "google-protobuf": "^3.21.2",
         "grpc-tools": "^1.12.4",
         "grpc_tools_node_protoc_ts": "^5.3.3",
         "ts-proto": "^1.141.1"

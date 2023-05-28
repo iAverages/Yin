@@ -5,10 +5,10 @@ RUN apk update
 WORKDIR /app
 RUN yarn global add turbo
 COPY . .
-RUN turbo prune --scope=@yin/base --docker
+RUN turbo prune --scope=@yin/database --docker
  
 # Add lockfile and package.json's of isolated subworkspace
-FROM node:18 AS installer
+FROM node:alpine AS installer
 # RUN apk add --no-cache libc6-compat
 # RUN apk update
 WORKDIR /app
@@ -23,21 +23,24 @@ RUN yarn install
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
 COPY tsconfig.packages.json tsconfig.packages.json
-RUN yarn turbo run build --filter=@yin/base...
+RUN yarn workspace @yin/db prisma generate
+RUN yarn turbo run build --filter=@yin/database...
 
 FROM node:alpine AS runner
-WORKDIR /app/services/base
+WORKDIR /app/services/database
  
 # Don't run production as root
 RUN addgroup --system --gid 1001 yin
 RUN adduser --system --uid 1001 yin
 USER yin
  
-COPY --from=installer /app/services/base/package.json /app/services/base/package.json
+COPY --from=installer /app/services/database/package.json /app/services/database/package.json
 COPY --from=installer --chown=yin:yin /app/node_modules /app/node_modules
-COPY --from=installer --chown=yin:yin /app/services/base/dist /app/services/base/dist
-COPY --from=installer --chown=yin:yin /app/services/base/dist /app/services/base/dist
+COPY --from=installer --chown=yin:yin /app/services/database/dist /app/services/database/dist
+COPY --from=installer --chown=yin:yin /app/services/database/dist /app/services/database/dist
 
 EXPOSE 3000
+
+ENV NODE_ENV=production
 
 CMD [ "yarn", "start" ]

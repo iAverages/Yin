@@ -9,6 +9,7 @@
         "@yin/common": "*",
         "@yin/tsup": "*",
         "@yin/grpc": "*",
+        "@yin/discord": "*",
         "source-map-support": "^0.5.21",
         "zod": "^3.21.4"
     },

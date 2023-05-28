@@ -23,7 +23,7 @@ RUN yarn install
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
 COPY tsconfig.packages.json tsconfig.packages.json
-RUN yarn turbo run build --filter=@yin/gateway...
+RUN NODE_ENV=production yarn turbo run build --filter=@yin/gateway...
 
 FROM node:alpine AS runner
 WORKDIR /app/services/gateway
@@ -39,5 +39,7 @@ COPY --from=installer --chown=yin:yin /app/services/gateway/dist /app/services/g
 COPY --from=installer --chown=yin:yin /app/services/gateway/dist /app/services/gateway/dist
 
 EXPOSE 3000
+
+ENV NODE_ENV=production
 
 CMD [ "yarn", "start" ]

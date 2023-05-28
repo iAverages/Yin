@@ -6,7 +6,7 @@ metadata:
   labels:
     app: worker
 spec:
-  replicas: 2
+  replicas: 4
   selector:
     matchLabels:
       app: worker
@@ -14,10 +14,15 @@ spec:
     metadata:
       labels:
         app: worker
+      annotations:
+        linkerd.io/inject: enabled
     spec:
       containers:
-        - image: ctr.avrg.dev/yin/worker:rest-test
+        - image: ctr.avrg.dev/yin/worker:grpcTest
           name: worker
+          ports:
+          - containerPort: 3000
+            name: grpc
           env:
             - name: DISCORD_TOKEN
               valueFrom:
@@ -25,9 +30,40 @@ spec:
                   name: discord-token
                   key: token
 
+            - name: YIN_DISCORD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: discord-token
+                  key: token
+                  
+            - name: YIN_WORKER_GRPC_HOST
+              value: 0.0.0.0:3000
+            - name: YIN_DATABASE_GRPC_HOST
+              value: database.yin:3000
+
+            - name: K3S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           # always pull because im lazy and just use latest for dev image
           imagePullPolicy: Always
           resources:
+            requests:
+              memory: "100Mi"
+              cpu: "0.1"
             limits:
               memory: "1Gi"
               cpu: "1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker
+  namespace: yin
+spec:
+  selector:
+    app: worker
+  ports:
+  - name: grpc
+    port: 3000
+    targetPort: 3000

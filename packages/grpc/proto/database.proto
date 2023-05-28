@@ -7,10 +7,22 @@ import "google/protobuf/timestamp.proto";
 
 service Database {
   rpc LogEvent(Event) returns (common.StatusReply);
+  
+  // Guilds
   rpc AddGuild(Guild) returns (common.StatusReply);
-  rpc RemoveGuild(GuildSearchId) returns (common.StatusReply);
-  rpc GetGuild(GuildSearchId) returns (Guild);
+  rpc RemoveGuild(common.IdSearch) returns (common.StatusReply);
+  rpc GetGuild(common.IdSearch) returns (Guild);
+  
+  // User
+  rpc AddUser(DiscordUser) returns (common.StatusReply);
+  rpc RemoveUser(common.IdSearch) returns (common.StatusReply);
+  rpc GetUser(common.IdSearch) returns (DiscordUser);
+}
 
+message DiscordUser {
+  string id = 1;
+  string name = 2;
+  string avatar = 3;
 }
 
 message Guild {

@@ -7,6 +7,7 @@ import { database } from "@yin/grpc";
 import { env } from "~/env";
 import { createGuildService } from "~/guilds";
 import { createInternalService } from "~/internal";
+import { createUserService } from "~/user";
 
 export type InternalServiceProps = {
     prisma: typeof prisma;
@@ -22,24 +23,22 @@ export const startGrpcServer = async () => {
 
     const guildService = createGuildService({ prisma, logger });
     const internalService = createInternalService({ prisma, logger });
+    const userService = createUserService({ prisma, logger });
 
     const databaseServiceImp: database.DatabaseServer = {
         ...guildService,
         ...internalService,
+        ...userService,
     };
 
     server.addService(database.DatabaseService, databaseServiceImp);
 
-    server.bindAsync(
-        `localhost:${env.YIN_DATABASE_GRPC_PORT}`,
-        grpc.ServerCredentials.createInsecure(),
-        (err, port) => {
-            if (err) {
-                logger.error(err);
-                return;
-            }
-            logger.info(`gRPC server listening on ${port}`);
-            server.start();
+    server.bindAsync(env.YIN_DATABASE_GRPC_HOST, grpc.ServerCredentials.createInsecure(), (err, port) => {
+        if (err) {
+            logger.error(err);
+            return;
         }
-    );
+        logger.info(`gRPC server listening on ${env.YIN_DATABASE_GRPC_HOST} ${port}`);
+        server.start();
+    });
 };

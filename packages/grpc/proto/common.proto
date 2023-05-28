@@ -6,3 +6,7 @@ message StatusReply {
   bool success = 1;
   optional string message = 2;
 }
+
+message IdSearch {
+  string id = 1;
+}

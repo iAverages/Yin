@@ -7,7 +7,7 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-// NextAuth.js Models - https://next-auth.js.org/schemas/models
+// START NextAuth.js Models - https://next-auth.js.org/schemas/models
 model Account {
     id                String  @id @default(cuid())
     userId            String
@@ -52,21 +52,24 @@ model VerificationToken {
     @@unique([identifier, token])
 }
 
+// END NextAuth.js Models
+
 model DiscordUser {
     id          String        @id @default(cuid())
     name        String
-    email       String        @unique
-    password    String
+    avatar      String?
+    createdAt   DateTime      @default(now())
     guildMember GuildMember[]
-    EventLog    EventLog[]
+    eventLog    EventLog[]
 }
 
 model GuildMember {
-    id      String      @id @default(cuid())
     guildId String
     userId  String
     guild   Guild       @relation(fields: [guildId], references: [id], onDelete: Cascade)
     user    DiscordUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@id([guildId, userId])
 }
 
 model Guild {
