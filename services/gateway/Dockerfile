@@ -34,9 +34,9 @@ RUN adduser --system --uid 1001 yin
 USER yin
  
 COPY --from=installer /app/services/gateway/package.json /app/services/gateway/package.json
-COPY --from=installer --chown=yin:yin /app/node_modules /app/node_modules
-COPY --from=installer --chown=yin:yin /app/services/gateway/dist /app/services/gateway/dist
-COPY --from=installer --chown=yin:yin /app/services/gateway/dist /app/services/gateway/dist
+COPY --from=installer /app/node_modules /app/node_modules
+COPY --from=installer /app/services/gateway/dist /app/services/gateway/dist
+COPY --from=installer /app/services/gateway/dist /app/services/gateway/dist
 
 EXPOSE 3000
 
