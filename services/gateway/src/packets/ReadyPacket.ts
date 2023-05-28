@@ -1,7 +1,9 @@
+import { GuildSchema } from "@yin/discord/src/structs/guild";
+
 export interface ReadyPacket {
     v: string;
     user: Object; //DiscordUser
-    guilds: Array<Object>; // Array<Guilds>
+    guilds: Array<GuildSchema>; // Array<Guilds>
     session_id: string;
     shard?: [number, number];
     application: Object; // Application

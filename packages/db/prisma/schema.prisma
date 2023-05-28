@@ -7,13 +7,7 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Post {
-    id      String @id @default(cuid())
-    title   String
-    content String
-}
-
-// NextAuth.js Models - https://next-auth.js.org/schemas/models
+// START NextAuth.js Models - https://next-auth.js.org/schemas/models
 model Account {
     id                String  @id @default(cuid())
     userId            String
@@ -58,8 +52,52 @@ model VerificationToken {
     @@unique([identifier, token])
 }
 
-// Will add more properties later just testing for now
+// END NextAuth.js Models
+
+model DiscordUser {
+    id          String        @id @default(cuid())
+    name        String
+    avatar      String?
+    createdAt   DateTime      @default(now())
+    guildMember GuildMember[]
+    eventLog    EventLog[]
+}
+
+model GuildMember {
+    guildId String
+    userId  String
+    guild   Guild       @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    user    DiscordUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@id([guildId, userId])
+}
+
 model Guild {
-    id    String @id
-    owner String
+    id        String   @id
+    name      String
+    icon      String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    guildMember GuildMember[]
+    EventLog    EventLog[]
+}
+
+model DiscordEvent {
+    id          String     @id @default(cuid())
+    name        String     @unique
+    description String
+    eventLog    EventLog[]
+}
+
+model EventLog {
+    id           String       @id @default(cuid())
+    guildId      String
+    userId       String
+    eventId      String
+    createdAt    DateTime     @default(now())
+    updatedAt    DateTime     @updatedAt
+    guild        Guild        @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    user         DiscordUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+    discordEvent DiscordEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }

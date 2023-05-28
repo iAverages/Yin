@@ -1,31 +1,40 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gateway
+  name: database
   namespace: yin
   labels:
-    app: gateway
+    app: database 
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: gateway
+      app: database
   template:
     metadata:
       labels:
-        app: gateway
+        app: database
       annotations:
         linkerd.io/inject: enabled
+        config.linkerd.io/skip-outbound-ports: "3306"
     spec:
       containers:
-        - image: ctr.avrg.dev/yin/gateway:grpcTest
-          name: gateway
+        - image: ctr.avrg.dev/yin/database:grpcTest
+          name: database
+          ports:
+          - containerPort: 3000
+            name: grpc
           env:
-            - name: DISCORD_TOKEN
+            - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: discord-token
-                  key: token
+                  name: database-url
+                  key: url
+            - name: YIN_WORKER_GRPC_HOST
+              value: worker.yin:3000
+
+            - name: YIN_DATABASE_GRPC_HOST
+              value: 0.0.0.0:3000
 
             - name: YIN_DISCORD_TOKEN
               valueFrom:
@@ -33,16 +42,6 @@ spec:
                   name: discord-token
                   key: token
 
-            - name: K3S_POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-
-            - name: YIN_WORKER_GRPC_HOST
-              value: worker.yin:3000
-            - name: YIN_DATABASE_GRPC_HOST
-              value: database.yin:3000
-              
           # always pull because im lazy and just use latest for dev image
           imagePullPolicy: Always
           resources:
@@ -52,3 +51,16 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: database
+  namespace: yin
+spec:
+  selector:
+    app: database
+  ports:
+  - name: grpc
+    port: 3000
+    targetPort: 3000

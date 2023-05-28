@@ -1,26 +1,34 @@
-import api from "@yin/discord";
+import { logger } from "@yin/common";
+import { type interaction } from "@yin/discord";
 
-import { DiscordPacket } from "../packets/BasePacket";
+import { DiscordPacket } from "~/packets/BasePacket";
+import { ServiceMeta } from "~/service";
 
-// import { InteractionResponseType } from "@yin/discord";
-
-export default async (packet: DiscordPacket<any>) => {
+export default async (service: ServiceMeta, packet: DiscordPacket<interaction.Interaction>) => {
     if (!packet.d) {
         return;
     }
-    // api.user.getCurrentUser();
     console.log(packet);
-    const res = await api.interaction.respond(
+
+    const guildId = packet.d.guild_id;
+    const userId = packet.d.member?.user.id ?? packet.d.user?.id;
+
+    if (!userId || !guildId) {
+        logger.warn("No user or guild id found");
+        return;
+    }
+
+    service.services.worker.handlePacket(
         {
-            type: 4,
-            data: {
-                content: "Hello world!",
-            },
+            body: JSON.stringify(packet),
         },
-        {
-            "interaction.id": packet.d.id,
-            "interaction.token": packet.d.token,
+        (err, b) => {
+            if (err) {
+                logger.error(err);
+                return;
+            }
+
+            console.log(b.success ? "handled packet" : "failed to handle packet");
         }
     );
-    console.log(res);
 };

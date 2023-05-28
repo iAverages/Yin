@@ -23,7 +23,7 @@ RUN yarn install
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
 COPY tsconfig.packages.json tsconfig.packages.json
-RUN yarn turbo run build --filter=@yin/gateway...
+RUN NODE_ENV=production yarn turbo run build --filter=@yin/gateway...
 
 FROM node:alpine AS runner
 WORKDIR /app/services/gateway
@@ -34,10 +34,12 @@ RUN adduser --system --uid 1001 yin
 USER yin
  
 COPY --from=installer /app/services/gateway/package.json /app/services/gateway/package.json
-COPY --from=installer --chown=yin:yin /app/node_modules /app/node_modules
-COPY --from=installer --chown=yin:yin /app/services/gateway/dist /app/services/gateway/dist
-COPY --from=installer --chown=yin:yin /app/services/gateway/dist /app/services/gateway/dist
+COPY --from=installer /app/node_modules /app/node_modules
+COPY --from=installer /app/services/gateway/dist /app/services/gateway/dist
+COPY --from=installer /app/services/gateway/dist /app/services/gateway/dist
 
 EXPOSE 3000
+
+ENV NODE_ENV=production
 
 CMD [ "yarn", "start" ]

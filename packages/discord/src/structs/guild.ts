@@ -1,12 +1,12 @@
 import { z } from "zod";
 
+import { emojiSchema } from "./emoji";
+import { roleSchema } from "./role";
+import { stickerSchema } from "./sticker";
 // Do not change the import order of these, they are placed this way to make
 // things get imported in the correct order, I should probably move some things around
 // but that fuckeds up the structure
 import { userSchema } from "./user";
-import { roleSchema } from "./role";
-import { emojiSchema } from "./emoji";
-import { stickerSchema } from "./sticker";
 
 export const guildFeatures = [
     "ANIMATED_BANNER",
@@ -120,13 +120,13 @@ export const guildSchema = z.object({
     id: z.string(),
     name: z.string(),
     icon: z.string(),
-    icon_hash: z.string().nullable(),
+    icon_hash: z.string().nullish(),
     splash: z.string().nullable(),
     discovery_splash: z.string().nullable(),
     owner: z.boolean().optional(),
     owner_id: z.string(),
     permissions: z.string().optional(),
-    afk_channel_id: z.string().optional(),
+    afk_channel_id: z.string().nullable(),
     afk_timeout: z.number(),
     widget_enabled: z.boolean().optional(),
     widget_channel_id: z.string().nullish(),
@@ -135,7 +135,7 @@ export const guildSchema = z.object({
     explicit_content_filter: z.number(),
     roles: z.array(roleSchema),
     emojis: z.array(emojiSchema),
-    features: z.array(z.enum(guildFeatures)),
+    features: z.array(z.string()),
     mfa_level: z.number(),
     application_id: z.string().nullable(),
     system_channel_id: z.string().nullable(),
@@ -146,13 +146,13 @@ export const guildSchema = z.object({
     vanity_url_code: z.string().nullable(),
     description: z.string().nullable(),
     banner: z.string().nullable(),
-    premium_tuer: z.number(),
+    premium_tier: z.number(),
     premium_subscription_count: z.number().optional(),
     preferred_locale: z.string(),
     public_updates_channel_id: z.string().optional(),
     max_vidoe_channel_users: z.number().optional(),
     approximate_member_count: z.number().optional(),
-    welcome_screen: welcomeScreenSchema,
+    welcome_screen: welcomeScreenSchema.optional(),
     nsfw_level: z.number(),
     stickers: z.array(stickerSchema),
     premium_progress_bar_enabled: z.boolean(),
@@ -168,7 +168,7 @@ export const guildPartialSchema = z.object({
     icon: z.string(),
     owner: z.boolean(),
     permissions: z.string().optional(),
-    features: z.array(z.enum(guildFeatures)),
+    features: z.array(z.string()),
 });
 
 export type GuildSchema = z.infer<typeof guildSchema>;

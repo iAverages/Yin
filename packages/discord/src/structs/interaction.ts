@@ -1,6 +1,9 @@
+import { z } from "zod";
+
 import { req } from "../manager";
 import { Routes } from "../routes";
-import { z } from "zod";
+import { guildUserSchema } from "./guild";
+import { userSchema } from "./user";
 
 export type InterationResponseUrlParts = {
     "interaction.id": string;
@@ -34,7 +37,21 @@ export const interactionSchema = z.object({
     id: z.string(),
     application_id: z.string(),
     type: z.nativeEnum(InteractionType),
+    data: z.object({}).optional(), // TODO:
+    guild_id: z.string().optional(),
+    channel: z.object({}).optional(), // TODO: channel schema
+    channel_id: z.string().optional(),
+    member: guildUserSchema.optional(), // TODO: member schema
+    user: userSchema.optional(),
+    token: z.string(),
+    version: z.number(),
+    message: z.object({}).optional(), // TODO: message schema
+    app_permissions: z.string().optional(),
+    locale: z.string().optional(),
+    guild_locale: z.string().optional(),
 });
+
+export type Interaction = z.infer<typeof interactionSchema>;
 
 export const interactionResponseDataSchema = z.object({
     tts: z.boolean().optional(),
@@ -53,7 +70,7 @@ export const interactionResponseSchema = z.object({
     data: interactionResponseDataSchema.optional(),
 });
 
-export const handler = {
+export const interactionHandler = {
     respond: (body: InteractionResponseBody, parts: InterationResponseUrlParts) => {
         return req({
             method: "POST",
