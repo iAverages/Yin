@@ -3,7 +3,7 @@ import { httpBatchLink } from "@trpc/client";
 import { createTRPCSolid } from "solid-trpc";
 import superjson from "superjson";
 
-import { AppRouterType } from "@yin/trpc";
+import { type AppRouterType } from "@yin/trpc";
 
 export const trpc = createTRPCSolid<AppRouterType>();
 export const client = trpc.createClient({

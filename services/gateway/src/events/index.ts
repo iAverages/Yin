@@ -1,5 +1,5 @@
-import { ServiceMeta } from "~/service";
-import { DiscordPacket } from "../packets/BasePacket";
+import { type ServiceMeta } from "~/service";
+import { type DiscordPacket } from "../packets/BasePacket";
 
 export const events: Record<
     string,

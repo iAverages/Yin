@@ -1,4 +1,4 @@
-import { InternalService } from "~/grpc";
+import { type InternalService } from "~/grpc";
 
 export const createInternalService: InternalService<"logEvent"> = ({ prisma, logger }) => ({
     logEvent: async ({ request: event }, callback) => {

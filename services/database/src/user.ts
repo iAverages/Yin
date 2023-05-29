@@ -1,4 +1,4 @@
-import { InternalService } from "~/grpc";
+import { type InternalService } from "~/grpc";
 
 export const createUserService: InternalService<"addUser" | "removeUser" | "getUser"> = ({ prisma, logger }) => ({
     addUser: async (call, callback) => {
