@@ -14,7 +14,7 @@ type Props<T> = {
     url: T;
     urlParts: UrlParts<T>;
     method: Method;
-    body?: Record<string, any>;
+    body?: Record<string, unknown>;
     queryParams?: Record<string, JsonValue>;
     schema: z.AnyZodObject | z.ZodArray<z.AnyZodObject>;
 };
@@ -84,7 +84,7 @@ export const req = async <T extends Routes>(input: Props<T>): Promise<RequestRes
         return { success: true, type: responseTypes.SUCCESS, data: validated as RequestResponses<T> };
     } catch (err) {
         if (err instanceof AxiosError) {
-            console.log(err);
+            logger.error("Axios Error", err);
             return {
                 success: false,
                 type: responseTypes.DISCORD_ERROR,
@@ -93,6 +93,7 @@ export const req = async <T extends Routes>(input: Props<T>): Promise<RequestRes
                 errors: err.response?.data.errors,
             };
         } else if (err instanceof z.ZodError) {
+            logger.debug("Zod Validation Error", err);
             return {
                 success: false,
                 type: responseTypes.VALIDATION_ERROR,
@@ -100,6 +101,7 @@ export const req = async <T extends Routes>(input: Props<T>): Promise<RequestRes
                 issues: err.issues,
             };
         } else {
+            logger.error("Unknown error occured", err);
             const _err = err as Error;
             console.log(err);
             return { success: false, type: responseTypes.UNKNOWN_ERROR, message: _err.message, name: _err.name };
