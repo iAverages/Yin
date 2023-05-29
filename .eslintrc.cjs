@@ -12,6 +12,15 @@ module.exports = {
         sourceType: "module",
     },
     plugins: ["@typescript-eslint"],
-    rules: {},
-    ignorePatterns: ["node_modules", "dist"],
+    rules: {
+        "@typescript-eslint/consistent-type-imports": [
+            "warn",
+            {
+                prefer: "type-imports",
+                fixStyle: "inline-type-imports",
+            },
+        ],
+        "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+    },
+    ignorePatterns: ["node_modules", "dist", "templates"],
 };
