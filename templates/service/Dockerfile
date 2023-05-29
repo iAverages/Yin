@@ -34,9 +34,9 @@ RUN adduser --system --uid 1001 yin
 USER yin
  
 COPY --from=installer /app/services/base/package.json /app/services/base/package.json
-COPY --from=installer --chown=yin:yin /app/node_modules /app/node_modules
-COPY --from=installer --chown=yin:yin /app/services/base/dist /app/services/base/dist
-COPY --from=installer --chown=yin:yin /app/services/base/dist /app/services/base/dist
+COPY --from=installer /app/node_modules /app/node_modules
+COPY --from=installer /app/services/base/dist /app/services/base/dist
+COPY --from=installer /app/services/base/dist /app/services/base/dist
 
 EXPOSE 3000
 
