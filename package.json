@@ -4,7 +4,7 @@
     "version": "1.0.0",
     "main": "index.js",
     "repository": "https://github.com/iAverages/Yin.git",
-    "author": "Daniel Raybone",
+    "author": "Daniel Raybone <me@danielraybone.com> (https://danielraybone.com/)",
     "license": "GPL-3.0",
     "workspaces": [
         "packages/*",
@@ -23,7 +23,6 @@
         "trpc": "yarn workspace @yin/trpc",
         "discord": "yarn workspace @yin/discord",
         "grpc": "yarn workspace @yin/grpc",
-        "installAll": "node ./scripts/installAll.mjs",
         "clean": "turbo run clean && rm -rf node_modules",
         "build": "turbo run build",
         "dev": "turbo run dev",
