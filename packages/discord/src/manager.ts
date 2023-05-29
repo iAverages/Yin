@@ -1,10 +1,10 @@
-import axios, { AxiosError, Method } from "axios";
+import axios, { AxiosError, type Method } from "axios";
 import z from "zod";
 
 import { __env, consts, logger } from "@yin/common";
 
-import { RequestResponses, UrlParts } from "./requestResponses";
-import { Routes } from "./routes";
+import { type RequestResponses, type UrlParts } from "./requestResponses";
+import { type Routes } from "./routes";
 
 // Can't reference self
 type _JsonValue = string | number | boolean | null;

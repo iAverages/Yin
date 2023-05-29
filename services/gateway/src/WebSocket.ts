@@ -5,10 +5,10 @@ import { consts } from "@yin/common";
 
 import { DiscordEvents, Opcodes } from "./WSConsts";
 import EventHandlers from "./events";
-import { DiscordPacket } from "./packets/BasePacket";
-import { HelloPacket } from "./packets/HelloPacket";
-import { ReadyPacket } from "./packets/ReadyPacket";
-import { ServiceMeta } from "./service";
+import { type DiscordPacket } from "./packets/BasePacket";
+import { type HelloPacket } from "./packets/HelloPacket";
+import { type ReadyPacket } from "./packets/ReadyPacket";
+import { type ServiceMeta } from "./service";
 
 export class WebSocket {
     private url = consts.discord.gateway;
@@ -18,14 +18,14 @@ export class WebSocket {
     private connection: WS;
     public sessionId: string | null;
     public expectedGuilds: any;
-    private sequence: number = -1;
-    private closeSequence: number = 0;
-    public ping: number = -1;
-    public lastPingTime: number = -1;
-    public lastHeartbeat: boolean = false;
+    private sequence = -1;
+    private closeSequence = 0;
+    public ping = -1;
+    public lastPingTime = -1;
+    public lastHeartbeat = false;
     private heartbeatTimer: NodeJS.Timer | null;
-    public connectedAt: number = -1;
-    public lastHeartbeatAcked: boolean = false;
+    public connectedAt = -1;
+    public lastHeartbeatAcked = false;
 
     constructor(service: ServiceMeta) {
         this.service = service;

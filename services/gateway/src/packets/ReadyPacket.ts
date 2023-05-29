@@ -1,4 +1,4 @@
-import { GuildSchema } from "@yin/discord/src/structs/guild";
+import { type GuildSchema } from "@yin/discord/src/structs/guild";
 
 export interface ReadyPacket {
     v: string;

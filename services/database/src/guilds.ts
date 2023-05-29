@@ -1,4 +1,4 @@
-import { InternalService } from "~/grpc";
+import { type InternalService } from "~/grpc";
 
 export const createGuildService: InternalService<"addGuild" | "removeGuild" | "getGuild"> = ({ prisma, logger }) => ({
     addGuild: async (call, callback) => {

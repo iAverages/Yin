@@ -1,4 +1,4 @@
-import createLogger, { LoggerOptions } from "pino";
+import createLogger, { type LoggerOptions } from "pino";
 
 import { env } from "./env";
 

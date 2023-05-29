@@ -1,4 +1,4 @@
-import { z, type ZodFormattedError } from "zod";
+import { type z, type ZodFormattedError } from "zod";
 
 import { globalSchema } from "./schema";
 

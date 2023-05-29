@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { DefaultEnv, DefaultServiceMeta, setup, validateEnvVars } from "@yin/common";
+import { type DefaultEnv, type DefaultServiceMeta, setup, validateEnvVars } from "@yin/common";
 import { connections, type database as grpcDatabase, type worker as grpcWorker } from "@yin/grpc";
 
 const env = validateEnvVars(z.object({}));

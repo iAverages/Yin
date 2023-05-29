@@ -1,8 +1,8 @@
 import { logger } from "@yin/common";
 import { type interaction } from "@yin/discord";
 
-import { DiscordPacket } from "~/packets/BasePacket";
-import { ServiceMeta } from "~/service";
+import { type DiscordPacket } from "~/packets/BasePacket";
+import { type ServiceMeta } from "~/service";
 
 export default async (service: ServiceMeta, packet: DiscordPacket<interaction.Interaction>) => {
     if (!packet.d) {
