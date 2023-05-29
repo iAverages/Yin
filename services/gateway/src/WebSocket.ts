@@ -3,6 +3,7 @@ import WS from "ws";
 
 import { consts, logger } from "@yin/common";
 
+import { env } from "~/env";
 import EventHandlers from "./events";
 import { type DiscordPacket } from "./packets/BasePacket";
 import { type HelloPacket } from "./packets/HelloPacket";
@@ -12,7 +13,7 @@ import { DiscordEvents, Opcodes } from "./WSConsts";
 
 export class WebSocket {
     private url = consts.discord.gateway;
-    private readonly token = process.env.DISCORD_TOKEN;
+    private readonly token = env.YIN_DISCORD_TOKEN;
 
     private service: ServiceMeta;
     private connection: WS;
