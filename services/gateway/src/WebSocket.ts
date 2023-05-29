@@ -1,14 +1,14 @@
 import { randomUUID } from "crypto";
 import WS from "ws";
 
-import { consts } from "@yin/common";
+import { consts, logger } from "@yin/common";
 
-import { DiscordEvents, Opcodes } from "./WSConsts";
 import EventHandlers from "./events";
 import { type DiscordPacket } from "./packets/BasePacket";
 import { type HelloPacket } from "./packets/HelloPacket";
 import { type ReadyPacket } from "./packets/ReadyPacket";
 import { type ServiceMeta } from "./service";
+import { DiscordEvents, Opcodes } from "./WSConsts";
 
 export class WebSocket {
     private url = consts.discord.gateway;
@@ -31,27 +31,8 @@ export class WebSocket {
         this.service = service;
     }
 
-    // tmp until I sort out logger again
-    private log = {
-        success: (...props: any[]) => {
-            console.log(...props);
-        },
-        info: (...props: any[]) => {
-            console.log(...props);
-        },
-        warn: (...props: any[]) => {
-            console.warn(...props);
-        },
-        debug: (...props: any[]) => {
-            console.log(...props);
-        },
-        error: (...props: any[]) => {
-            console.error(...props);
-        },
-    };
-
     onOpen() {
-        this.log.success("Connected to websocket!");
+        logger.info("Connected to websocket!");
     }
 
     onError(error: WS.ErrorEvent) {
@@ -71,7 +52,7 @@ export class WebSocket {
                     const readyData = packet.d as ReadyPacket;
                     this.sessionId = readyData.session_id;
                     this.expectedGuilds = new Set(readyData.guilds.map((d: any) => d.id));
-                    this.log.success(`Gateway ready, Session ${this.sessionId}.`);
+                    logger.info(`Gateway ready, Session ${this.sessionId}.`);
                     this.lastHeartbeatAcked = true;
                     this.sendHeartbeat();
                     this.handlePacket(packet);
@@ -86,7 +67,7 @@ export class WebSocket {
             case Opcodes.HELLO:
                 // this.setHelloTimeout(-1);
                 const helloData = packet.d as HelloPacket;
-                this.log.info("Hello from WS");
+                logger.info("Hello from WS");
                 this.setHeartbeatTimer(helloData.heartbeat_interval);
                 this.identify();
                 break;
@@ -97,11 +78,11 @@ export class WebSocket {
                 this.sendHeartbeat();
                 break;
             case Opcodes.RECONNECT:
-                this.log.info("WebSocket requested reconnect");
+                logger.info("WebSocket requested reconnect");
                 this.reconnect();
                 break;
             case Opcodes.INVALID_SESSION:
-                this.log.warn(`Invalid session, ${packet.d ? "resuming." : "disconnecting."}.`);
+                logger.warn(`Invalid session, ${packet.d ? "resuming." : "disconnecting."}.`);
                 // Reconnect if true.
                 if (packet.d) {
                     this.identifyResume();
@@ -119,7 +100,7 @@ export class WebSocket {
 
     async handlePacket(packet: DiscordPacket) {
         if (!packet.t) {
-            this.log.debug(`Recevied packet with no event name`);
+            logger.debug(`Recevied packet with no event name`);
             return;
         }
 
@@ -131,7 +112,7 @@ export class WebSocket {
             console.log("Setting new resume url", packet.d.resumeGatewayUrl);
         }
         try {
-            this.log.debug(`Called packet handler for event ${packet.t}`);
+            logger.debug(`Called packet handler for event ${packet.t}`);
             if (!packet.d) {
                 packet.d = {};
             }
@@ -143,20 +124,20 @@ export class WebSocket {
             handler.default(this.service, packet);
         } catch (e) {
             console.log(e);
-            this.log.error(`Failed to handle ${packet.t} packet.`);
+            logger.error(`Failed to handle ${packet.t} packet.`);
             return;
         }
-        this.log.info(`Got ${packet.t} packet`);
+        logger.info(`Got ${packet.t} packet`);
     }
 
     identifyResume() {
         if (!this.sessionId) {
-            this.log.debug("No session id was found, starting new session.");
+            logger.debug("No session id was found, starting new session.");
             this.identify();
             return;
         }
 
-        this.log.debug(`Resuming session ${this.sessionId}, sequence ${this.closeSequence}`);
+        logger.debug(`Resuming session ${this.sessionId}, sequence ${this.closeSequence}`);
 
         const d = {
             session_id: this.sessionId,
@@ -168,14 +149,14 @@ export class WebSocket {
     }
 
     onClose(close: WS.CloseEvent) {
-        close.wasClean && this.log.warn("Disconnected from websocket! Reason: " + close.reason);
-        !close.wasClean && this.log.warn("Bad disconnect from websocket! Reason: " + close.reason);
+        close.wasClean && logger.warn("Disconnected from websocket! Reason: " + close.reason);
+        !close.wasClean && logger.warn("Bad disconnect from websocket! Reason: " + close.reason);
     }
 
     ackHeartbeat() {
         this.lastHeartbeatAcked = true;
         const ping = Date.now() - this.lastPingTime;
-        this.log.debug(`Heartbeat acknowledged - ${ping}ms ping.`);
+        logger.debug(`Heartbeat acknowledged - ${ping}ms ping.`);
         this.ping = ping;
     }
 
@@ -225,7 +206,7 @@ export class WebSocket {
         // Second part of this (After ||) helps with network dropouts. I should
         // Probably think of a better way to handle this but for now this will do :)
         if (!this.lastHeartbeatAcked && this.ping != -1) {
-            this.log.warn("Last heartbeat did not ack, reconnecting to websocket.");
+            logger.warn("Last heartbeat did not ack, reconnecting to websocket.");
             this.reconnect();
             return;
         }
@@ -237,7 +218,7 @@ export class WebSocket {
     setHeartbeatTimer(time: number) {
         if (time === -1) {
             if (this.heartbeatTimer) {
-                this.log.debug("Removing the heartbeat.");
+                logger.debug("Removing the heartbeat.");
                 clearInterval(this.heartbeatTimer);
                 this.heartbeatTimer = null;
             }
@@ -247,6 +228,6 @@ export class WebSocket {
             clearInterval(this.heartbeatTimer);
         }
         this.heartbeatTimer = setInterval(() => this.sendHeartbeat(), time).unref();
-        this.log.info(`Setting heartbeat interval of ${time}ms.`);
+        logger.info(`Setting heartbeat interval of ${time}ms.`);
     }
 }
