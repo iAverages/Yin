@@ -7,9 +7,9 @@
     "type": "module",
     "dependencies": {
         "@yin/common": "*",
-        "@yin/tsup": "*",
-        "@yin/grpc": "*",
         "@yin/discord": "*",
+        "@yin/grpc": "*",
+        "@yin/tsup": "*",
         "bufferutil": "^4.0.3",
         "source-map-support": "^0.5.21",
         "utf-8-validate": "^6.0.0",

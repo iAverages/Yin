@@ -1,14 +1,12 @@
 import { logger } from "@yin/common";
 import { type interaction } from "@yin/discord";
 
-import { type DiscordPacket } from "~/packets/BasePacket";
-import { type ServiceMeta } from "~/service";
+import { type Event } from "~/events";
 
-export default async (service: ServiceMeta, packet: DiscordPacket<interaction.Interaction>) => {
+export default async ({ packet }: Event<interaction.Interaction>) => {
     if (!packet.d) {
         return;
     }
-    console.log(packet);
 
     const guildId = packet.d.guild_id;
     const userId = packet.d.member?.user.id ?? packet.d.user?.id;
@@ -17,18 +15,4 @@ export default async (service: ServiceMeta, packet: DiscordPacket<interaction.In
         logger.warn("No user or guild id found");
         return;
     }
-
-    service.services.worker.handlePacket(
-        {
-            body: JSON.stringify(packet),
-        },
-        (err, b) => {
-            if (err) {
-                logger.error(err);
-                return;
-            }
-
-            console.log(b.success ? "handled packet" : "failed to handle packet");
-        }
-    );
 };

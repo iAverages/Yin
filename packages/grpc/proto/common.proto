@@ -10,3 +10,9 @@ message StatusReply {
 message IdSearch {
   string id = 1;
 }
+
+message DiscordUser {
+  string id = 1;
+  string name = 2;
+  string avatar = 3;
+}

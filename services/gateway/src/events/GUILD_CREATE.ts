@@ -3,34 +3,48 @@ import { ZodError } from "zod";
 import { logger } from "@yin/common";
 import { guild } from "@yin/discord";
 
-import { type ServiceMeta } from "~/service";
-import { type DiscordPacket } from "../packets/BasePacket";
+import { type Event } from "~/events";
 
-export default async (service: ServiceMeta, packet: DiscordPacket<any>) => {
+export default async ({ service, packet }: Event) => {
     if (!packet.d) {
+        logger.debug("GUILD_CREATE: no data");
         return;
     }
 
     try {
         const eventGuild = await guild.guildSchema.parseAsync(packet.d);
+        logger.debug(
+            {
+                event: "GUILD_CREATE",
+                data: packet.d,
+            },
+            "Got GUILD_CREATE event"
+        );
+
         service.services.database.addGuild(
             {
                 icon: eventGuild.icon,
                 id: eventGuild.id,
                 name: eventGuild.name,
             },
-            (err, b) => {
+            (err, res) => {
                 if (err) {
                     logger.error(err);
                     return;
                 }
-
-                console.log(b.success ? "added guild" : "failed to add guild");
+                logger.debug(res ? "Added guild" : "Failed to add guild");
             }
         );
     } catch (err) {
         if (err instanceof ZodError) {
-            logger.error(err.message);
+            logger.error(
+                {
+                    event: "GUILD_CREATE",
+                    data: packet.d,
+                    error: err,
+                },
+                "Failed to parse GUILD_CREATE event"
+            );
             return;
         }
 

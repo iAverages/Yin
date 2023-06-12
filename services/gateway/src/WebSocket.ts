@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import WS from "ws";
 
-import { consts, logger } from "@yin/common";
+import { consts, logger, SentryNode } from "@yin/common";
 
 import { env } from "~/env";
 import EventHandlers from "./events";
@@ -18,7 +18,6 @@ export class WebSocket {
     private service: ServiceMeta;
     private connection: WS;
     public sessionId: string | null;
-    public expectedGuilds: any;
     private sequence = -1;
     private closeSequence = 0;
     public ping = -1;
@@ -40,7 +39,7 @@ export class WebSocket {
         console.log(error);
     }
 
-    onMessage({ data }: WS.MessageEvent) {
+    async onMessage({ data }: WS.MessageEvent) {
         const packet: DiscordPacket = JSON.parse(data as string);
         // console.log(packet);
         if (packet.s && packet.s > this.sequence) {
@@ -50,13 +49,25 @@ export class WebSocket {
         if (packet.t != null) {
             switch (packet.t) {
                 case DiscordEvents.READY:
-                    const readyData = packet.d as ReadyPacket;
-                    this.sessionId = readyData.session_id;
-                    this.expectedGuilds = new Set(readyData.guilds.map((d: any) => d.id));
+                    this.sessionId = (packet.d as ReadyPacket).session_id;
                     logger.info(`Gateway ready, Session ${this.sessionId}.`);
                     this.lastHeartbeatAcked = true;
                     this.sendHeartbeat();
                     this.handlePacket(packet);
+                    if (packet.t == DiscordEvents.READY) {
+                        const newUrl = (await (
+                            await EventHandlers["READY"]
+                        ).default({
+                            service: this.service,
+                            packet,
+                        })) as unknown as string;
+                        console.log("newUrl", newUrl);
+                        if (newUrl) {
+                            this.url = newUrl;
+                            logger.info("Setting new resume url", newUrl);
+                        }
+                        return;
+                    }
                     break;
 
                 case DiscordEvents.RESUMED:
@@ -66,10 +77,8 @@ export class WebSocket {
 
         switch (packet.op) {
             case Opcodes.HELLO:
-                // this.setHelloTimeout(-1);
-                const helloData = packet.d as HelloPacket;
                 logger.info("Hello from WS");
-                this.setHeartbeatTimer(helloData.heartbeat_interval);
+                this.setHeartbeatTimer((packet.d as HelloPacket).heartbeat_interval);
                 this.identify();
                 break;
             case Opcodes.HEARTBEAT_ACK:
@@ -105,15 +114,7 @@ export class WebSocket {
             return;
         }
 
-        // @ts-ignore
-        if (packet.d?.resumeGatewayUrl) {
-            // @ts-ignore
-            this.url = packet.d.resumeGatewayUrl;
-            // @ts-ignore
-            console.log("Setting new resume url", packet.d.resumeGatewayUrl);
-        }
         try {
-            logger.debug(`Called packet handler for event ${packet.t}`);
             if (!packet.d) {
                 packet.d = {};
             }
@@ -122,10 +123,18 @@ export class WebSocket {
             packet.d._yinProcessStart = process.hrtime.bigint().toString();
 
             const handler = await EventHandlers[packet.t];
-            handler.default(this.service, packet);
+            if (!handler) {
+                logger.debug(`No handler for ${packet.t} packet, ignoring...`);
+                return;
+            }
+
+            logger.debug(`Called packet handler for event ${packet.t}`);
+            console.log(handler.default);
+            await handler.default({ service: this.service, packet });
         } catch (e) {
-            console.log(e);
             logger.error(`Failed to handle ${packet.t} packet.`);
+            logger.error(e);
+            SentryNode.captureException(e);
             return;
         }
         logger.info(`Got ${packet.t} packet`);
@@ -197,15 +206,13 @@ export class WebSocket {
         this.connect();
     }
 
-    destroy() {}
+    // destroy() {}
 
-    send(data: Object) {
+    send(data: object) {
         this.connection.send(JSON.stringify(data));
     }
 
     sendHeartbeat() {
-        // Second part of this (After ||) helps with network dropouts. I should
-        // Probably think of a better way to handle this but for now this will do :)
         if (!this.lastHeartbeatAcked && this.ping != -1) {
             logger.warn("Last heartbeat did not ack, reconnecting to websocket.");
             this.reconnect();

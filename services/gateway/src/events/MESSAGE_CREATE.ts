@@ -1,9 +1,34 @@
-import { type ServiceMeta } from "~/service";
-import { type DiscordPacket } from "../packets/BasePacket";
+import { logger } from "@yin/common";
+import { message } from "@yin/discord";
 
-export default (service: ServiceMeta, packet: DiscordPacket<any>) => {
+import { type Event } from "~/events";
+
+export default async ({ service, packet }: Event<message.Message>) => {
     if (!packet.d) {
         return;
     }
-    console.log("MESSAGE Create packet received");
+
+    const messageEvent = await message.messageSchema.parseAsync(packet.d);
+
+    service.services.worker.handleMessageCreate(
+        {
+            author: {
+                avatar: messageEvent.author.avatar ?? "",
+                id: messageEvent.author.id,
+                name: messageEvent.author.username,
+            },
+            channelId: messageEvent.channel_id,
+            content: messageEvent.content,
+            id: messageEvent.id,
+            timestamp: messageEvent.timestamp,
+            webhookId: messageEvent.webhook_id,
+        },
+        (err, res) => {
+            if (err) {
+                logger.error(err);
+                throw err;
+            }
+            logger.debug(res ? "Added message" : "Failed to add message");
+        }
+    );
 };

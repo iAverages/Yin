@@ -1,14 +1,13 @@
-import { type ServiceMeta } from "~/service";
-import { type DiscordPacket } from "../packets/BasePacket";
+import { logger } from "@yin/common";
 
-export default (service: ServiceMeta, _packet: DiscordPacket<any>) => {
-    // service.services.database.logEvent(
-    //     {
-    //         createdAt: new Date(),
-    //         discordEvent: "READY",
-    //         discordGuildId: "",
-    //         discordUserId: "",
-    //     },
-    //     () => {}
-    // );
+import { type Event } from "~/events";
+import { type ReadyPacket } from "~/packets/ReadyPacket";
+
+export default ({ packet }: Event<ReadyPacket>) => {
+    console.log(packet.d);
+    if (packet.d?.resume_gateway_url) {
+        logger.info("Setting new resume url", packet.d.resume_gateway_url);
+        return packet.d.resume_gateway_url;
+    }
+    return null;
 };

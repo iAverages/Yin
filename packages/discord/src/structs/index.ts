@@ -5,3 +5,4 @@ export * as role from "./role";
 export * as sticker from "./sticker";
 export * as emoji from "./emoji";
 export * as interaction from "./interaction";
+export * as message from "./message";

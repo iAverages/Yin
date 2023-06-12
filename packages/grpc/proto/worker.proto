@@ -1,9 +1,20 @@
 syntax = "proto3";
 
 package worker;
+
+import "common.proto";
  
 service Worker {
-  rpc handlePacket(Packet) returns (StatusReply);
+  rpc handleMessageCreate(Message) returns (StatusReply);
+}
+
+message Message { 
+  string id = 1;
+  string content = 2;
+  string channel_id = 3;
+  common.DiscordUser author = 4;
+  string timestamp = 5;
+  optional string webhook_id = 6;
 }
 
 message Packet {

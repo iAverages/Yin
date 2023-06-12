@@ -14,15 +14,9 @@ service Database {
   rpc GetGuild(common.IdSearch) returns (Guild);
   
   // User
-  rpc AddUser(DiscordUser) returns (common.StatusReply);
+  rpc AddUser(common.DiscordUser) returns (common.StatusReply);
   rpc RemoveUser(common.IdSearch) returns (common.StatusReply);
-  rpc GetUser(common.IdSearch) returns (DiscordUser);
-}
-
-message DiscordUser {
-  string id = 1;
-  string name = 2;
-  string avatar = 3;
+  rpc GetUser(common.IdSearch) returns (common.DiscordUser);
 }
 
 message Guild {

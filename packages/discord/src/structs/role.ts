@@ -26,5 +26,5 @@ export const roleSchema = z.object({
     permissions: z.string(),
     managed: z.boolean(),
     mentionable: z.boolean(),
-    tags: roleTagSchema,
+    tags: roleTagSchema.optional(),
 });

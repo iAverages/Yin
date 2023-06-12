@@ -1,9 +1,15 @@
+import * as Sentry from "@sentry/node";
 import { z } from "zod";
 
-import { type DefaultEnv, type DefaultServiceMeta, setup, validateEnvVars } from "@yin/common";
+import { setup, validateEnvVars, type DefaultEnv, type DefaultServiceMeta } from "@yin/common";
 import { connections, type database as grpcDatabase, type worker as grpcWorker } from "@yin/grpc";
 
 const env = validateEnvVars(z.object({}));
+
+Sentry.init({
+    dsn: env.SENTRY_DSN,
+    tracesSampleRate: 1.0,
+});
 
 export const createService = () => {
     return setup<GatewayServiceMeta>("gateway", {

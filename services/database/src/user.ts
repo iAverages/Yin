@@ -7,6 +7,7 @@ export const createUserService: InternalService<"addUser" | "removeUser" | "getU
                 create: {
                     name: call.request.name,
                     avatar: call.request.avatar,
+                    id: call.request.id,
                 },
                 update: {
                     name: call.request.name,

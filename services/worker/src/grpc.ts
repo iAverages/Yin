@@ -1,43 +1,39 @@
 import grpc from "@grpc/grpc-js";
 
-import api from "@yin/discord";
+import { logger } from "@yin/common";
 import { worker } from "@yin/grpc";
 
-import { env } from "./env";
+import { env } from "~/env";
+import { createService } from "~/service";
+import { createMessageService } from "~/services/message";
 
-const { WorkerService, StatusReply } = worker;
-export const start = () => {
+export type InternalServiceProps = {
+    logger: typeof logger;
+    service: ReturnType<typeof createService>;
+};
+
+export type InternalService<K extends keyof worker.WorkerServer> = (
+    props: InternalServiceProps
+) => Pick<worker.WorkerServer, K>;
+
+export const startGrpcServer = async () => {
     const server = new grpc.Server();
+    const service = createService();
 
-    const WorkerServiceImp: worker.WorkerServer = {
-        handlePacket: async (call, callback) => {
-            console.log(call.request);
-            const packet = JSON.parse(call.request.body);
-            const res = await api.interaction.respond(
-                {
-                    type: 4,
-                    data: {
-                        content: `Hello world! - ${env.K3S_POD_NAME}`,
-                    },
-                },
-                {
-                    "interaction.id": packet.d.id,
-                    "interaction.token": packet.d.token,
-                }
-            );
-            console.log(res);
-            callback(null, StatusReply.create({ success: false, message: call.request.body }));
-        },
+    const mesageService = createMessageService({ service, logger });
+
+    const workerServiceImp: worker.WorkerServer = {
+        ...mesageService,
     };
 
-    server.addService(WorkerService, WorkerServiceImp);
+    server.addService(worker.WorkerService, workerServiceImp);
 
     server.bindAsync(env.YIN_WORKER_GRPC_HOST, grpc.ServerCredentials.createInsecure(), (err, port) => {
         if (err) {
-            console.log(err);
+            logger.error(err);
             return;
         }
-        console.log(`Listening on ${port}`);
+        logger.info(`gRPC server listening on ${env.YIN_WORKER_GRPC_HOST} ${port}`);
         server.start();
     });
 };

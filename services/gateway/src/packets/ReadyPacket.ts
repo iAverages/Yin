@@ -1,10 +1,11 @@
-import { type GuildSchema } from "@yin/discord/src/structs/guild";
+import { type user } from "@yin/discord";
 
 export interface ReadyPacket {
     v: string;
-    user: Object; //DiscordUser
-    guilds: Array<GuildSchema>; // Array<Guilds>
+    user: user.User;
+    guilds: Array<{ unavailable: boolean; id: string }>;
     session_id: string;
     shard?: [number, number];
-    application: Object; // Application
+    application: { id: string; flags: number };
+    resume_gateway_url: string;
 }
