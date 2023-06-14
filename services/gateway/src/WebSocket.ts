@@ -41,7 +41,6 @@ export class WebSocket {
 
     async onMessage({ data }: WS.MessageEvent) {
         const packet: DiscordPacket = JSON.parse(data as string);
-        // console.log(packet);
         if (packet.s && packet.s > this.sequence) {
             this.sequence = packet.s;
         }
@@ -60,8 +59,10 @@ export class WebSocket {
                         ).default({
                             service: this.service,
                             packet,
+                            wsInfo: {
+                                ping: this.ping,
+                            },
                         })) as unknown as string;
-                        console.log("newUrl", newUrl);
                         if (newUrl) {
                             this.url = newUrl;
                             logger.info("Setting new resume url", newUrl);
@@ -129,8 +130,13 @@ export class WebSocket {
             }
 
             logger.debug(`Called packet handler for event ${packet.t}`);
-            console.log(handler.default);
-            await handler.default({ service: this.service, packet });
+            await handler.default({
+                service: this.service,
+                packet,
+                wsInfo: {
+                    ping: this.ping,
+                },
+            });
         } catch (e) {
             logger.error(`Failed to handle ${packet.t} packet.`);
             logger.error(e);

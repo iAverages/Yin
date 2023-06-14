@@ -5,8 +5,8 @@ import { connections, type database as grpcDatabase } from "@yin/grpc";
 
 const env = validateEnvVars(z.object({}));
 
-export const createService = () => {
-    return setup<WorkerServiceMeta>("worker", {
+export const createService = async () => {
+    return await setup<WorkerServiceMeta>("worker", {
         services: {
             database: connections.createDatabaseConnection(),
         },

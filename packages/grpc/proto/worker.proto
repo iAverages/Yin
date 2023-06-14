@@ -6,13 +6,14 @@ import "common.proto";
  
 service Worker {
   rpc handleMessageCreate(Message) returns (StatusReply);
+  rpc handleInteraction(InteractionRequest) returns (StatusReply);
 }
 
 message Message { 
   string id = 1;
   string content = 2;
   string channel_id = 3;
-  common.DiscordUser author = 4;
+  optional common.DiscordUser author = 4;
   string timestamp = 5;
   optional string webhook_id = 6;
 }
@@ -25,3 +26,23 @@ message StatusReply {
   bool success = 1;
   optional string message = 2;
 }
+
+message InteractionRequest {
+  string id = 1;
+  int32 type = 2;
+  string token = 3;
+  string user_id = 4;
+  optional string guild_id = 5;
+  optional string channel_id = 6;
+  WebsocketInfo websocket_info = 7;
+}
+
+message InteractionResponse {
+  string type = 1;
+  string data = 2;
+}
+
+message WebsocketInfo {
+  int32 ping = 1;
+}
+ 

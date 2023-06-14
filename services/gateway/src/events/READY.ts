@@ -4,7 +4,6 @@ import { type Event } from "~/events";
 import { type ReadyPacket } from "~/packets/ReadyPacket";
 
 export default ({ packet }: Event<ReadyPacket>) => {
-    console.log(packet.d);
     if (packet.d?.resume_gateway_url) {
         logger.info("Setting new resume url", packet.d.resume_gateway_url);
         return packet.d.resume_gateway_url;

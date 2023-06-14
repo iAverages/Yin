@@ -9,7 +9,7 @@ import { createMessageService } from "~/services/message";
 
 export type InternalServiceProps = {
     logger: typeof logger;
-    service: ReturnType<typeof createService>;
+    service: Awaited<ReturnType<typeof createService>>;
 };
 
 export type InternalService<K extends keyof worker.WorkerServer> = (
@@ -18,7 +18,7 @@ export type InternalService<K extends keyof worker.WorkerServer> = (
 
 export const startGrpcServer = async () => {
     const server = new grpc.Server();
-    const service = createService();
+    const service = await createService();
 
     const mesageService = createMessageService({ service, logger });
 

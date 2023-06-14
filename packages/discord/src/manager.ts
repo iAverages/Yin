@@ -16,7 +16,7 @@ type Props<T> = {
     method: Method;
     body?: Record<string, unknown>;
     queryParams?: Record<string, JsonValue>;
-    schema: z.AnyZodObject | z.ZodArray<z.AnyZodObject>;
+    schema: z.AnyZodObject | z.ZodArray<z.AnyZodObject> | null;
 };
 
 export const makeUrl = <T extends Routes>(url: string, parts: UrlParts<T>) => {
@@ -79,12 +79,14 @@ export const req = async <T extends Routes>(input: Props<T>): Promise<RequestRes
                 "User-Agent": consts.rest.userAgent,
             },
         });
-        logger.debug(`[REST][DISCORD] Response:`, data);
-        const validated = schema.parse(data);
+        logger.debug(`[REST][DISCORD] Response:`);
+        logger.debug(data);
+        const validated = schema?.parse(data) || null;
         return { success: true, type: responseTypes.SUCCESS, data: validated as RequestResponses<T> };
     } catch (err) {
         if (err instanceof AxiosError) {
-            logger.error("Axios Error", err);
+            logger.error("Axios Error");
+            logger.error(err.response);
             return {
                 success: false,
                 type: responseTypes.DISCORD_ERROR,
@@ -93,7 +95,8 @@ export const req = async <T extends Routes>(input: Props<T>): Promise<RequestRes
                 errors: err.response?.data.errors,
             };
         } else if (err instanceof z.ZodError) {
-            logger.debug("Zod Validation Error", err);
+            logger.debug("Zod Validation Error");
+            logger.debug(err);
             return {
                 success: false,
                 type: responseTypes.VALIDATION_ERROR,
@@ -101,9 +104,9 @@ export const req = async <T extends Routes>(input: Props<T>): Promise<RequestRes
                 issues: err.issues,
             };
         } else {
-            logger.error("Unknown error occured", err);
+            logger.error("Unknown error occured");
+            logger.error(err);
             const _err = err as Error;
-            console.log(err);
             return { success: false, type: responseTypes.UNKNOWN_ERROR, message: _err.message, name: _err.name };
         }
     }

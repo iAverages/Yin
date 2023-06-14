@@ -18,7 +18,7 @@ spec:
         linkerd.io/inject: enabled
     spec:
       containers:
-        - image: ctr.avrg.dev/yin/gateway:grpcTest
+        - image: ctr.avrg.dev/yin/gateway:latest
           name: gateway
           env:
             - name: DISCORD_TOKEN

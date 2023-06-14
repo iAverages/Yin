@@ -5,6 +5,9 @@ import { type ServiceMeta } from "~/service";
 export type Event<T extends Record<string, any> = object> = {
     service: ServiceMeta;
     packet: DiscordPacket<T>;
+    wsInfo: {
+        ping: number;
+    };
 };
 
 export const events: Record<

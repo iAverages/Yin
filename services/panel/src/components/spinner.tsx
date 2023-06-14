@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { type Component, type JSX, splitProps } from "solid-js";
+import { splitProps, type Component, type JSX } from "solid-js";
 
 export type SpinnerProps = {
     color?: string;

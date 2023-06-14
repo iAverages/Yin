@@ -12,5 +12,7 @@ export { logger } from "./logger";
 // instead, use validateEnvVars
 export { env as __env, globalSchema, validateEnvVars, type DefaultEnv } from "./env";
 
+export { CancelablePromise, asyncTimeout } from "./cancelablePromise";
+
 export * as SentryNode from "@sentry/node"
 export * as SentryTracing from "@sentry/tracing"

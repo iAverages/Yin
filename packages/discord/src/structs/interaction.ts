@@ -1,3 +1,4 @@
+import { ExecuteWebhookBody } from "structs/webhook";
 import { z } from "zod";
 
 import { req } from "../manager";
@@ -7,6 +8,11 @@ import { userSchema } from "./user";
 
 export type InterationResponseUrlParts = {
     "interaction.id": string;
+    "interaction.token": string;
+};
+
+export type InterationFollowupUrlParts = {
+    "application.id": string;
     "interaction.token": string;
 };
 
@@ -74,8 +80,17 @@ export const interactionHandler = {
     respond: (body: InteractionResponseBody, parts: InterationResponseUrlParts) => {
         return req({
             method: "POST",
-            schema: interactionResponseSchema,
+            schema: null,
             url: Routes.INTERACTION_CREATE,
+            urlParts: parts,
+            body,
+        });
+    },
+    followup: (body: ExecuteWebhookBody, parts: InterationFollowupUrlParts) => {
+        return req({
+            method: "POST",
+            schema: null,
+            url: Routes.INTERACTION_FOLLOWUP,
             urlParts: parts,
             body,
         });

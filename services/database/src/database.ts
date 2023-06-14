@@ -1,5 +1,5 @@
 import { logger } from "@yin/common";
-import { type DiscordEvent, prisma } from "@yin/db";
+import { prisma, type DiscordEvent } from "@yin/db";
 
 const discordEvents: Omit<DiscordEvent, "id">[] = [
     {
