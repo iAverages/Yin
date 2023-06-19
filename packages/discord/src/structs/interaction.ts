@@ -1,8 +1,9 @@
-import { ExecuteWebhookBody } from "structs/webhook";
 import { z } from "zod";
 
 import { req } from "../manager";
 import { Routes } from "../routes";
+import { embedSchema } from "../structs/channel";
+import type { ExecuteWebhookBody } from "../structs/webhook";
 import { guildUserSchema } from "./guild";
 import { userSchema } from "./user";
 
@@ -19,6 +20,14 @@ export type InterationFollowupUrlParts = {
 export type InteractionResponseBody = {
     type: InteractionResponseType;
     data?: InteractionResponseData;
+};
+
+// TODO: Complete type
+export type InteractionEditResponseBody = {
+    content?: string;
+    embeds?: (typeof embedSchema)["_output"][];
+    allowed_mentions?: unknown;
+    components?: unknown[];
 };
 
 export enum InteractionType {
@@ -39,11 +48,48 @@ export enum InteractionResponseType {
     "MODAL",
 }
 
+const _interactionOptionSchema = {
+    name: z.string(),
+    value: z.any().optional(),
+    type: z.number(),
+};
+const _interactionOptionSchema1 = {
+    ..._interactionOptionSchema,
+    options: z.object(_interactionOptionSchema).array().optional(),
+};
+const _interactionOptionSchema2 = {
+    ..._interactionOptionSchema,
+    options: z.object(_interactionOptionSchema1).array().optional(),
+};
+const _interactionOptionSchema3 = {
+    ..._interactionOptionSchema,
+    options: z.object(_interactionOptionSchema2).array().optional(),
+};
+const _interactionOptionSchema4 = {
+    ..._interactionOptionSchema,
+    options: z.object(_interactionOptionSchema3).array().optional(),
+};
+
+export const interactionOptionSchema = z
+    .object({
+        ..._interactionOptionSchema,
+        options: z.object(_interactionOptionSchema4).array().optional(),
+    })
+    .array();
+
 export const interactionSchema = z.object({
     id: z.string(),
     application_id: z.string(),
     type: z.nativeEnum(InteractionType),
-    data: z.object({}).optional(), // TODO:
+    data: z
+        .object({
+            id: z.string(),
+            name: z.string(),
+            type: z.number(),
+            options: interactionOptionSchema.optional(),
+            value: z.any().optional(),
+        })
+        .optional(), // TODO:
     guild_id: z.string().optional(),
     channel: z.object({}).optional(), // TODO: channel schema
     channel_id: z.string().optional(),
@@ -62,7 +108,7 @@ export type Interaction = z.infer<typeof interactionSchema>;
 export const interactionResponseDataSchema = z.object({
     tts: z.boolean().optional(),
     content: z.string().optional(),
-    embeds: z.array(z.object({})).optional(),
+    embeds: z.array(embedSchema).optional(),
     allowed_mentions: z.object({}).optional(),
     flags: z.number().optional(),
     components: z.array(z.object({})).optional(),
@@ -80,7 +126,7 @@ export const interactionHandler = {
     respond: (body: InteractionResponseBody, parts: InterationResponseUrlParts) => {
         return req({
             method: "POST",
-            schema: null,
+            schema: interactionResponseSchema,
             url: Routes.INTERACTION_CREATE,
             urlParts: parts,
             body,
@@ -91,6 +137,15 @@ export const interactionHandler = {
             method: "POST",
             schema: null,
             url: Routes.INTERACTION_FOLLOWUP,
+            urlParts: parts,
+            body,
+        });
+    },
+    edit: (body: InteractionEditResponseBody, parts: InterationFollowupUrlParts) => {
+        return req({
+            method: "PATCH",
+            schema: null,
+            url: Routes.INTERACTION_EDIT,
             urlParts: parts,
             body,
         });
