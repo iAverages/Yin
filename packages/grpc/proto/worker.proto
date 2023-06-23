@@ -32,12 +32,12 @@ message InteractionRequest {
   string id = 1;
   string application_id = 2;
   int32 type = 3;
-  optional InterationData data = 4;
+  InterationData data = 4;
   string userId = 5;
   optional string guildId = 6;
   optional string channelId = 7;
   string token = 8;
-  WebsocketInfo websocket_info = 9;
+  common.GatewayServiceMeta gatewayMeta = 9;
 }
 
 enum ApplicationCommandOptionType {

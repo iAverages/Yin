@@ -40,8 +40,12 @@ export default async ({ packet, service, wsInfo }: Event<interaction.Interaction
             userId: data.member?.user.id ?? data.user?.id ?? "",
             guildId: data.guild_id,
             channelId: data.channel_id,
-            websocketInfo: {
-                ping: wsInfo.ping,
+
+            gatewayMeta: {
+                pod: service.env.K3S_POD_NAME,
+                websocketMeta: {
+                    ping: wsInfo.ping,
+                },
             },
             applicationId: data.application_id,
             data: {

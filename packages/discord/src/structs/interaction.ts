@@ -126,7 +126,7 @@ export const interactionHandler = {
     respond: (body: InteractionResponseBody, parts: InterationResponseUrlParts) => {
         return req({
             method: "POST",
-            schema: interactionResponseSchema,
+            schema: null,
             url: Routes.INTERACTION_CREATE,
             urlParts: parts,
             body,

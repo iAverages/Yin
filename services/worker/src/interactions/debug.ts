@@ -12,7 +12,7 @@ export const info: InteractionHandler = async (interaction, callback) => {
                 fields: [
                     {
                         name: `Gateway`,
-                        value: `test`,
+                        value: `${interaction.gatewayMeta.pod}`,
                         inline: true,
                     },
                     {

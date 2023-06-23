@@ -6,8 +6,8 @@ const def: InteractionHandler = async (interaction, callback) => {
             {
                 type: "rich",
                 title: "Pong!",
-                description: interaction.websocketInfo?.ping
-                    ? `💓 Heartbeat Latency: **${interaction.websocketInfo.ping}MS**`
+                description: interaction.gatewayMeta?.websocketMeta?.ping
+                    ? `💓 Heartbeat Latency: **${interaction.gatewayMeta?.websocketMeta?.ping}MS**`
                     : "An error occrued while getting ping.",
                 color: 0xb700ff,
             },

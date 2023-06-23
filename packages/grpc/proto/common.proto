@@ -16,3 +16,12 @@ message DiscordUser {
   string name = 2;
   string avatar = 3;
 }
+
+message WebsocketMeta { 
+  int32 ping = 1;
+}
+
+message GatewayServiceMeta {
+  WebsocketMeta websocketMeta = 1;  
+  string pod = 2;
+}
