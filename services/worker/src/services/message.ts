@@ -1,6 +1,3 @@
-import { trytm } from "@yin/common";
-import api, { interaction } from "@yin/discord";
-
 import { type InternalService } from "~/grpc";
 import { interactions } from "~/interactions";
 import { createInteraction } from "~/structs/interaction";
