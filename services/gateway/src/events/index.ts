@@ -4,7 +4,7 @@ import { type ServiceMeta } from "~/service";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Event<T extends Record<string, any> = object> = {
     service: ServiceMeta;
-    packet: DiscordPacket<T>;
+    packet: DiscordPacket<Partial<T>>;
     wsInfo: {
         ping: number;
     };

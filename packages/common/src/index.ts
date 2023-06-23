@@ -13,6 +13,7 @@ export { logger } from "./logger";
 export { env as __env, globalSchema, validateEnvVars, type DefaultEnv } from "./env";
 
 export { CancelablePromise, asyncTimeout } from "./cancelablePromise";
+export { trytm }from "./try";
 
 export * as SentryNode from "@sentry/node"
 export * as SentryTracing from "@sentry/tracing"

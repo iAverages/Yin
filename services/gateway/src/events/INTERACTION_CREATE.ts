@@ -1,5 +1,5 @@
-import { logger } from "@yin/common";
-import { type interaction } from "@yin/discord";
+import { logger, trytm } from "@yin/common";
+import api, { interaction } from "@yin/discord";
 
 import { type Event } from "~/events";
 
@@ -7,19 +7,52 @@ export default async ({ packet, service, wsInfo }: Event<interaction.Interaction
     if (!packet.d) {
         return;
     }
+    const [data, error] = await trytm(interaction.interactionSchema.parseAsync(packet.d));
 
-    const guildId = packet.d.guild_id;
-    const userId = packet.d.member?.user.id ?? packet.d.user?.id;
+    if (error) {
+        logger.error({ error, packet: packet.d }, "Failed to parse interaction");
+        if (!packet.d.id || !packet.d.token) {
+            logger.warn("No id or token found, cannot response to interaction");
+            return;
+        }
+        api.interaction.respond(
+            {
+                type: 4,
+                data: {
+                    content: "An error occurred.",
+                },
+            },
+            { "interaction.id": packet.d.id, "interaction.token": packet.d.token }
+        );
+        return;
+    }
+
+    const guildId = data.guild_id;
+    const userId = data.member?.user.id ?? data.user?.id;
+
+    logger.debug(data.data?.options, "Handling interaction");
+
     service.services.worker.handleInteraction(
         {
-            id: packet.d.id,
-            type: packet.d.type,
-            token: packet.d.token,
-            userId: packet.d.member?.user.id ?? packet.d.user?.id ?? "",
-            guildId: packet.d.guild_id,
-            channelId: packet.d.channel_id,
-            websocketInfo: {
-                ping: wsInfo.ping,
+            id: data.id,
+            type: data.type,
+            token: data.token,
+            userId: data.member?.user.id ?? data.user?.id ?? "",
+            guildId: data.guild_id,
+            channelId: data.channel_id,
+
+            gatewayMeta: {
+                pod: service.env.K3S_POD_NAME,
+                websocketMeta: {
+                    ping: wsInfo.ping,
+                },
+            },
+            applicationId: data.application_id,
+            data: {
+                id: data.data?.id ?? "",
+                name: data.data?.name ?? "",
+                type: data.data?.type ?? 0,
+                options: JSON.stringify(data.data?.options ?? []),
             },
         },
         (err, res) => {

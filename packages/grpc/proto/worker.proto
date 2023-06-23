@@ -3,7 +3,8 @@ syntax = "proto3";
 package worker;
 
 import "common.proto";
- 
+import "google/protobuf/any.proto";
+
 service Worker {
   rpc handleMessageCreate(Message) returns (StatusReply);
   rpc handleInteraction(InteractionRequest) returns (StatusReply);
@@ -29,12 +30,55 @@ message StatusReply {
 
 message InteractionRequest {
   string id = 1;
-  int32 type = 2;
-  string token = 3;
-  string user_id = 4;
-  optional string guild_id = 5;
-  optional string channel_id = 6;
-  WebsocketInfo websocket_info = 7;
+  string application_id = 2;
+  int32 type = 3;
+  InterationData data = 4;
+  string userId = 5;
+  optional string guildId = 6;
+  optional string channelId = 7;
+  string token = 8;
+  common.GatewayServiceMeta gatewayMeta = 9;
+}
+
+enum ApplicationCommandOptionType {
+  SUB_COMMAND = 0;
+  SUB_COMMAND_GROUP = 1;
+  STRING = 2;
+  INTEGER = 3;
+  BOOLEAN = 4;
+  USER = 5;
+  CHANNEL = 6;
+  ROLE = 7;
+  MENTIONABLE = 8;
+  NUMBER = 9;
+  ATTACHMENT = 10;
+}
+
+message ApplicationCommandOption {
+  ApplicationCommandOptionType type = 1;   
+  string name = 2;
+  optional google.protobuf.Any value = 3;
+  // repeated ApplicationCommandOption options = 4;
+  optional string options = 4;
+}
+
+message InterationData {
+  string id = 1; 
+  string name = 2;
+  int32 type = 3;
+  // repeated ApplicationCommandOption options = 4;
+  optional string options = 4;
+}
+
+message InterationResolvedData {
+  map<string, common.DiscordUser> users = 1;
+  map<string, PartialMember> members = 2;
+}
+
+message PartialMember {
+  optional common.DiscordUser user = 1;
+  optional string nick = 2;
+  optional string avatar  = 3;
 }
 
 message InteractionResponse {

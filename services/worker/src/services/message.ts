@@ -1,6 +1,6 @@
-import api from "@yin/discord";
-
 import { type InternalService } from "~/grpc";
+import { interactions } from "~/interactions";
+import { createInteraction } from "~/structs/interaction";
 
 export const createMessageService: InternalService<"handleMessageCreate" | "handleInteraction"> = ({
     logger,
@@ -28,21 +28,33 @@ export const createMessageService: InternalService<"handleMessageCreate" | "hand
         }
     },
     handleInteraction: async (call, callback) => {
-        const response = await api.interaction.respond(
-            {
-                type: 4,
-                data: {
-                    content: `Pong! ${call.request.websocketInfo?.ping}ms`,
-                },
-            },
-            {
-                "interaction.id": call.request.id,
-                "interaction.token": call.request.token,
+        try {
+            if (!call.request.data) {
+                logger.error("No data found in request");
+                callback(null, { success: false, message: "No data found in request" });
+                return;
             }
-        );
 
-        callback(null, {
-            success: response.success,
-        });
+            const interactionHandler = interactions[call.request.data.name];
+            const options = JSON.parse(call.request.data.options ?? "[]");
+            const hasSubcommand = options.length ?? 0 > 0;
+
+            if (interactionHandler) {
+                if (hasSubcommand) {
+                    const subcommandName = options[0].name;
+                    const subcommandHandler = interactionHandler[subcommandName];
+                    if (subcommandHandler) {
+                        const interaction = createInteraction(call.request, subcommandHandler.meta);
+                        subcommandHandler(interaction, callback);
+                        return;
+                    }
+                }
+                const interaction = createInteraction(call.request, interactionHandler.default.meta);
+                interactionHandler.default(interaction, callback);
+                return;
+            }
+        } catch (error) {
+            logger.error(error, "errored while handinlg interaction?????");
+        }
     },
 });
