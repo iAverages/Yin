@@ -6,7 +6,7 @@
     "license": "GPL-3.0",
     "type": "module",
     "devDependencies": {
-        "tsup": "^6.5.0",
+        "tsup": "^7.0.0",
         "typescript": "^5.0.0"
     },
     "scripts": {
