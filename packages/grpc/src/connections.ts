@@ -1,11 +1,35 @@
-import grpc from "@grpc/grpc-js";
+import grpc, { InterceptingCall } from "@grpc/grpc-js";
 
-import { __env } from "@yin/common";
+import { __env, metrics } from "@yin/common";
 
 import { database as databaseService, worker as workerService } from "./index";
 
+const grpcPacketTimings = new metrics.Histogram({
+    help: "Time taken to send a packet",
+    name: "grpc_packet_timings",
+    labelNames: ["endpoint"] as const,
+});
+
 export const createWorkerConnection = () => {
-    const worker = new workerService.WorkerClient(__env.YIN_WORKER_GRPC_HOST, grpc.credentials.createInsecure());
+    const worker = new workerService.WorkerClient(__env.YIN_WORKER_GRPC_HOST, grpc.credentials.createInsecure(), {
+        interceptors: [
+            (options, next) => {
+                return new InterceptingCall(next(options), {
+                    start: (metadata, _listener, next) => {
+                        const timer = grpcPacketTimings.startTimer();
+                        console.log("Request started");
+                        return next(metadata, {
+                            onReceiveMessage: (message, next) => {
+                                timer({ endpoint: options.method_definition.path });
+                                console.log("Request complete");
+                                return next(message);
+                            },
+                        });
+                    },
+                });
+            },
+        ],
+    });
 
     return worker;
 };

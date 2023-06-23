@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import WS from "ws";
 
-import { consts, logger, SentryNode } from "@yin/common";
+import { consts, logger, metrics, SentryNode } from "@yin/common";
 
 import { env } from "~/env";
 import EventHandlers from "./events";
@@ -26,6 +26,10 @@ export class WebSocket {
     private heartbeatTimer: NodeJS.Timer | null;
     public connectedAt = -1;
     public lastHeartbeatAcked = false;
+    private packetCounter = new metrics.Counter({
+        help: "Number of packets received",
+        name: "gateway_packets_received",
+    });
 
     constructor(service: ServiceMeta) {
         this.service = service;
@@ -40,6 +44,7 @@ export class WebSocket {
     }
 
     async onMessage({ data }: WS.MessageEvent) {
+        this.packetCounter.inc();
         const packet: DiscordPacket = JSON.parse(data as string);
         if (packet.s && packet.s > this.sequence) {
             this.sequence = packet.s;
