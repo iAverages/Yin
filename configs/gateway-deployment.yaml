@@ -20,6 +20,9 @@ spec:
       containers:
         - image: ctr.avrg.dev/yin/gateway:latest
           name: gateway
+          ports:
+          - containerPort: 8080
+            name: prometheus
           env:
             - name: DISCORD_TOKEN
               valueFrom:
@@ -43,6 +46,8 @@ spec:
             - name: YIN_DATABASE_GRPC_HOST
               value: database.yin:3000
               
+            - name: YIN_PROMETHEUS_PORT
+              value: "8080"  
           # always pull because im lazy and just use latest for dev image
           imagePullPolicy: Always
           resources:
@@ -52,3 +57,15 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1"
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: gateway-monitor 
+  namespace: yin
+spec:
+  selector:
+    matchLabels:
+      app: gateway 
+  podMetricsEndpoints:
+  - targetPort: 8080
