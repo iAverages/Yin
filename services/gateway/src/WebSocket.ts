@@ -26,21 +26,47 @@ export class WebSocket {
     private heartbeatTimer: NodeJS.Timer | null;
     public connectedAt = -1;
     public lastHeartbeatAcked = false;
+    public interactionCount = 0;
     private packetCounter = new metrics.Counter({
         help: "Number of packets received",
         name: "gateway_packets_received",
     });
+    private websocketErrorCounter = new metrics.Counter({
+        help: "Number of websocket errors",
+        name: "gateway_websocket_errors",
+    });
+    private connectCounter = new metrics.Counter({
+        help: "Number of times the websocket has connected/reconnected",
+        name: "gateway_connects",
+    });
+    private websocketPing = new metrics.Gauge({
+        help: "Ping of the websocket",
+        name: "gateway_ping",
+    });
+    private interactionCouter;
 
     constructor(service: ServiceMeta) {
         this.service = service;
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const clazz = this;
+        this.interactionCouter = new metrics.Gauge({
+            help: "Number of interactions received",
+            name: "gateway_interactions_received",
+            collect() {
+                this.set(clazz.interactionCount);
+                clazz.interactionCount = 0;
+            },
+        });
     }
 
     onOpen() {
         logger.info("Connected to websocket!");
+        this.connectCounter.inc();
     }
 
     onError(error: WS.ErrorEvent) {
         console.log(error);
+        this.websocketErrorCounter.inc();
     }
 
     async onMessage({ data }: WS.MessageEvent) {
@@ -142,6 +168,7 @@ export class WebSocket {
                     ping: this.ping,
                 },
             });
+            this.interactionCouter.inc();
         } catch (e) {
             logger.error(`Failed to handle ${packet.t} packet.`);
             logger.error(e);
@@ -179,6 +206,7 @@ export class WebSocket {
         const ping = Date.now() - this.lastPingTime;
         logger.debug(`Heartbeat acknowledged - ${ping}ms ping.`);
         this.ping = ping;
+        this.websocketPing.set(ping);
     }
 
     connect() {

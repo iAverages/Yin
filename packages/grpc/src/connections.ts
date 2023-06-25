@@ -17,11 +17,9 @@ export const createWorkerConnection = () => {
                 return new InterceptingCall(next(options), {
                     start: (metadata, _listener, next) => {
                         const timer = grpcPacketTimings.startTimer();
-                        console.log("Request started");
                         return next(metadata, {
                             onReceiveMessage: (message, next) => {
                                 timer({ endpoint: options.method_definition.path });
-                                console.log("Request complete");
                                 return next(message);
                             },
                         });
