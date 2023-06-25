@@ -50,7 +50,7 @@ export const createDatabaseConnection = () => {
         grpc.credentials.createInsecure(),
         {
             interceptors: [
-                (options, next) => createGrpcRequestDurationInterceptor({ service: "worker", options, next }),
+                (options, next) => createGrpcRequestDurationInterceptor({ service: "database", options, next }),
             ],
         }
     );
