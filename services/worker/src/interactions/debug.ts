@@ -2,8 +2,6 @@ import { env } from "~/env";
 import type { InteractionHandler } from "~/interactions";
 
 export const info: InteractionHandler = async (interaction, callback) => {
-    const randomDelay = Math.floor(Math.random() * 2500);
-    await new Promise((resolve) => setTimeout(resolve, randomDelay));
     const response = await interaction.reply({
         embeds: [
             {
@@ -22,11 +20,6 @@ export const info: InteractionHandler = async (interaction, callback) => {
                         value: `${env.K3S_POD_NAME}`,
                         inline: true,
                     },
-                    {
-                        name: `Random Delay`,
-                        value: `${randomDelay}MS`,
-                        inline: true,
-                    },
                 ],
             },
         ],
@@ -43,9 +36,6 @@ info.meta = {
 };
 
 export const echo: InteractionHandler = async (interaction, callback) => {
-    console.log("echoed?");
-    console.log(JSON.stringify(interaction.data.options, null, 4));
-
     const response = await interaction.reply({
         content: interaction.data.options.options?.[0].value ?? "No value",
     });
