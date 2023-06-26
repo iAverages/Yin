@@ -2,6 +2,8 @@ import { env } from "~/env";
 import type { InteractionHandler } from "~/interactions";
 
 export const info: InteractionHandler = async (interaction, callback) => {
+    const randomDelay = Math.floor(Math.random() * 2500);
+    await new Promise((resolve) => setTimeout(resolve, randomDelay));
     const response = await interaction.reply({
         embeds: [
             {
@@ -12,12 +14,17 @@ export const info: InteractionHandler = async (interaction, callback) => {
                 fields: [
                     {
                         name: `Gateway`,
-                        value: `${interaction.gatewayMeta.pod}`,
+                        value: `\`${interaction.gatewayMeta.pod}\``,
                         inline: true,
                     },
                     {
                         name: `Worker`,
-                        value: `${env.K3S_POD_NAME}`,
+                        value: `\`${env.K3S_POD_NAME}\``,
+                        inline: true,
+                    },
+                    {
+                        name: `Random Delay`,
+                        value: `\`${randomDelay}MS\``,
                         inline: true,
                     },
                 ],

@@ -23,6 +23,8 @@ spec:
           ports:
           - containerPort: 3000
             name: grpc
+          - containerPort: 8080
+            name: prometheus
           env:
             - name: DISCORD_TOKEN
               valueFrom:
@@ -41,6 +43,9 @@ spec:
             - name: YIN_DATABASE_GRPC_HOST
               value: database.yin:3000
 
+            - name: YIN_PROMETHEUS_PORT
+              value: "8080" 
+ 
             - name: K3S_POD_NAME
               valueFrom:
                 fieldRef:
@@ -67,3 +72,15 @@ spec:
   - name: grpc
     port: 3000
     targetPort: 3000
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: worker
+  namespace: yin
+spec:
+  selector:
+    matchLabels:
+      app: worker 
+  podMetricsEndpoints:
+  - targetPort: 8080

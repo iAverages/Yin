@@ -24,6 +24,8 @@ spec:
           ports:
           - containerPort: 3000
             name: grpc
+          - containerPort: 8080
+            name: prometheus
           env:
             - name: DATABASE_URL
               valueFrom:
@@ -64,3 +66,15 @@ spec:
   - name: grpc
     port: 3000
     targetPort: 3000
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: database 
+  namespace: yin
+spec:
+  selector:
+    matchLabels:
+      app: database 
+  podMetricsEndpoints:
+  - targetPort: 8080

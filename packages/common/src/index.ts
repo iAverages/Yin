@@ -17,3 +17,5 @@ export { trytm }from "./try";
 
 export * as SentryNode from "@sentry/node"
 export * as SentryTracing from "@sentry/tracing"
+export { createPrometheusServer } from "./metrics/prometheus";
+export * as metrics from "prom-client";
