@@ -6,6 +6,7 @@ A Micro Services Discord Bot built with Typescript, MySQL, RabbitMQ.
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Gateway | [![Build Status](<https://ci.danielraybone.com/app/rest/builds/buildType:(id:Yin_Gateway)/statusIcon>)](https://ci.danielraybone.com/buildConfiguration/Yin_Gateway?mode=branches&guest=1) |
 | Worker  | [![Build Status](<https://ci.danielraybone.com/app/rest/builds/buildType:(id:Yin_Worker)/statusIcon>)](https://ci.danielraybone.com/buildConfiguration/Yin_Worker?mode=branches&guest=1)   |
+| Database  | [![Build Status](<https://ci.danielraybone.com/app/rest/builds/buildType:(id:Yin_Database)/statusIcon>)](https://ci.danielraybone.com/buildConfiguration/Yin_Database?mode=branches&guest=1)   |
 | Panel   | [![Build Status](<https://ci.danielraybone.com/app/rest/builds/buildType:(id:Yin_Panel)/statusIcon>)](https://ci.danielraybone.com/buildConfiguration/Yin_Panel?mode=branches&guest=1)     |
 
 ## Development
