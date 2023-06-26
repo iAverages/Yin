@@ -14,17 +14,17 @@ export const info: InteractionHandler = async (interaction, callback) => {
                 fields: [
                     {
                         name: `Gateway`,
-                        value: `${interaction.gatewayMeta.pod}`,
+                        value: `\`${interaction.gatewayMeta.pod}\``,
                         inline: true,
                     },
                     {
                         name: `Worker`,
-                        value: `${env.K3S_POD_NAME}`,
+                        value: `\`${env.K3S_POD_NAME}\``,
                         inline: true,
                     },
                     {
                         name: `Random Delay`,
-                        value: `${randomDelay}MS`,
+                        value: `\`${randomDelay}MS\``,
                         inline: true,
                     },
                 ],
