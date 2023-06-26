@@ -57,15 +57,3 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1"
----
-apiVersion: monitoring.coreos.com/v1
-kind: PodMonitor
-metadata:
-  name: gateway-monitor 
-  namespace: yin
-spec:
-  selector:
-    matchLabels:
-      app: gateway 
-  podMetricsEndpoints:
-  - targetPort: 8080

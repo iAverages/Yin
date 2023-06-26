@@ -1,0 +1,11 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: gateway-monitor 
+  namespace: yin
+spec:
+  selector:
+    matchLabels:
+      app: gateway 
+  podMetricsEndpoints:
+  - targetPort: 8080

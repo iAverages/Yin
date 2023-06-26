@@ -72,15 +72,3 @@ spec:
   - name: grpc
     port: 3000
     targetPort: 3000
----
-apiVersion: monitoring.coreos.com/v1
-kind: PodMonitor
-metadata:
-  name: worker
-  namespace: yin
-spec:
-  selector:
-    matchLabels:
-      app: worker 
-  podMetricsEndpoints:
-  - targetPort: 8080
