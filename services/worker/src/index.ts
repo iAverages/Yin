@@ -2,6 +2,7 @@ import sourceMapSupport from "source-map-support";
 
 import { createPrometheusServer, logger } from "@yin/common";
 
+import { env } from "~/env";
 import { startGrpcServer } from "./grpc";
 
 sourceMapSupport.install();
@@ -12,5 +13,5 @@ sourceMapSupport.install();
         logger.error(err);
         process.exit(1);
     });
-    prometheus.listen(8080);
+    prometheus.listen(env.YIN_PROMETHEUS_PORT);
 })();

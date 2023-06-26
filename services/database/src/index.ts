@@ -4,6 +4,7 @@ import { createPrometheusServer } from "@yin/common";
 import { prisma } from "@yin/db";
 
 import { prepareDatabase } from "~/database";
+import { env } from "~/env";
 import { startGrpcServer } from "./grpc";
 
 const start = async () => {
@@ -13,7 +14,7 @@ const start = async () => {
     const prometheus = createPrometheusServer({
         additional: [await prisma.$metrics.prometheus()],
     });
-    prometheus.listen(8080);
+    prometheus.listen(env.YIN_PROMETHEUS_PORT);
 };
 
 start();
