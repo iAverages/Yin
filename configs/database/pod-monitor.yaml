@@ -1,0 +1,11 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: database 
+  namespace: yin
+spec:
+  selector:
+    matchLabels:
+      app: database 
+  podMetricsEndpoints:
+  - targetPort: 8080

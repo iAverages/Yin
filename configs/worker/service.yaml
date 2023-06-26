@@ -1,11 +1,12 @@
-apiVersion: monitoring.coreos.com/v1
-kind: PodMonitor
+apiVersion: v1
+kind: Service
 metadata:
   name: worker
   namespace: yin
 spec:
   selector:
-    matchLabels:
-      app: worker 
-  podMetricsEndpoints:
-  - targetPort: 8080
+    app: worker
+  ports:
+  - name: grpc
+    port: 3000
+    targetPort: 3000
