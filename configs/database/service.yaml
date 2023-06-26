@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: database
+  namespace: yin
+spec:
+  selector:
+    app: database
+  ports:
+  - name: grpc
+    port: 3000
+    targetPort: 3000
