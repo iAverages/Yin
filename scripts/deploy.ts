@@ -38,8 +38,7 @@ const main = async () => {
     exec(`git checkout -b ${head}`);
     console.log(`Updating manifest to ${GIT_HASH}`);
     exec(
-        // eslint-disable-next-line no-useless-escape
-        `sed -i 's/image:.*/image: ctr.avrg.dev\/yin\/${SERVICE_NAME}:${GIT_HASH}\/' configs\/${SERVICE_NAME}\/deployment.yaml`
+        `sed -i 's/image:.*/image: ctr.avrg.dev\\/yin\\/${SERVICE_NAME}:${GIT_HASH}\\/' configs\\/${SERVICE_NAME}\\/deployment.yaml`
     );
     console.log(`Commiting changes...`);
     exec(`git commit -am "${title}"`);
