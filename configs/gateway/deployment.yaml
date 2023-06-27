@@ -18,7 +18,7 @@ spec:
         linkerd.io/inject: enabled
     spec:
       containers:
-        - image: ctr.avrg.dev/yin/gateway:d7aa3b0cbce87102c1683110eb32f525364b6b65
+        - image: ctr.avrg.dev/yin/gateway:6954cd081b26808ff67c92bf642085c31407b442
           name: gateway
           ports:
           - containerPort: 8080
