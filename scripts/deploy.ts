@@ -3,7 +3,7 @@ import { Octokit } from "octokit";
 
 // Below is passed in though the CI env.
 const SERVICE_NAME = process.env.PACKAGE_NAME;
-const GIT_HASH = process.env.BUILD_VS_NUMBER;
+const GIT_HASH = process.env.BUILD_VCS_NUMBER;
 
 const title = `Update ${SERVICE_NAME} to ${GIT_HASH}`;
 const body = `This is an automated PR to update the ${SERVICE_NAME} service to the latest version.`;
