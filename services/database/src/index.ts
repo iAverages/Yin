@@ -9,7 +9,6 @@ import { startGrpcServer } from "./grpc";
 
 const start = async () => {
     logger.info("Starting database service");
-
     await prepareDatabase();
     startGrpcServer();
     const prometheus = createPrometheusServer({

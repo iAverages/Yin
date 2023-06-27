@@ -10,6 +10,7 @@ import { WebSocket } from "~/WebSocket";
     const prometheus = createPrometheusServer();
     const service = await createService();
     logger.info("Starting gateway service");
+
     const socket = new WebSocket(service);
     socket.connect();
     prometheus.listen(env.YIN_PROMETHEUS_PORT);
