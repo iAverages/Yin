@@ -12,6 +12,10 @@ const head = `update-${SERVICE_NAME}-${GIT_HASH}`;
 const owner = "iAverages";
 const repo = "Yin";
 const base = "main";
+const commitUser = {
+    name: "kirsi-bot",
+    email: "137784701+kirsi-bot@users.noreply.github.com",
+};
 
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 const createPullRequest = async () => {
@@ -35,6 +39,8 @@ const mergePullRequest = async (pr: number) => {
 
 const main = async () => {
     console.log(`Preparing local branch ${head}`);
+    exec(`git config --global user.name "${commitUser.name}"`);
+    exec(`git config --global user.email "${commitUser.email}"`);
     exec(`git checkout -b ${head}`);
     console.log(`Updating manifest to ${GIT_HASH}`);
     exec(
