@@ -34,6 +34,7 @@ const mergePullRequest = async (pr: number) => {
         owner,
         repo,
         pull_number: pr,
+        merge_method: "squash",
     });
 };
 
