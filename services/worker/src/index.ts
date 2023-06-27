@@ -9,6 +9,7 @@ sourceMapSupport.install();
 
 (async () => {
     const prometheus = createPrometheusServer();
+    logger.info("Starting worker service");
     startGrpcServer().catch((err) => {
         logger.error(err);
         process.exit(1);
