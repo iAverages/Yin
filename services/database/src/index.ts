@@ -11,7 +11,6 @@ const start = async () => {
     logger.info("Starting database service");
     await prepareDatabase();
     startGrpcServer();
-
     const prometheus = createPrometheusServer({
         additional: [await prisma.$metrics.prometheus()],
     });
