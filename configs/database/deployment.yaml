@@ -19,7 +19,7 @@ spec:
         config.linkerd.io/skip-outbound-ports: "3306"
     spec:
       containers:
-        - image: ctr.avrg.dev/yin/database:5bef044a80cc2330e9cc2748fc783059f5c9175f
+        - image: ctr.avrg.dev/yin/database:18255d9cc89e3306255813f563856ff385b599f3
           name: database
           ports:
           - containerPort: 3000
