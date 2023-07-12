@@ -6,12 +6,12 @@
     "license": "GPL-3.0",
     "type": "module",
     "dependencies": {
-        "@prisma/client": "^4.9.0",
+        "@prisma/client": "^5.0.0",
         "dotenv-cli": "^7.0.0",
         "source-map-support": "^0.5.21"
     },
     "devDependencies": {
-        "prisma": "^4.9.0",
+        "prisma": "^5.0.0",
         "typescript": "^5.0.0"
     },
     "scripts": {
