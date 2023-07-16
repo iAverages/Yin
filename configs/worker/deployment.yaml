@@ -18,7 +18,7 @@ spec:
         linkerd.io/inject: enabled
     spec:
       containers:
-        - image: ctr.avrg.dev/yin/worker:7bb15179b53478d751a543d4119bd37879138dc0
+        - image: ctr.avrg.dev/yin/worker:2952ea609450591792b7d1225c1015e84b8413aa
           name: worker
           ports:
           - containerPort: 3000
