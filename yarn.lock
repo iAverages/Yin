@@ -1427,19 +1427,19 @@
     "@tanstack/query-core" "4.35.7"
 
 "@trpc/client@^10.10.0":
-  version "10.38.5"
-  resolved "https://registry.yarnpkg.com/@trpc/client/-/client-10.38.5.tgz#f689e76e20bd88ecd231b2fe36b65a022438bb3e"
-  integrity sha512-tpGUsoAP+3CD/1KRqMdWZ+zebvB68/86SaVPAYHaEDozTFLQdNqTe98DS/T0S4hfh7WCKbMSObj40SCzE8amKQ==
+  version "10.40.0"
+  resolved "https://registry.yarnpkg.com/@trpc/client/-/client-10.40.0.tgz#edf1eb1221c611de911a85b3fa433fbb1421a47b"
+  integrity sha512-bT6BcdWjj0KzGQiimE6rB2tIaRYX0Ear4Gthb5szN/c01wrP0yC1Fbz2uCcm/QTVAwu4Lve5M+YjPoEaTHG6lg==
 
 "@trpc/server@^10.16.0", "@trpc/server@^10.9.1":
-  version "10.38.5"
-  resolved "https://registry.yarnpkg.com/@trpc/server/-/server-10.38.5.tgz#bb42d43e5cc6eec33069dcfce1974872ab547734"
-  integrity sha512-J0d2Y3Gpt2bMohOshPBfuzDqVrPaE3OKEDtJYgTmLk5t1pZy3kXHQep4rP2LEIr+ELbmkelhcrSvvFLA+4/w/Q==
+  version "10.40.0"
+  resolved "https://registry.yarnpkg.com/@trpc/server/-/server-10.40.0.tgz#34b8dbc1ae58193003de01b25b44861bd338a72a"
+  integrity sha512-49SUOMWzSZtu5+OdrADmJD+u+sjSE0qj1cWgYk2FY4jLkPJunLuNRuhzM7aOeBhiUjyfhg2YTfur8FN1WBmvEw==
 
 "@types/aws-lambda@^8.10.83":
-  version "8.10.122"
-  resolved "https://registry.yarnpkg.com/@types/aws-lambda/-/aws-lambda-8.10.122.tgz#206c8d71b09325d26a458dba27db842afdc54df1"
-  integrity sha512-vBkIh9AY22kVOCEKo5CJlyCgmSWvasC+SWUxL/x/vOwRobMpI/HG1xp/Ae3AqmSiZeLUbOhW0FCD3ZjqqUxmXw==
+  version "8.10.123"
+  resolved "https://registry.yarnpkg.com/@types/aws-lambda/-/aws-lambda-8.10.123.tgz#e65c3c57a7e6d3a5a5baedeaeedc989d25b7b34f"
+  integrity sha512-YBxxrA5fZzt1UFslJFBXH4AJUjkxu5ePv9RPjrpq5Tif5Xi2YhG3P8RAJfXXWL5/M6wPrlzlAMqaMM5ysci/EQ==
 
 "@types/babel__core@^7.1.20":
   version "7.20.2"
