@@ -794,10 +794,10 @@
   resolved "https://registry.yarnpkg.com/@fastify/deepmerge/-/deepmerge-1.3.0.tgz#8116858108f0c7d9fd460d05a7d637a13fe3239a"
   integrity sha512-J8TOSBq3SoZbDhM9+R/u77hP93gz/rajSA+K2kGyijPpORPWUXHUpTaleoj+92As0S9uPRP7Oi8IqMf0u+ro6A==
 
-"@fastify/error@^3.2.0":
-  version "3.2.1"
-  resolved "https://registry.yarnpkg.com/@fastify/error/-/error-3.2.1.tgz#5d1cb182a8bb9b103c556b0da35fd77f319fc15e"
-  integrity sha512-scZVbcpPNWw/yyFmzzO7cf1daTeJp53spN2n7dBTHZd+cV7791fcWJCPP1Tfhdbre+8vDiCyQyqqXfQnYMntYQ==
+"@fastify/error@^3.4.0":
+  version "3.4.0"
+  resolved "https://registry.yarnpkg.com/@fastify/error/-/error-3.4.0.tgz#30df6601f4edce57a05ec5caaa90a28025a8554a"
+  integrity sha512-e/mafFwbK3MNqxUcFBLgHhgxsF8UT1m8aj0dAlqEa2nJEgPsRtpHTZ3ObgrgkZ2M1eJHPTwgyUl/tXkvabsZdQ==
 
 "@fastify/fast-json-stringify-compiler@^4.3.0":
   version "4.3.0"
@@ -2527,10 +2527,10 @@ execa@^5.0.0:
     signal-exit "^3.0.3"
     strip-final-newline "^2.0.0"
 
-fast-content-type-parse@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/fast-content-type-parse/-/fast-content-type-parse-1.0.0.tgz#cddce00df7d7efb3727d375a598e4904bfcb751c"
-  integrity sha512-Xbc4XcysUXcsP5aHUU7Nq3OwvHq97C+WnbkeIefpeYLX+ryzFJlU6OStFJhs6Ol0LkUGpcK+wL0JwfM+FCU5IA==
+fast-content-type-parse@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/fast-content-type-parse/-/fast-content-type-parse-1.1.0.tgz#4087162bf5af3294d4726ff29b334f72e3a1092c"
+  integrity sha512-fBHHqSTFLVnR61C+gltJuE5GkVQMV0S2nqUO8TJ+5Z3qAKG8vAx4FKai1s5jq/inV1+sREynIWSuQ6HgoSXpDQ==
 
 fast-copy@^3.0.0:
   version "3.0.1"
@@ -2586,6 +2586,18 @@ fast-json-stringify@^5.7.0:
     fast-uri "^2.1.0"
     rfdc "^1.2.0"
 
+fast-json-stringify@^5.8.0:
+  version "5.8.0"
+  resolved "https://registry.yarnpkg.com/fast-json-stringify/-/fast-json-stringify-5.8.0.tgz#b229ed01ac5f92f3b82001a916c31324652f46d7"
+  integrity sha512-VVwK8CFMSALIvt14U8AvrSzQAwN/0vaVRiFFUVlpnXSnDGrSkOAO5MtzyN8oQNjLd5AqTW5OZRgyjoNuAuR3jQ==
+  dependencies:
+    "@fastify/deepmerge" "^1.0.0"
+    ajv "^8.10.0"
+    ajv-formats "^2.1.1"
+    fast-deep-equal "^3.1.3"
+    fast-uri "^2.1.0"
+    rfdc "^1.2.0"
+
 fast-levenshtein@^2.0.6:
   version "2.0.6"
   resolved "https://registry.yarnpkg.com/fast-levenshtein/-/fast-levenshtein-2.0.6.tgz#3d8a5c66883a16a30ca8643e851f19baa7797917"
@@ -2619,26 +2631,26 @@ fastify-plugin@^4.0.0:
   integrity sha512-79ak0JxddO0utAXAQ5ccKhvs6vX2MGyHHMMsmZkBANrq3hXc1CHzvNPHOcvTsVMEPl5I+NT+RO4YKMGehOfSIg==
 
 fastify@^4.12.0:
-  version "4.24.0"
-  resolved "https://registry.yarnpkg.com/fastify/-/fastify-4.24.0.tgz#4edb911ae3ff6844764bdf7ac1afe8366d30d80f"
-  integrity sha512-6Uu2cCAV1UgexPnWKchgRt77lng9ivNmyFhPMcgUbJ4VaVBE1l6aYluiYZiVsgOBFpHrmdj7FD6n1aHswln4yQ==
+  version "4.24.1"
+  resolved "https://registry.yarnpkg.com/fastify/-/fastify-4.24.1.tgz#b386ab914d6898270f8f082ef5940059b346acf6"
+  integrity sha512-uMthXpH0DjWWxb3/ERmBsVkFm5cllozjbOFkhsD4Xlw+OUg5wGASRBjVRcp2XeYZa91W2BbwgIWJrnGGPWY2dQ==
   dependencies:
     "@fastify/ajv-compiler" "^3.5.0"
-    "@fastify/error" "^3.2.0"
+    "@fastify/error" "^3.4.0"
     "@fastify/fast-json-stringify-compiler" "^4.3.0"
     abstract-logging "^2.0.1"
     avvio "^8.2.1"
-    fast-content-type-parse "^1.0.0"
-    fast-json-stringify "^5.7.0"
+    fast-content-type-parse "^1.1.0"
+    fast-json-stringify "^5.8.0"
     find-my-way "^7.7.0"
-    light-my-request "^5.9.1"
-    pino "^8.12.0"
+    light-my-request "^5.11.0"
+    pino "^8.16.0"
     process-warning "^2.2.0"
     proxy-addr "^2.0.7"
     rfdc "^1.3.0"
-    secure-json-parse "^2.5.0"
-    semver "^7.5.0"
-    toad-cache "^3.2.0"
+    secure-json-parse "^2.7.0"
+    semver "^7.5.4"
+    toad-cache "^3.3.0"
 
 fastq@^1.6.0, fastq@^1.6.1:
   version "1.15.0"
@@ -3357,10 +3369,10 @@ levn@^0.4.1:
     prelude-ls "^1.2.1"
     type-check "~0.4.0"
 
-light-my-request@^5.9.1:
-  version "5.10.0"
-  resolved "https://registry.yarnpkg.com/light-my-request/-/light-my-request-5.10.0.tgz#0a2bbc1d1bb573ed3b78143960920ecdc05bf157"
-  integrity sha512-ZU2D9GmAcOUculTTdH9/zryej6n8TzT+fNGdNtm6SDp5MMMpHrJJkvAdE3c6d8d2chE9i+a//dS9CWZtisknqA==
+light-my-request@^5.11.0:
+  version "5.11.0"
+  resolved "https://registry.yarnpkg.com/light-my-request/-/light-my-request-5.11.0.tgz#90e446c303b3a47b59df38406d5f5c2cf224f2d1"
+  integrity sha512-qkFCeloXCOMpmEdZ/MV91P8AT4fjwFXWaAFz3lUeStM8RcoM1ks4J/F8r1b3r6y/H4u3ACEJ1T+Gv5bopj7oDA==
   dependencies:
     cookie "^0.5.0"
     process-warning "^2.0.0"
@@ -3934,7 +3946,7 @@ pino-std-serializers@^6.0.0:
   resolved "https://registry.yarnpkg.com/pino-std-serializers/-/pino-std-serializers-6.2.1.tgz#369f4ae2a19eb6d769ddf2c88a2164b76879a284"
   integrity sha512-wHuWB+CvSVb2XqXM0W/WOYUkVSPbiJb9S5fNB7TBhd8s892Xq910bRxwHtC4l71hgztObTjXL6ZheZXFjhDrDQ==
 
-pino@^8.12.0, pino@^8.14.1:
+pino@^8.14.1, pino@^8.16.0:
   version "8.16.0"
   resolved "https://registry.yarnpkg.com/pino/-/pino-8.16.0.tgz#2465012a1d11fa2e7a0545032f636e203990ae26"
   integrity sha512-UUmvQ/7KTZt/vHjhRrnyS7h+J7qPBQnpG80V56xmIC+o9IqYmQOw/UIny9S9zYDfRBR0ClouCr464EkBMIT7Fw==
@@ -4262,7 +4274,7 @@ safe-stable-stringify@^2.3.1:
   resolved "https://registry.yarnpkg.com/safe-stable-stringify/-/safe-stable-stringify-2.4.3.tgz#138c84b6f6edb3db5f8ef3ef7115b8f55ccbf886"
   integrity sha512-e2bDA2WJT0wxseVd4lsDP4+3ONX6HpMXQa1ZhFQ7SU+GjvORCmShbCMltrtIDfkYhVHrOcPtj+KhmDBdPdZD1g==
 
-secure-json-parse@^2.4.0, secure-json-parse@^2.5.0:
+secure-json-parse@^2.4.0, secure-json-parse@^2.7.0:
   version "2.7.0"
   resolved "https://registry.yarnpkg.com/secure-json-parse/-/secure-json-parse-2.7.0.tgz#5a5f9cd6ae47df23dba3151edd06855d47e09862"
   integrity sha512-6aU+Rwsezw7VR8/nyvKTx8QpWH9FrcYiXXlqC4z5d5XQBDRqtbfsRjnwGyqbi3gddNtWHuEk9OANUotL26qKUw==
@@ -4289,7 +4301,7 @@ semver@^7.3.5:
   dependencies:
     lru-cache "^6.0.0"
 
-semver@^7.5.0, semver@^7.5.2, semver@^7.5.3, semver@^7.5.4:
+semver@^7.5.2, semver@^7.5.3, semver@^7.5.4:
   version "7.5.4"
   resolved "https://registry.yarnpkg.com/semver/-/semver-7.5.4.tgz#483986ec4ed38e1c6c48c34894a9182dbff68a6e"
   integrity sha512-1bCSESV6Pv+i21Hvpxp3Dx+pSD8lIPt8uVjRrxAUt/nbswYc+tK6Y2btiULjd4+fnq15PX+nqQDC7Oft7WkwcA==
@@ -4656,10 +4668,10 @@ to-regex-range@^5.0.1:
   dependencies:
     is-number "^7.0.0"
 
-toad-cache@^3.2.0:
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/toad-cache/-/toad-cache-3.2.0.tgz#8221a1906ce7bd18cd56b22f5603bcf9e38b54f9"
-  integrity sha512-Hj5zSqBS6OHbZoQk9IU8VqIr+0JUpwzunnwSlFJhG8aJSInYUMEuzItl3kJsGteTPd1qtflafdRHlRtUazYeqg==
+toad-cache@^3.3.0:
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/toad-cache/-/toad-cache-3.3.0.tgz#5b7dc67b36bc8b960567eb77bdf9ac6c26f204a1"
+  integrity sha512-3oDzcogWGHZdkwrHyvJVpPjA7oNzY6ENOV3PsWJY9XYPZ6INo94Yd47s5may1U+nleBPwDhrRiTPMIvKaa3MQg==
 
 touch@^3.1.0:
   version "3.1.0"
