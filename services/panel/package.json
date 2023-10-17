@@ -20,7 +20,7 @@
     },
     "dependencies": {
         "@solidjs/router": "^0.8.0",
-        "@tanstack/solid-query": "^4.24.4",
+        "@tanstack/solid-query": "^5.0.0",
         "@trpc/client": "^10.10.0",
         "@trpc/server": "^10.16.0",
         "clsx": "^2.0.0",
