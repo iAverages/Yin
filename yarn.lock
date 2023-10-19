@@ -1386,24 +1386,24 @@
     solid-js "^1.7.8"
 
 "@trpc/client@^10.10.0":
-  version "10.40.0"
-  resolved "https://registry.yarnpkg.com/@trpc/client/-/client-10.40.0.tgz#edf1eb1221c611de911a85b3fa433fbb1421a47b"
-  integrity sha512-bT6BcdWjj0KzGQiimE6rB2tIaRYX0Ear4Gthb5szN/c01wrP0yC1Fbz2uCcm/QTVAwu4Lve5M+YjPoEaTHG6lg==
+  version "10.41.0"
+  resolved "https://registry.yarnpkg.com/@trpc/client/-/client-10.41.0.tgz#8abde2ae72fe33cb762ccbc8ba03f39d51c91cd5"
+  integrity sha512-W4lYULb7//2yXkULCKim49slXsBwiBq48rfge1yOWXdq0Ed8VxzXvZt8+uWOkxmHbQAw4lq8G5fCNYFB+Za6vQ==
 
 "@trpc/server@^10.16.0", "@trpc/server@^10.9.1":
-  version "10.40.0"
-  resolved "https://registry.yarnpkg.com/@trpc/server/-/server-10.40.0.tgz#34b8dbc1ae58193003de01b25b44861bd338a72a"
-  integrity sha512-49SUOMWzSZtu5+OdrADmJD+u+sjSE0qj1cWgYk2FY4jLkPJunLuNRuhzM7aOeBhiUjyfhg2YTfur8FN1WBmvEw==
+  version "10.41.0"
+  resolved "https://registry.yarnpkg.com/@trpc/server/-/server-10.41.0.tgz#4689d71677e5f67a7d1e5ed72d01fce24babf2ca"
+  integrity sha512-uC0xLelzOuoFwxbBQ3GzX4DaWNucO9lW2vlGPdKu8ycXu2ObSa739oQ/lNF6qWDNUKXS0tQvGnDCAxEd178EzQ==
 
 "@types/aws-lambda@^8.10.83":
-  version "8.10.123"
-  resolved "https://registry.yarnpkg.com/@types/aws-lambda/-/aws-lambda-8.10.123.tgz#e65c3c57a7e6d3a5a5baedeaeedc989d25b7b34f"
-  integrity sha512-YBxxrA5fZzt1UFslJFBXH4AJUjkxu5ePv9RPjrpq5Tif5Xi2YhG3P8RAJfXXWL5/M6wPrlzlAMqaMM5ysci/EQ==
+  version "8.10.125"
+  resolved "https://registry.yarnpkg.com/@types/aws-lambda/-/aws-lambda-8.10.125.tgz#c2ba86f7d98fe1827a7b048e0d31a65a8b5aed8c"
+  integrity sha512-Vqw/WMlV4O1fJT6capim01v7VLDZkcX1n6Yhb52E7IfnMqYbNfwHfyDV8rRN42NLBtdDvfaqcCqs2K0fr5ljZw==
 
 "@types/babel__core@^7.20.2":
-  version "7.20.2"
-  resolved "https://registry.yarnpkg.com/@types/babel__core/-/babel__core-7.20.2.tgz#215db4f4a35d710256579784a548907237728756"
-  integrity sha512-pNpr1T1xLUc2l3xJKuPtsEky3ybxN3m4fJkknfIpTCTfIZCDW57oAg+EfCgIIp2rvCe0Wn++/FfodDS4YXxBwA==
+  version "7.20.3"
+  resolved "https://registry.yarnpkg.com/@types/babel__core/-/babel__core-7.20.3.tgz#d5625a50b6f18244425a1359a858c73d70340778"
+  integrity sha512-54fjTSeSHwfan8AyHWrKbfBWiEUrNTZsUwPTDSNaaP1QDQIZbeNUg3a59E9D+375MzUw/x1vx2/0F5LBz+AeYA==
   dependencies:
     "@babel/parser" "^7.20.7"
     "@babel/types" "^7.20.7"
