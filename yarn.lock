@@ -1452,9 +1452,9 @@
   integrity sha512-CS2rOaoQ/eAgAfcTfq6amKG7bsN+EMcgGY4FAFQdvSj2y1ixvOZTUA9mOtCai7E1SYu283XNw7urKK30nP3wkQ==
 
 "@types/google-protobuf@^3.15.6":
-  version "3.15.8"
-  resolved "https://registry.yarnpkg.com/@types/google-protobuf/-/google-protobuf-3.15.8.tgz#1c1170622718a1797e0ce0b7a60af0dab8b378b6"
-  integrity sha512-gHOxlQ/oKePvn36Nt4FOcgYu+E9p9td2KS14Qzf00HK0NPMYLR5yxSg3q2hUChCNlxIvCbPNzplgDYUWt8x74Q==
+  version "3.15.9"
+  resolved "https://registry.yarnpkg.com/@types/google-protobuf/-/google-protobuf-3.15.9.tgz#a983fc4bc35acb2b84a824d2ec8107d084e8603f"
+  integrity sha512-l51aVJnCNNMBkmSUQddSStXinB2qSXqfrmY9zkdcE9sqPzDneQ3BGg/hu7LfeOCUeGHOu+Rly89YhuDhvbmmPw==
 
 "@types/json-schema@*", "@types/json-schema@^7.0.12":
   version "7.0.14"
