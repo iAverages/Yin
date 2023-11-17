@@ -1318,14 +1318,14 @@
     solid-js "^1.8.1"
 
 "@trpc/client@^10.10.0":
-  version "10.43.3"
-  resolved "https://registry.yarnpkg.com/@trpc/client/-/client-10.43.3.tgz#28f6724c037361b4c430a28b828955e342d06627"
-  integrity sha512-r/aE1l2iybJMlXCf+KWqSQpIloOqw/3jQhZD8F4VpvczWPI5fEQCmZZuPHAz2L/PiGE5K/ZwXQrJsT207ZQ2AQ==
+  version "10.43.4"
+  resolved "https://registry.yarnpkg.com/@trpc/client/-/client-10.43.4.tgz#3cf6e9cf55065d1614f9abb3671dd3d3f2105a16"
+  integrity sha512-no9B4OLoNhWz31alVpBzmbluoo67saTaegPyKZvNzsi15oVXIHnaUfy6OI5croM7+URC/SSpbWzknGAEr04iEw==
 
 "@trpc/server@^10.16.0", "@trpc/server@^10.9.1":
-  version "10.43.3"
-  resolved "https://registry.yarnpkg.com/@trpc/server/-/server-10.43.3.tgz#eb232662320b2ab4092c464d38dd19d4ead527ee"
-  integrity sha512-U7HsNtgjupNvPzH6ho4rPlIXZ2t5PctOH6pmFX4jv4YJi98RjGuOhHUNhiiVb8KUw6Kuh5EHTAv7cUV+igbMuQ==
+  version "10.43.4"
+  resolved "https://registry.yarnpkg.com/@trpc/server/-/server-10.43.4.tgz#c49c23e3b4572fb73f910663bc52b8e5ab942d46"
+  integrity sha512-PySqtDKf3pVXBnPLiL7Q3CNXYFV3S6VrZRTFctnsrLEcQ3wOCLZSfKMwx2uHleZV/bwzSOtUJTZYolqY5JTDmQ==
 
 "@types/aws-lambda@^8.10.83":
   version "8.10.126"
