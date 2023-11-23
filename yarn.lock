@@ -1312,19 +1312,19 @@
     solid-js "^1.8.1"
 
 "@trpc/client@^10.10.0":
-  version "10.44.0"
-  resolved "https://registry.yarnpkg.com/@trpc/client/-/client-10.44.0.tgz#f67b0a27c4dd42dc0214833192eb5609936f09ff"
-  integrity sha512-6PAL5rXMGTMlsKKGW9aBsij8XFBbLUbOCJ7jNVX3IripGqiQG3b/VJyTsHRWkss/oaz/sZMOn62amhfev1UVfg==
+  version "10.44.1"
+  resolved "https://registry.yarnpkg.com/@trpc/client/-/client-10.44.1.tgz#5666f5b81566d2e44802706581d9e6f2b591502e"
+  integrity sha512-vTWsykNcgz1LnwePVl2fKZnhvzP9N3GaaLYPkfGINo314ZOS0OBqe9x0ytB2LLUnRVTAAZ2WoONzARd8nHiqrA==
 
 "@trpc/server@^10.16.0", "@trpc/server@^10.9.1":
-  version "10.44.0"
-  resolved "https://registry.yarnpkg.com/@trpc/server/-/server-10.44.0.tgz#09dd035dec0aed4b5a113449101217d682978bd3"
-  integrity sha512-QBq/FnjyU6a7CAl9p2dv6kApn2i8MFuPt8uVLyGr0oa2aFv31rHaX0m+ibdsviE/3fOJIC8EUOfMYOJma5uK2w==
+  version "10.44.1"
+  resolved "https://registry.yarnpkg.com/@trpc/server/-/server-10.44.1.tgz#0d089a3cd5d1268aa8f6845a183329fcac7f2fac"
+  integrity sha512-mF7B+K6LjuboX8I1RZgKE5GA/fJhsJ8tKGK2UBt3Bwik7hepEPb4NJgNr7vO6BK5IYwPdBLRLTctRw6XZx0sRg==
 
 "@types/aws-lambda@^8.10.83":
-  version "8.10.128"
-  resolved "https://registry.yarnpkg.com/@types/aws-lambda/-/aws-lambda-8.10.128.tgz#1c26e3e062e33961b250355cb4c9b6b3544b74a9"
-  integrity sha512-bw4+ORfyywsj9Tq3WJA9j6HG4EbYy+dz+k8LN73ApmwjTdf82ZCSELz3b7BJQzeG5HE8IaTy9SXTHmruIK5ZlQ==
+  version "8.10.129"
+  resolved "https://registry.yarnpkg.com/@types/aws-lambda/-/aws-lambda-8.10.129.tgz#c4e040778a13b70a9cdf8ad54c1b853c94e2a44d"
+  integrity sha512-0Rl7CpTPVws5cp0Ui1gZh4Q+TXC65bXVwTOGoI2RKW45dxWzyZGbjIX0uFjFYdIJ8vnD45y584rIIqvD2vBBfQ==
 
 "@types/babel__core@^7.20.2":
   version "7.20.5"
