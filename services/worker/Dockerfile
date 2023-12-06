@@ -1,4 +1,4 @@
-FROM node:21.3.0-alpine AS builder
+FROM node:21.4.0-alpine AS builder
 RUN apk add --no-cache libc6-compat
 RUN apk update
 # Set working directory
@@ -8,7 +8,7 @@ COPY . .
 RUN turbo prune --scope=@yin/worker --docker
  
 # Add lockfile and package.json's of isolated subworkspace
-FROM node:21.3.0-alpine AS installer
+FROM node:21.4.0-alpine AS installer
 RUN apk add --no-cache libc6-compat
 RUN apk update
 WORKDIR /app
@@ -25,7 +25,7 @@ COPY turbo.json turbo.json
 COPY tsconfig.packages.json tsconfig.packages.json
 RUN yarn turbo run build --filter=@yin/worker...
 
-FROM node:21.3.0-alpine AS runner
+FROM node:21.4.0-alpine AS runner
 WORKDIR /app/services/worker
  
 # Don't run production as root
