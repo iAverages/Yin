@@ -1385,17 +1385,17 @@
   resolved "https://registry.yarnpkg.com/@swc/types/-/types-0.1.5.tgz#043b731d4f56a79b4897a3de1af35e75d56bc63a"
   integrity sha512-myfUej5naTBWnqOCc/MdVOLVjXUXtIA+NpDrDBKJtLLg2shUjBu3cZmB/85RyitKc55+lUUyl7oRfLOvkr2hsw==
 
-"@tanstack/query-core@5.14.1":
-  version "5.14.1"
-  resolved "https://registry.yarnpkg.com/@tanstack/query-core/-/query-core-5.14.1.tgz#4f7df092127124fdd2797cbd70ea469f878c12c5"
-  integrity sha512-TlZarySCVEiap4K7BCvrsYZnX7jBbEkR55YMrk8ELcRbuAx6ydL+qoxqUt8Fq8VMvQyGt52icn6T7eJL1Q35KQ==
+"@tanstack/query-core@5.14.2":
+  version "5.14.2"
+  resolved "https://registry.yarnpkg.com/@tanstack/query-core/-/query-core-5.14.2.tgz#ef0c1a93e142d5cce90b0ac2d0333a88fc0fbb95"
+  integrity sha512-QmoJvC72sSWs3hgGis8JdmlDvqLfYGWUK4UG6OR9Q6t28JMN9m2FDwKPqoSJ9YVocELCSjMt/FGjEiLfk8000Q==
 
 "@tanstack/solid-query@^5.0.0":
-  version "5.14.1"
-  resolved "https://registry.yarnpkg.com/@tanstack/solid-query/-/solid-query-5.14.1.tgz#31256b3bde7c82097d19da96e256aac2bea9a225"
-  integrity sha512-IYqZokv6EOCUkUcPd8kN/1ZQNZMr4kb8VHOmwDkJR5qq2Rs9mIaQ+n1V/qmcbeKc7Ug3EmqyrSbVOYamXBZIxg==
+  version "5.14.2"
+  resolved "https://registry.yarnpkg.com/@tanstack/solid-query/-/solid-query-5.14.2.tgz#ba0261b817ebb0b72db363e9a4461bd13a0aaf08"
+  integrity sha512-c9Lk4jEsknjJWHUlO38w5/ouoRpp7r0tnnpD2Y93dHNihEdprvC6hKo5k2vjFC2NsoX82o6xsf/wMUvaZ34+3w==
   dependencies:
-    "@tanstack/query-core" "5.14.1"
+    "@tanstack/query-core" "5.14.2"
     solid-js "^1.8.1"
 
 "@trpc/client@^10.10.0":
