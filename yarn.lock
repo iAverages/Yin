@@ -4302,10 +4302,15 @@ semver@^7.5.2, semver@^7.5.3, semver@^7.5.4:
   dependencies:
     lru-cache "^6.0.0"
 
-seroval@^1.0.2:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/seroval/-/seroval-1.0.2.tgz#ec5f5026239ed0d6935139482353d9648e875835"
-  integrity sha512-buswWxRzf65ZGUk8MAf3qVtBJHbe5gq6hZyPeqlJCKEIl/tEhUZze0YJg7vB7tFRGgPeneRaP083OB/vDiYLvA==
+seroval-plugins@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/seroval-plugins/-/seroval-plugins-1.0.3.tgz#1bf0111e5c2e4dc4e4b9749accacf302170d63f9"
+  integrity sha512-/nda3/5lVpznsbsliN8SNbx075VH6nO6lCpIknLxOPUtfqXA5ji30ThFjQD1PNed3Dnxkkj8raK/WtS8PbEuKQ==
+
+seroval@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/seroval/-/seroval-1.0.3.tgz#b589901b82507f1705824beed128eebdccfdc4dc"
+  integrity sha512-v5Psun3O2OdehTS/BpTC9EezHxyQRM4lqtvOdbngEq8qOZUECqG5XaoFNZgBQrJKXZFgcyZtMH6Dv7G96pKSSQ==
 
 set-blocking@^2.0.0:
   version "2.0.0"
@@ -4373,12 +4378,13 @@ slash@^3.0.0:
   integrity sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==
 
 solid-js@^1.6.6, solid-js@^1.8.7:
-  version "1.8.8"
-  resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-1.8.8.tgz#14a7e3e59677628bce6ef1ebb18e8c64fd4f1ddb"
-  integrity sha512-9CtL5xWTYX1WWjQKqht3Tl0AJzgz4YWVQk8hoscO9TzRCgzlpAauEOexXa6bPG30W+fWLnFVE7XUiAzQFNeUKw==
+  version "1.8.9"
+  resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-1.8.9.tgz#92184263c90b1d34db09240e1cdd5f530f1bc892"
+  integrity sha512-Y/CabO6gY6QIBjXnHDLBjn4oznhw9h8BtttVAuLCYsVEs5Ler5pfE5def/HZ9RZOTUdcbqk7HwZE5nFw8xKufA==
   dependencies:
     csstype "^3.1.0"
-    seroval "^1.0.2"
+    seroval "^1.0.3"
+    seroval-plugins "^1.0.3"
 
 solid-refresh@^0.5.3:
   version "0.5.3"
