@@ -4822,9 +4822,9 @@ validate-npm-package-license@^3.0.1:
     spdx-expression-parse "^3.0.0"
 
 vite-plugin-solid@^2.5.0:
-  version "2.9.0"
-  resolved "https://registry.yarnpkg.com/vite-plugin-solid/-/vite-plugin-solid-2.9.0.tgz#3637df0ea2c9a83769fdeede344842bf815e7674"
-  integrity sha512-WinqEFB80AwsN7AZdpOxBryyUcXuEkUHerfz/jLS0Iv58BebmK83KYHVnImt+cLkgbt9YWSEZPps8IDeW9Issg==
+  version "2.9.1"
+  resolved "https://registry.yarnpkg.com/vite-plugin-solid/-/vite-plugin-solid-2.9.1.tgz#916cd0894afb48d1e0917bae9a52113d8778837d"
+  integrity sha512-RC4hj+lbvljw57BbMGDApvEOPEh14lwrr/GeXRLNQLcR1qnOdzOwwTSFy13Gj/6FNIZpBEl0bWPU+VYFawrqUw==
   dependencies:
     "@babel/core" "^7.23.3"
     "@types/babel__core" "^7.20.4"
