@@ -1206,10 +1206,10 @@
   dependencies:
     "@sentry/types" "7.99.0"
 
-"@solidjs/router@^0.10.0":
-  version "0.10.10"
-  resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-0.10.10.tgz#cd236ef438e9aa50864e7361db710af26b152ad5"
-  integrity sha512-nGl7gMgsojuaupI5MAK2cFtkndmWWSAPhill/8La3IjujY3vMBamcQFymBsA2ejzxEYJjkOlEQHYgp2jNFkwuQ==
+"@solidjs/router@^0.11.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-0.11.0.tgz#e478278cf376eff25bf1058515c100a7380058cc"
+  integrity sha512-UWCzTdjE06K4jfx7I1BEkPUOelM4bK0X54lLGd2OyVvqSktpsnOy5hwtn1PeLLmBev9NOsmiLv1kp/y9eMgztA==
 
 "@swc/core-darwin-arm64@1.3.107":
   version "1.3.107"
