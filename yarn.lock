@@ -665,9 +665,9 @@
     fast-json-stringify "^5.7.0"
 
 "@grpc/grpc-js@^1.8.12":
-  version "1.10.0"
-  resolved "https://registry.yarnpkg.com/@grpc/grpc-js/-/grpc-js-1.10.0.tgz#23b5defd6a021a20924b4baca2dd1b3a3ecc3716"
-  integrity sha512-tx+eoEsqkMkLCHR4OOplwNIaJ7SVZWzeVKzEMBz8VR+TbssgBYOP4a0P+KQiQ6LaTG4SGaIEu7YTS8xOmkOWLA==
+  version "1.10.1"
+  resolved "https://registry.yarnpkg.com/@grpc/grpc-js/-/grpc-js-1.10.1.tgz#be450560c990c08274bc19d514e181ea205ccaa8"
+  integrity sha512-55ONqFytZExfOIjF1RjXPcVmT/jJqFzbbDqxK9jmRV4nxiYWtL9hENSW1Jfx0SdZfrvoqd44YJ/GJTqfRrawSQ==
   dependencies:
     "@grpc/proto-loader" "^0.7.8"
     "@types/node" ">=12.12.47"
