@@ -1212,9 +1212,9 @@
     "@sentry/types" "7.105.0"
 
 "@solidjs/router@^0.12.0":
-  version "0.12.4"
-  resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-0.12.4.tgz#33383bef4f021bf48b3658ec8f67c1e6bc8cae73"
-  integrity sha512-2S5QWYmpWSIWn5ei85eoStEMmECERX2BiBkEvmqYDrgX79I8D95YaWVdHbcFGOxISPTY4TP7RxjRiofs/AIFJQ==
+  version "0.12.5"
+  resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-0.12.5.tgz#dfaeea494d4abf54da844a633e42ba4a3ee24f8a"
+  integrity sha512-UK9GnWPS1RmBf7w35DpWwqNgpVbKhon5eXOl7Xk+edPMTzzHkwPW2RytQKQ0BMRQOHzyM/WRetWLbIAubKdlog==
 
 "@swc/core-darwin-arm64@1.4.2":
   version "1.4.2"
