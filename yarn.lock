@@ -4304,9 +4304,9 @@ validate-html-nesting@^1.2.1:
   integrity sha512-hGdgQozCsQJMyfK5urgFcWEqsSSrK63Awe0t/IMR0bZ0QMtnuaiHzThW81guu3qx9abLi99NEuiaN6P9gVYsNg==
 
 vite-plugin-solid@^2.5.0:
-  version "2.10.1"
-  resolved "https://registry.yarnpkg.com/vite-plugin-solid/-/vite-plugin-solid-2.10.1.tgz#f09a353c6b9414c62b258422ddeb73f9d320dd92"
-  integrity sha512-kfVdNLWaJqaJVL52U6iCCKNW/nXE7bS1VVGOWPGllOkJfcNILymVSY0LCBLSnyy0iYnRtrXpiHm14rMuzeC7CA==
+  version "2.10.2"
+  resolved "https://registry.yarnpkg.com/vite-plugin-solid/-/vite-plugin-solid-2.10.2.tgz#180f5ec9d8ac03d19160dd5728b313fe9b62ee0d"
+  integrity sha512-AOEtwMe2baBSXMXdo+BUwECC8IFHcKS6WQV/1NEd+Q7vHPap5fmIhLcAzr+DUJ04/KHx/1UBU0l1/GWP+rMAPQ==
   dependencies:
     "@babel/core" "^7.23.3"
     "@types/babel__core" "^7.20.4"
