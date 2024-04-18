@@ -1458,9 +1458,9 @@
   integrity sha512-WgPTRs58hm9CMzEr5jpISe8HXa3qKQ8CxewdYZeVnA54JrPY9B1CZiwsCoLpLkf0dGRZq+LcX5OiJb0bEsOFww==
 
 "@tanstack/solid-query@^5.0.0":
-  version "5.30.4"
-  resolved "https://registry.yarnpkg.com/@tanstack/solid-query/-/solid-query-5.30.4.tgz#d8546993fce5dc5debed85f1620afea97f52c90d"
-  integrity sha512-X+zHNCcaBHbh4vSFNozPH81bBgXVp/i0oc88oUEtlPEqlH6/EfK+LPdIxQ4aM/+byxyQSKtZfr8YP95BiUg/nQ==
+  version "5.30.6"
+  resolved "https://registry.yarnpkg.com/@tanstack/solid-query/-/solid-query-5.30.6.tgz#67dd296797a92e6488d78d305145064f9d9c79bf"
+  integrity sha512-HiqmW4WnXifB8NIMM8ZnZkWq1Fp1IVghygizGAdLjts+gm8x1IHvCZpf80mLzzvvBGIsZJeCX0UH55Vs5RMDMg==
   dependencies:
     "@tanstack/query-core" "5.29.0"
     solid-js "^1.8.14"
