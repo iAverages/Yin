@@ -41,7 +41,7 @@
         "octokit": "^4.0.0",
         "prettier": "^3.0.0",
         "tsx": "^4.0.0",
-        "turbo": "^1.7.3",
+        "turbo": "^2.0.0",
         "typescript": "^5.0.0"
     },
     "packageManager": "yarn@1.22.22"
