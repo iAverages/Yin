@@ -2683,7 +2683,7 @@ end-of-stream@^1.1.0:
   dependencies:
     once "^1.4.0"
 
-esbuild@^0.20.1, esbuild@~0.20.2:
+esbuild@^0.20.1:
   version "0.20.2"
   resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.20.2.tgz#9d6b2386561766ee6b5a55196c6d766d28c87ea1"
   integrity sha512-WdOOppmUNU+IbZ0PaDiTst80zjnrOkyJNHoKupIcVyU8Lvla3Ugx94VzkQ32Ijqd7UhHJy75gNWDMUekcrSJ6g==
@@ -2712,7 +2712,7 @@ esbuild@^0.20.1, esbuild@~0.20.2:
     "@esbuild/win32-ia32" "0.20.2"
     "@esbuild/win32-x64" "0.20.2"
 
-esbuild@^0.21.4:
+esbuild@^0.21.4, esbuild@~0.21.4:
   version "0.21.4"
   resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.21.4.tgz#ceb501def8edb12a5bfd9c55f3a96db698edf022"
   integrity sha512-sFMcNNrj+Q0ZDolrp5pDhH0nRPN9hLIM3fRPwgbLYJeSHHgnXSnbV3xYgSVuOeLWH9c73VwmEverVzupIv5xuA==
@@ -4885,11 +4885,11 @@ tsup@^8.0.0:
     tree-kill "^1.2.2"
 
 tsx@^4.0.0:
-  version "4.14.1"
-  resolved "https://registry.yarnpkg.com/tsx/-/tsx-4.14.1.tgz#8329cd8215751d411d6d08a3ffeb8132640bf318"
-  integrity sha512-GU8pPJq8DdxcJDSK6Bc64c2jW8zBK2hb0jzwHZDfjapbwu6AqvFnAElnzZ17Xb9TH5a/j6/sicTCVYF+eO/cmA==
+  version "4.15.1"
+  resolved "https://registry.yarnpkg.com/tsx/-/tsx-4.15.1.tgz#884a8d5f6bbeed82724e53f1138a6b824923c29d"
+  integrity sha512-k/6h17jA1KfUR7SpcteOa880zGmF56s8gMIcSqUR5avyNFi9nlCEKpMiHLrzrqyARGr52A/JablmGey1DEWbCA==
   dependencies:
-    esbuild "~0.20.2"
+    esbuild "~0.21.4"
     get-tsconfig "^4.7.5"
   optionalDependencies:
     fsevents "~2.3.3"
