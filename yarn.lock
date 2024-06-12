@@ -1627,18 +1627,18 @@
     "@sentry/types" "7.114.0"
     "@sentry/utils" "7.114.0"
 
-"@sentry/core@8.9.1":
-  version "8.9.1"
-  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-8.9.1.tgz#af7e3b52fe1279a8f897dfe12143c5051dadc553"
-  integrity sha512-7Q1yB4ZMJoNT6LsBVx1EyTsVemqYuKZoyEDEzZOYZsa/W438oF7M6g0JqK6TJG8JIZN50Lj5MrJOs6FAu51CCw==
+"@sentry/core@8.9.2":
+  version "8.9.2"
+  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-8.9.2.tgz#af0f2ec25b88da5467cf327d2ffcd555323c30e6"
+  integrity sha512-ixm8NISFlPlEo3FjSaqmq4nnd13BRHoafwJ5MG+okCz6BKGZ1SexEggP42/QpGvDprUUHnfncG6WUMgcarr1zA==
   dependencies:
-    "@sentry/types" "8.9.1"
-    "@sentry/utils" "8.9.1"
+    "@sentry/types" "8.9.2"
+    "@sentry/utils" "8.9.2"
 
 "@sentry/node@^8.0.0":
-  version "8.9.1"
-  resolved "https://registry.yarnpkg.com/@sentry/node/-/node-8.9.1.tgz#485d008856a8e90a243356ebb60bd30699e2945a"
-  integrity sha512-K1oqPT/0Hc/cdF/cVVrqU1mF2c27eI63OMDe6oYyXg1QCjl0U/eigBDT2XM6Oe3KCawUZoeyIlDLyBslqPGbKA==
+  version "8.9.2"
+  resolved "https://registry.yarnpkg.com/@sentry/node/-/node-8.9.2.tgz#67a95050c499542c963da7bf9815f16aa3163607"
+  integrity sha512-Q+JBpR4yx3eUyyhwgugucfRtPg65gYvzJGEmjzcnDJXJqX8ms4HPpNv9o2Om7A4014JxIibUdrQ+p5idcT7SZA==
   dependencies:
     "@opentelemetry/api" "^1.9.0"
     "@opentelemetry/context-async-hooks" "^1.25.0"
@@ -1663,21 +1663,21 @@
     "@opentelemetry/sdk-trace-base" "^1.25.0"
     "@opentelemetry/semantic-conventions" "^1.25.0"
     "@prisma/instrumentation" "5.15.0"
-    "@sentry/core" "8.9.1"
-    "@sentry/opentelemetry" "8.9.1"
-    "@sentry/types" "8.9.1"
-    "@sentry/utils" "8.9.1"
+    "@sentry/core" "8.9.2"
+    "@sentry/opentelemetry" "8.9.2"
+    "@sentry/types" "8.9.2"
+    "@sentry/utils" "8.9.2"
   optionalDependencies:
     opentelemetry-instrumentation-fetch-node "1.2.0"
 
-"@sentry/opentelemetry@8.9.1":
-  version "8.9.1"
-  resolved "https://registry.yarnpkg.com/@sentry/opentelemetry/-/opentelemetry-8.9.1.tgz#e7e8f8247d7bd5ce4a07f08fe482bf5fad8e197e"
-  integrity sha512-hq6StcyNujB/Sh6bjGOzthLwXfMkXW6T23uiMisD0TEYX7WedJ57EXWMDDxasSRoZDJ0mLyM1yrvWhJjMrqr0g==
+"@sentry/opentelemetry@8.9.2":
+  version "8.9.2"
+  resolved "https://registry.yarnpkg.com/@sentry/opentelemetry/-/opentelemetry-8.9.2.tgz#64048025283db5099bcf9b8e4e60a9b68b729610"
+  integrity sha512-Q6SHDQhrsBPcMi7ejqVdNTkt6SCTIhpGsFN8QR7daH3uvM0X2O7ciCuO9gRNRTEkflEINV4SBZEjANYH7BkRAg==
   dependencies:
-    "@sentry/core" "8.9.1"
-    "@sentry/types" "8.9.1"
-    "@sentry/utils" "8.9.1"
+    "@sentry/core" "8.9.2"
+    "@sentry/types" "8.9.2"
+    "@sentry/utils" "8.9.2"
 
 "@sentry/tracing@^7.53.1":
   version "7.114.0"
@@ -1691,10 +1691,10 @@
   resolved "https://registry.yarnpkg.com/@sentry/types/-/types-7.114.0.tgz#ab8009d5f6df23b7342121083bed34ee2452e856"
   integrity sha512-tsqkkyL3eJtptmPtT0m9W/bPLkU7ILY7nvwpi1hahA5jrM7ppoU0IMaQWAgTD+U3rzFH40IdXNBFb8Gnqcva4w==
 
-"@sentry/types@8.9.1":
-  version "8.9.1"
-  resolved "https://registry.yarnpkg.com/@sentry/types/-/types-8.9.1.tgz#9c899aa715ce4542d1d0d056c500261aee5fd671"
-  integrity sha512-V+TkaDVhakH/oW6f1KQiRbvHcczQLEzdwlH2lAP5Flh+wESS5VaSPqj+esLg53GFF8q0tw7QH1tSUGXWeGoJ5g==
+"@sentry/types@8.9.2":
+  version "8.9.2"
+  resolved "https://registry.yarnpkg.com/@sentry/types/-/types-8.9.2.tgz#d143383fc35552d9f153042cc6d56c5ee8ec2fa6"
+  integrity sha512-+LFOyQGl+zk5SZRGZD2MEURf7i5RHgP/mt3s85Rza+vz8M211WJ0YsjkIGUJFSY842nged5QLx4JysLaBlLymg==
 
 "@sentry/utils@7.114.0":
   version "7.114.0"
@@ -1703,12 +1703,12 @@
   dependencies:
     "@sentry/types" "7.114.0"
 
-"@sentry/utils@8.9.1":
-  version "8.9.1"
-  resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-8.9.1.tgz#4508c0a6be9331c08eca9dbf31c5d090a1fd9d00"
-  integrity sha512-9TROyW7PbyokwVO41wIhQRenhW+kPg2ws2nzz21aFbLCrwXvF2nNsZ67roeXOiu9n2Oy/O1yEksPOcT4zFcesQ==
+"@sentry/utils@8.9.2":
+  version "8.9.2"
+  resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-8.9.2.tgz#58b003d9c1302f61192e7c99ea42bf1cd5cad7f7"
+  integrity sha512-A4srR9mEBFdVXwSEKjQ94msUbVkMr8JeFiEj9ouOFORw/Y/ux/WV2bWVD/ZI9wq0TcTNK8L1wBgU8UMS5lIq3A==
   dependencies:
-    "@sentry/types" "8.9.1"
+    "@sentry/types" "8.9.2"
 
 "@solidjs/router@^0.13.0":
   version "0.13.5"
