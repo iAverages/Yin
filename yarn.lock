@@ -4684,9 +4684,9 @@ slash@^3.0.0:
   integrity sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==
 
 solid-js@^1.6.6:
-  version "1.8.19"
-  resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-1.8.19.tgz#462213d5584cb749e56f856cc4fd4f2f0e159df5"
-  integrity sha512-h8z/TvTQYsf894LM9Iau/ZW2iAKrCzAWDwjPhMcXnonmW1OIIihc28wp82b1wwei1p81fH5+gnfNOe8RzLbDRQ==
+  version "1.8.20"
+  resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-1.8.20.tgz#5314bfe166955bea6daa8ac2ebae0c1bb1945e1f"
+  integrity sha512-SsgaExCJ97mPm9WpAusjZ484Z8zTp8ggiueQOsrm81iAP7UaxaN+wiOgnPcJ9u6B2SQpoQ4FiDPAZBqVWi1V4g==
   dependencies:
     csstype "^3.1.0"
     seroval "^1.1.0"
