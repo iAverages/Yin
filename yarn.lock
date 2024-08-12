@@ -1676,9 +1676,9 @@
     "@sentry/types" "8.25.0"
 
 "@solidjs/router@^0.14.0":
-  version "0.14.1"
-  resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-0.14.1.tgz#9f99522c36f13663def1752433f74f731a67f50a"
-  integrity sha512-GumQ4jbt5xDngLypAndC4EjapY/3DP0G8Az4YWEVQHdCtjHwB8IOm32eEBxE9lKpOffbtXV0r/0X0mofHJ1m5w==
+  version "0.14.2"
+  resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-0.14.2.tgz#adb59313cbc8ebe92155b8bdc7bac1a2d60eecef"
+  integrity sha512-JaJe7XJcZTyOfMOIVHmLO+3wP3akm5QQesrDU4XLn/JRMxozBzCaNXBsK7F8pBuDgxzRRxTV8RvXeS09HGXv6Q==
 
 "@swc/core-darwin-arm64@1.7.10":
   version "1.7.10"
