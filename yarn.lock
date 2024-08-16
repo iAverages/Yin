@@ -376,6 +376,11 @@
     "@babel/helper-validator-identifier" "^7.24.7"
     to-fast-properties "^2.0.0"
 
+"@bufbuild/protobuf@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@bufbuild/protobuf/-/protobuf-2.0.0.tgz#d4be93c778e0df2c0852cc286b1d04f576294bf9"
+  integrity sha512-sw2JhwJyvyL0zlhG61aDzOVryEfJg2PDZFSV7i7IdC7nAE41WuXCru3QWLGiP87At0BMzKOoKO/FqEGoKygGZQ==
+
 "@esbuild/aix-ppc64@0.21.5":
   version "0.21.5"
   resolved "https://registry.yarnpkg.com/@esbuild/aix-ppc64/-/aix-ppc64-0.21.5.tgz#c7184a326533fcdf1b8ee0733e21c713b975575f"
@@ -5008,13 +5013,13 @@ ts-proto-descriptors@1.16.0:
     long "^5.2.3"
     protobufjs "^7.2.4"
 
-ts-proto@^1.141.1:
-  version "1.181.2"
-  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.181.2.tgz#62696b4d84666bd6e237afc7090ba19e865ebfd0"
-  integrity sha512-knJ8dtjn2Pd0c5ZGZG8z9DMiD4PUY8iGI9T9tb8DvGdWRMkLpf0WcPO7G+7cmbZyxvNTAG6ci3fybEaFgMZIvg==
+ts-proto@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-2.0.0.tgz#54438c021df0472bc49d8cdb2ecec4a2872c5c75"
+  integrity sha512-52dPa3niCUdYeoQ2ZfSetx9KcmaPHVMATxFBlnJWsaknvA6P712BSeJwBacaBOjxj1Nt7RL/yZuVJ51L51Jnyw==
   dependencies:
+    "@bufbuild/protobuf" "^2.0.0"
     case-anything "^2.1.13"
-    protobufjs "^7.2.4"
     ts-poet "^6.7.0"
     ts-proto-descriptors "1.16.0"
 
