@@ -799,9 +799,9 @@
     fast-uri "^3.0.0"
 
 "@fastify/cors@^10.0.0":
-  version "10.0.0"
-  resolved "https://registry.yarnpkg.com/@fastify/cors/-/cors-10.0.0.tgz#6b077e7e2531591b1113e34de909fe52cd662d43"
-  integrity sha512-kb9fkc/LVbLTQ3lhA+ZZjC/Styzysodo/MTCdVCvTtgHa/gBwxrEEkcp3fuoKIfAQt85wksrpXjUGbw5NQffEQ==
+  version "10.0.1"
+  resolved "https://registry.yarnpkg.com/@fastify/cors/-/cors-10.0.1.tgz#c208fa5f672db31a8383400349e9852762903d64"
+  integrity sha512-O8JIf6448uQbOgzSkCqhClw6gFTAqrdfeA6R3fc/3gwTJGUp7gl8/3tbNB+6INuu4RmgVOq99BmvdGbtu5pgOA==
   dependencies:
     fastify-plugin "^5.0.0"
     mnemonist "0.39.8"
