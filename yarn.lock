@@ -4875,9 +4875,9 @@ simple-update-notifier@^2.0.0:
     semver "^7.5.3"
 
 solid-js@^1.6.6:
-  version "1.9.1"
-  resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-1.9.1.tgz#ac5e0b53451a5770599bc8fff570928b3cffabd7"
-  integrity sha512-Gd6QWRFfO2XKKZqVK4YwbhWZkr0jWw1dYHOt+VYebomeyikGP0SuMflf42XcDuU9HAEYDArFJIYsBNjlE7iZsw==
+  version "1.9.2"
+  resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-1.9.2.tgz#f4466b691ff61bc4e098f649ce8d61164d127038"
+  integrity sha512-fe/K03nV+kMFJYhAOE8AIQHcGxB4rMIEoEyrulbtmf217NffbbwBqJnJI4ovt16e+kaIt0czE2WA7mP/pYN9yg==
   dependencies:
     csstype "^3.1.0"
     seroval "^1.1.0"
