@@ -1983,17 +1983,17 @@
   dependencies:
     "@swc/counter" "^0.1.3"
 
-"@tanstack/query-core@5.59.9":
-  version "5.59.9"
-  resolved "https://registry.yarnpkg.com/@tanstack/query-core/-/query-core-5.59.9.tgz#8a41137e6693cd0bca3a6e3eb802d119c1352900"
-  integrity sha512-vFGnblfJOKlOPyTR5M0ohWKb/03eGubh5KuGyzsDfc7VQ6F0nsB75kQIoLpwp3Wfj6fKv0wGoTUX8BsIfhxDfw==
+"@tanstack/query-core@5.59.10":
+  version "5.59.10"
+  resolved "https://registry.yarnpkg.com/@tanstack/query-core/-/query-core-5.59.10.tgz#a15fd9573471ef5fbe5b5aeedc9f7321fc57dfe0"
+  integrity sha512-XxvnKeBWqDTHstyjA1qmSD5VS/FZ2g/qYvPMhFM7IZF0JnMqMxtzbiUkiTFaZ4YZo/Q84LS0hZi0UncKJ3vIhg==
 
 "@tanstack/solid-query@^5.0.0":
-  version "5.59.9"
-  resolved "https://registry.yarnpkg.com/@tanstack/solid-query/-/solid-query-5.59.9.tgz#402386238843704b30cc22fac14fb626dc14eb88"
-  integrity sha512-osfFGYFLFf9zmptUXLOi3lwGH0GUKRXeELT+bZhwQEqraO1Kj2NDC6XDvpyyEl56tODAzBQ2v4SxPi7SVty5rw==
+  version "5.59.10"
+  resolved "https://registry.yarnpkg.com/@tanstack/solid-query/-/solid-query-5.59.10.tgz#5f498ba32c332b84bed387de2ee3e07c63b29d6d"
+  integrity sha512-cz+3PZLrTo6+5X/Go21j8b77QVvyKS0JRQBxg4peEPD4glU6FDMmmYAsI+C+upYJj3QW3TnX+BYvsTPaYP1lwA==
   dependencies:
-    "@tanstack/query-core" "5.59.9"
+    "@tanstack/query-core" "5.59.10"
 
 "@trpc/client@^10.10.0":
   version "10.45.2"
