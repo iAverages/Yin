@@ -1909,10 +1909,10 @@
   dependencies:
     "@sentry/types" "8.35.0"
 
-"@solidjs/router@^0.14.0":
-  version "0.14.10"
-  resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-0.14.10.tgz#3d130ed9ff3ab283f5294f73a2bf9509e47216a0"
-  integrity sha512-5B8LVgvvXijfXyXWPVLUm7RQ05BhjIpAyRkYVDZtrR3OaSvftXobWc6qSEwk4ICLoGi/IE9CUp2LUdCBIs9AXg==
+"@solidjs/router@^0.15.0":
+  version "0.15.0"
+  resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-0.15.0.tgz#cfdd1462ff8c510c7886dc1b2f351ac17cf0b9ae"
+  integrity sha512-Q286eKFh9sY2OeSISqiNrZW5ZJ7M58fkxCfFeYg0KE15P9QMwhT9YqnInE/OdzavWzXU3ZYclV2NGVKz8pfqWg==
 
 "@swc/core-darwin-arm64@1.7.42":
   version "1.7.42"
