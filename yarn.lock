@@ -1922,9 +1922,9 @@
     "@sentry/types" "8.36.0"
 
 "@solidjs/router@^0.15.0":
-  version "0.15.0"
-  resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-0.15.0.tgz#cfdd1462ff8c510c7886dc1b2f351ac17cf0b9ae"
-  integrity sha512-Q286eKFh9sY2OeSISqiNrZW5ZJ7M58fkxCfFeYg0KE15P9QMwhT9YqnInE/OdzavWzXU3ZYclV2NGVKz8pfqWg==
+  version "0.15.1"
+  resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-0.15.1.tgz#8a4656ffe2148b33b9d37bfe455735359193fba4"
+  integrity sha512-lb5BRBqQqii/1dQCglx2K68xLkgu7QcrcajWKuuEx6FHTsK/hp5IgVhjy6RzPMLj+SFyrrRi/ldirCFNxtzh0Q==
 
 "@swc/core-darwin-arm64@1.8.0":
   version "1.8.0"
