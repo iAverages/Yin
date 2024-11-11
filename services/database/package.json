@@ -10,7 +10,7 @@
         "@yin/tsup": "*",
         "@yin/grpc": "*",
         "@yin/db": "*",
-        "pino-pretty": "^12.0.0",
+        "pino-pretty": "^13.0.0",
         "zod": "^3.21.4"
     },
     "devDependencies": {
