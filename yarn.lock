@@ -4941,9 +4941,9 @@ ts-proto-descriptors@2.0.0:
     "@bufbuild/protobuf" "^2.0.0"
 
 ts-proto@^2.0.0:
-  version "2.4.1"
-  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-2.4.1.tgz#9701cd581ddd8dcf01c793427b954236f58f23ce"
-  integrity sha512-0KC6+a4o/KVaF6qtJdhkaRmYCpsRLojTbqZ4Q7G7JIu5YVGBhyy39n/eINkZaHi94/2e9SeQOtt9AqVEYpHO5g==
+  version "2.4.2"
+  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-2.4.2.tgz#203cc0ba3f56b3ca341499d8e0981c348719c7f5"
+  integrity sha512-fwZeyFRLcHSDpKnbSnrAeN67v3ujVt6+DVnu2UHBkJm/grvCI4QLMlO9TkoK3XXRlQqI6i17b0c4v9uDRzsWuQ==
   dependencies:
     "@bufbuild/protobuf" "^2.0.0"
     case-anything "^2.1.13"
