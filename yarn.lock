@@ -1938,9 +1938,9 @@
     "@sentry/types" "7.120.3"
 
 "@solidjs/router@^0.15.0":
-  version "0.15.2"
-  resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-0.15.2.tgz#06ad2a1c5ccb519c7b8d1ac4a03f4026ec6b314d"
-  integrity sha512-UWtliRvOnjfYMONQcTGwtf6BEud5QlF0oHC5L+kcSGYn0jARH5KzC3+3LLZ0al7oQo/5Rc50ssMswPuAuxFvAA==
+  version "0.15.3"
+  resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-0.15.3.tgz#2c5e7aa637980ab7fce956aedc8cd20614163f2a"
+  integrity sha512-iEbW8UKok2Oio7o6Y4VTzLj+KFCmQPGEpm1fS3xixwFBdclFVBvaQVeibl1jys4cujfAK5Kn6+uG2uBm3lxOMw==
 
 "@swc/core-darwin-arm64@1.10.7":
   version "1.10.7"
