@@ -2015,9 +2015,9 @@
   integrity sha512-skM/gzNX4shPkqmdTCSoHtJAPMTtmIJNS0hE+xwTTUVYwezArCT34NMermABmBVUg5Ls5aiUXEDXfqwR1oVkcA==
 
 "@tanstack/solid-query@^5.0.0":
-  version "5.66.4"
-  resolved "https://registry.yarnpkg.com/@tanstack/solid-query/-/solid-query-5.66.4.tgz#f18c7dd3a41d471d180fd8964aa07f3c27e40ac5"
-  integrity sha512-j+ZvYTvEeOaSU72VBQPGsGq6Qiy0cRvtZPretI13ZRxdAAhrKVw+y8l161USfgWOMGzJ4Dlq9ZVlYYhvdsX06A==
+  version "5.66.9"
+  resolved "https://registry.yarnpkg.com/@tanstack/solid-query/-/solid-query-5.66.9.tgz#f1be7fb7239bbdbbdfbce92d8156b872ecea0ceb"
+  integrity sha512-HsG1LrCxNa7yi2mfkXBguUXvWKUMnn3oeYtgBrMCxs10TOMUT9qb/ho3rGCRqIrMLsnrB82MRtN8glSNqUfw/w==
   dependencies:
     "@tanstack/query-core" "5.66.4"
 
