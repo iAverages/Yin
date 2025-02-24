@@ -1845,15 +1845,15 @@
     "@sentry/types" "7.120.3"
     "@sentry/utils" "7.120.3"
 
-"@sentry/core@9.1.0":
-  version "9.1.0"
-  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-9.1.0.tgz#db7438d144b7ea405260c33082971eedab48d7f3"
-  integrity sha512-djWEzSBpMgqdF3GQuxO+kXCUX+Mgq42G4Uah/HSUBvPDHKipMmyWlutGRoFyVPPOnCDgpHu3wCt83wbpEyVmDw==
+"@sentry/core@9.2.0":
+  version "9.2.0"
+  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-9.2.0.tgz#75ca124f2d612e52b4ab44f64e2f75321af703bf"
+  integrity sha512-REnEuneWyv3DkZfr0ZCQOZRCkBxUuWMY7aJ7BwWU9t3CFRUIPO0ePiXb2eZJEkDtalJK+m9pSTDUbChtrzQmLA==
 
 "@sentry/node@^9.0.0":
-  version "9.1.0"
-  resolved "https://registry.yarnpkg.com/@sentry/node/-/node-9.1.0.tgz#a3cfa024bf9768b20ddb365539b1790ef49d21e2"
-  integrity sha512-Xf9N0rpZ+lf3kA/MBa0yA7/wBd+dW8QhBav2YmM2GpqrrZ+3HtP6sT0N9+D3qADUYTn0RE2MNo8yaiaM6/FfPw==
+  version "9.2.0"
+  resolved "https://registry.yarnpkg.com/@sentry/node/-/node-9.2.0.tgz#7ffc9cdfdfcf5cce404119d0418a2246e4f4a242"
+  integrity sha512-QDOCIs8hTnwPE34FwYL1oIQneqpqyl85MOEfHnv1K7WZ4XYaHMvlJi1vSDr155buFC9K6JkINTw5yJmU1Pi5mA==
   dependencies:
     "@opentelemetry/api" "^1.9.0"
     "@opentelemetry/context-async-hooks" "^1.30.1"
@@ -1886,16 +1886,16 @@
     "@opentelemetry/sdk-trace-base" "^1.30.1"
     "@opentelemetry/semantic-conventions" "^1.28.0"
     "@prisma/instrumentation" "6.2.1"
-    "@sentry/core" "9.1.0"
-    "@sentry/opentelemetry" "9.1.0"
+    "@sentry/core" "9.2.0"
+    "@sentry/opentelemetry" "9.2.0"
     import-in-the-middle "^1.12.0"
 
-"@sentry/opentelemetry@9.1.0":
-  version "9.1.0"
-  resolved "https://registry.yarnpkg.com/@sentry/opentelemetry/-/opentelemetry-9.1.0.tgz#7cdf8270c83b8525543214b9c54f91dc6e613599"
-  integrity sha512-sAsuzTYPS4iBxmzFmv6VmVfSphO4VPCpF6F+UbPJdp2ZGB9vxhDZmL1jcdbYZwNMK8RiOk/vNT8SMO+5ZghGOA==
+"@sentry/opentelemetry@9.2.0":
+  version "9.2.0"
+  resolved "https://registry.yarnpkg.com/@sentry/opentelemetry/-/opentelemetry-9.2.0.tgz#be51122dfa4e47858da8854618b345df6c0b9ee3"
+  integrity sha512-ksd3M+KXuHt5vsPcqyy77YxVP0yb27J2LD19fasiybOPedb90XjynEk29zVBmW2iEPt8Ddw55FKDNVnHFEbUjw==
   dependencies:
-    "@sentry/core" "9.1.0"
+    "@sentry/core" "9.2.0"
 
 "@sentry/tracing@^7.53.1":
   version "7.120.3"
