@@ -6,7 +6,7 @@
     "license": "GPL-3.0",
     "type": "module",
     "dependencies": {
-        "@fastify/cors": "^10.0.0",
+        "@fastify/cors": "^11.0.0",
         "@yin/db": "*",
         "fastify": "^5.0.0",
         "source-map-support": "^0.5.21",
