@@ -1,13 +1,23 @@
 [workspace]
 resolver = "3"
-members = ["crates/bot", "crates/bot-core", "crates/feature-info"]
+members = [
+    "crates/bot",
+    "crates/bot-core",
+    "crates/database",
+    "crates/feature-info",
+    "crates/migrate",
+]
 
 [workspace.dependencies]
 bot-core = { path = "crates/bot-core" }
+database = { path = "crates/database" }
 feature-info = { path = "crates/feature-info" }
 
 poise = "0.6.2"
+sea-query = { version = "0.32", features = ["backend-mysql", "derive"] }
 serenity = "0.12.5"
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "mysql", "uuid", "chrono", "json", "migrate"] }
+thiserror = "2"
 tokio = { version = "1.52.3", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
