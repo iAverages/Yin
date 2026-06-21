@@ -1,0 +1,10 @@
+{
+  "name": "yin",
+  "private": true,
+  "packageManager": "pnpm@10.33.4",
+  "scripts": {
+    "auth:dev": "pnpm --filter @yin/auth dev",
+    "auth:build": "pnpm --filter @yin/auth build",
+    "auth:start": "pnpm --filter @yin/auth start"
+  }
+}
