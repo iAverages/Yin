@@ -1,0 +1,9 @@
+[package]
+name = "feature-info"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bot-core.workspace = true
+poise.workspace = true
+tracing.workspace = true

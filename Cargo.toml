@@ -1,4 +1,14 @@
 [workspace]
 resolver = "3"
-members = ["crates/bot"]
+members = ["crates/bot", "crates/bot-core", "crates/feature-info"]
 
+[workspace.dependencies]
+bot-core = { path = "crates/bot-core" }
+feature-info = { path = "crates/feature-info" }
+
+poise = "0.6.2"
+serenity = "0.12.5"
+tokio = { version = "1.52.3", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+uuid = { version = "1", features = ["v7"] }
