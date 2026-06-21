@@ -4,6 +4,7 @@ members = [
     "crates/bot",
     "crates/bot-core",
     "crates/database",
+    "crates/feature-admin",
     "crates/feature-info",
     "crates/feature-settings",
     "crates/migrate",
@@ -12,6 +13,7 @@ members = [
 [workspace.dependencies]
 bot-core = { path = "crates/bot-core" }
 database = { path = "crates/database" }
+feature-admin = { path = "crates/feature-admin" }
 feature-info = { path = "crates/feature-info" }
 feature-settings = { path = "crates/feature-settings" }
 
