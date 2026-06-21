@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
+    "crates/api",
     "crates/bot",
     "crates/bot-core",
     "crates/database",
@@ -11,6 +12,7 @@ members = [
 ]
 
 [workspace.dependencies]
+api = { path = "crates/api" }
 bot-core = { path = "crates/bot-core" }
 database = { path = "crates/database" }
 feature-admin = { path = "crates/feature-admin" }
@@ -18,6 +20,7 @@ feature-info = { path = "crates/feature-info" }
 feature-settings = { path = "crates/feature-settings" }
 
 poise = "0.6.2"
+axum = "0.8"
 sea-query = { version = "0.32", features = ["backend-mysql", "derive"] }
 serenity = "0.12.5"
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "mysql", "uuid", "chrono", "json", "migrate"] }
