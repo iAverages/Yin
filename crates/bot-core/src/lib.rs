@@ -1,5 +1,6 @@
 pub mod config;
 pub mod error;
+pub mod permissions;
 pub mod response;
 pub mod state;
 pub mod time;
