@@ -1,14 +1,18 @@
-use std::env;
-use std::net::SocketAddr;
+mod auth;
+mod config;
+
 use std::sync::Arc;
 
 use axum::Router;
+use axum::middleware;
+use axum::routing::get;
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 
 #[derive(Clone)]
 pub struct AppState {
     pub database: Arc<database::Database>,
+    pub auth: auth::AuthClient,
 }
 
 #[tokio::main]
@@ -20,13 +24,15 @@ async fn main() -> Result<(), Error> {
         )
         .init();
 
-    let bind_addr = bind_addr()?;
+    let config = config::ApiConfig::from_env()?;
     let database =
         Arc::new(database::Database::connect(database::DatabaseConfig::from_env()?).await?);
-    let app = Router::new().with_state(AppState { database });
-    let listener = tokio::net::TcpListener::bind(bind_addr).await?;
+    let auth = auth::AuthClient::new(&config.auth_service_url)?;
+    let state = AppState { database, auth };
+    let app = app(state);
+    let listener = tokio::net::TcpListener::bind(config.bind_addr).await?;
 
-    tracing::info!(address = %bind_addr, "api listening");
+    tracing::info!(address = %config.bind_addr, "api listening");
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
@@ -35,9 +41,22 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn bind_addr() -> Result<SocketAddr, Error> {
-    let value = env::var("API_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:3000".to_owned());
-    Ok(value.parse()?)
+fn app(state: AppState) -> Router {
+    let protected = Router::new()
+        .route("/auth/user", get(auth::current_user))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth::require_auth,
+        ));
+
+    Router::new()
+        .route("/health", get(health))
+        .merge(protected)
+        .with_state(state)
+}
+
+async fn health() -> &'static str {
+    "ok"
 }
 
 async fn shutdown_signal() {

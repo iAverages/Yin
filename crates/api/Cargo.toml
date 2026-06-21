@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 axum.workspace = true
 database.workspace = true
+reqwest.workspace = true
+serde.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true

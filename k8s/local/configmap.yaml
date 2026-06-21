@@ -8,6 +8,7 @@ data:
   RUST_LOG: info
   DATABASE_URL: mysql://yin:yin@mariadb:3306/yin
   API_BIND_ADDR: 0.0.0.0:3000
+  AUTH_SERVICE_URL: http://auth:3001
   AUTH_HOST: 0.0.0.0
   AUTH_PORT: "3001"
   BETTER_AUTH_URL: http://auth.yin.localhost

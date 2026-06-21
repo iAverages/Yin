@@ -44,6 +44,8 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "database",
+ "reqwest",
+ "serde",
  "tokio",
  "tracing",
  "tracing-subscriber",
