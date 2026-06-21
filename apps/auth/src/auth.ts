@@ -19,6 +19,8 @@ export const auth = betterAuth({
     discord: {
       clientId: config.discordClientId,
       clientSecret: config.discordClientSecret,
+      permissions: config.discordBotPermissions,
+      prompt: "consent",
     },
   },
 });

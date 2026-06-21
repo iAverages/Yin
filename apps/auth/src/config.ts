@@ -9,6 +9,9 @@ export type AuthConfig = {
   databaseUrl: string;
   discordClientId: string;
   discordClientSecret: string;
+  discordBotPermissions: number;
+  installSuccessUrl: string;
+  installErrorUrl: string;
   trustedOrigins: string[];
 };
 
@@ -21,6 +24,9 @@ const env = createEnv({
     DATABASE_URL: z.url(),
     DISCORD_CLIENT_ID: z.string().min(1),
     DISCORD_CLIENT_SECRET: z.string().min(1),
+    DISCORD_BOT_PERMISSIONS: z.coerce.number().int().min(0).default(0),
+    AUTH_INSTALL_SUCCESS_URL: z.url().optional(),
+    AUTH_INSTALL_ERROR_URL: z.url().optional(),
     AUTH_TRUSTED_ORIGINS: z
       .string()
       .default("http://api.yin.localhost:3000,http://auth.yin.localhost:3001")
@@ -45,6 +51,12 @@ export function loadConfig(): AuthConfig {
     databaseUrl: env.DATABASE_URL,
     discordClientId: env.DISCORD_CLIENT_ID,
     discordClientSecret: env.DISCORD_CLIENT_SECRET,
+    discordBotPermissions: env.DISCORD_BOT_PERMISSIONS,
+    installSuccessUrl:
+      env.AUTH_INSTALL_SUCCESS_URL ??
+      `${env.BETTER_AUTH_URL}/install/discord/success`,
+    installErrorUrl:
+      env.AUTH_INSTALL_ERROR_URL ?? `${env.BETTER_AUTH_URL}/install/discord/error`,
     trustedOrigins: env.AUTH_TRUSTED_ORIGINS,
   };
 }

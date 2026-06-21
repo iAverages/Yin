@@ -4,9 +4,12 @@ import { cors } from "hono/cors";
 
 import { auth } from "./auth";
 import { loadConfig } from "./config";
+import { registerInstallRoutes } from "./install";
 
 const config = loadConfig();
 const app = new Hono();
+
+registerInstallRoutes(app, config);
 
 app.use(
   "/api/auth/*",

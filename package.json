@@ -6,5 +6,8 @@
     "auth:dev": "pnpm --filter @yin/auth dev",
     "auth:build": "pnpm --filter @yin/auth build",
     "auth:start": "pnpm --filter @yin/auth start"
+  },
+  "devDependencies": {
+    "@typescript/native-preview": "7.0.0-dev.20260621.1"
   }
 }

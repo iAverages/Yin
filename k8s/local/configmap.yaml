@@ -12,4 +12,7 @@ data:
   AUTH_HOST: 0.0.0.0
   AUTH_PORT: "3001"
   BETTER_AUTH_URL: http://auth.yin.localhost
+  AUTH_INSTALL_SUCCESS_URL: http://auth.yin.localhost/install/discord/success
+  AUTH_INSTALL_ERROR_URL: http://auth.yin.localhost/install/discord/error
+  DISCORD_BOT_PERMISSIONS: "0"
   AUTH_TRUSTED_ORIGINS: http://api.yin.localhost,http://auth.yin.localhost
