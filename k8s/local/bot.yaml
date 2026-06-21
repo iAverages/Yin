@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bot
+  namespace: yin-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: bot
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: bot
+    spec:
+      containers:
+        - name: bot
+          image: yin-rust-dev
+          imagePullPolicy: IfNotPresent
+          workingDir: /workspace
+          command: ["cargo", "watch", "-x", "run -p bot"]
+          envFrom:
+            - configMapRef:
+                name: yin-config
+            - secretRef:
+                name: yin-secrets
+          volumeMounts:
+            - name: rust-target
+              mountPath: /workspace/target
+      volumes:
+        - name: rust-target
+          emptyDir: {}

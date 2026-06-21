@@ -3,3 +3,5 @@
 .envrc
 .env
 node_modules
+k8s/local/secret.yaml
+.idea

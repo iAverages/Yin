@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: yin-config
+  namespace: yin-dev
+data:
+  APP_ENV: development
+  RUST_LOG: info
+  DATABASE_URL: mysql://yin:yin@mariadb:3306/yin
+  API_BIND_ADDR: 0.0.0.0:3000
+  AUTH_HOST: 0.0.0.0
+  AUTH_PORT: "3001"
+  BETTER_AUTH_URL: http://auth.yin.localhost
+  AUTH_TRUSTED_ORIGINS: http://api.yin.localhost,http://auth.yin.localhost

@@ -30,6 +30,7 @@
             just
             mprocs
             rust
+            kind
           ];
 
           shellHook = ''
