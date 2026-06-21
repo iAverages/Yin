@@ -116,6 +116,7 @@ dependencies = [
  "bot-core",
  "database",
  "feature-info",
+ "feature-settings",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -517,6 +518,15 @@ dependencies = [
  "bot-core",
  "poise",
  "tracing",
+]
+
+[[package]]
+name = "feature-settings"
+version = "0.1.0"
+dependencies = [
+ "bot-core",
+ "database",
+ "poise",
 ]
 
 [[package]]

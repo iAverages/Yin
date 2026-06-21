@@ -5,6 +5,7 @@ members = [
     "crates/bot-core",
     "crates/database",
     "crates/feature-info",
+    "crates/feature-settings",
     "crates/migrate",
 ]
 
@@ -12,6 +13,7 @@ members = [
 bot-core = { path = "crates/bot-core" }
 database = { path = "crates/database" }
 feature-info = { path = "crates/feature-info" }
+feature-settings = { path = "crates/feature-settings" }
 
 poise = "0.6.2"
 sea-query = { version = "0.32", features = ["backend-mysql", "derive"] }

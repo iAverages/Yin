@@ -1,5 +1,6 @@
 pub mod config;
 pub mod error;
+pub mod repositories;
 
 use std::time::Duration;
 
@@ -8,6 +9,7 @@ use sqlx::{MySql, MySqlPool};
 
 pub use config::DatabaseConfig;
 pub use error::DatabaseError;
+pub use repositories::guild_settings::{GuildSettings, GuildSettingsRepository};
 
 pub struct Database {
     pool: MySqlPool,

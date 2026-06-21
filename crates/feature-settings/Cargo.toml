@@ -1,0 +1,9 @@
+[package]
+name = "feature-settings"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bot-core.workspace = true
+database.workspace = true
+poise.workspace = true
