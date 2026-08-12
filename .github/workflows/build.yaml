@@ -40,7 +40,7 @@ jobs:
 
           registry="$(printf '%s' "$REGISTRY" | tr '[:upper:]' '[:lower:]')"
 
-          for service in api bot auth; do
+          for service in api bot auth migrate; do
             image="$(nix build ".#${service}Image" --no-link --print-out-paths)"
             docker load --input "$image"
             docker tag "yin-${service}:latest" "$registry/$service:$TAG"

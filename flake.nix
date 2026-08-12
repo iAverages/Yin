@@ -133,6 +133,11 @@
         env = ["APP_ENV=production"];
       };
 
+      migrateImage = serviceImage {
+        name = "migrate";
+        package = migrate;
+      };
+
       authImage = pkgs.dockerTools.buildLayeredImage {
         name = "yin-auth";
         tag = "latest";
@@ -161,12 +166,12 @@
       };
     in {
       packages = {
-        inherit api bot migrate auth apiImage botImage authImage;
+        inherit api bot migrate auth apiImage botImage migrateImage authImage;
         default = botImage;
       };
 
       checks = {
-        inherit api bot migrate auth apiImage botImage authImage;
+        inherit api bot migrate auth apiImage botImage migrateImage authImage;
 
         rust-fmt = pkgs.runCommand "yin-rust-fmt" {nativeBuildInputs = [rust];} ''
           cd ${source}
