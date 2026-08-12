@@ -1,0 +1,48 @@
+name: Build
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v16
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Check flake
+        run: nix flake check --print-build-logs
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push containers
+        if: github.event_name == 'push'
+        env:
+          REGISTRY: ghcr.io/${{ github.repository_owner }}/yin
+          TAG: production-${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          registry="$(printf '%s' "$REGISTRY" | tr '[:upper:]' '[:lower:]')"
+
+          for service in api bot auth; do
+            image="$(nix build ".#${service}Image" --no-link --print-out-paths)"
+            docker load --input "$image"
+            docker tag "yin-${service}:latest" "$registry/$service:$TAG"
+            docker push "$registry/$service:$TAG"
+          done

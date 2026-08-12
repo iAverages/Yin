@@ -7,7 +7,6 @@ edition = "2024"
 bot-core.workspace = true
 database.workspace = true
 feature-admin.workspace = true
-feature-anime.workspace = true
 feature-info.workspace = true
 feature-settings.workspace = true
 tokio.workspace = true
