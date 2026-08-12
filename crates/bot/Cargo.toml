@@ -1,0 +1,15 @@
+[package]
+name = "bot"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bot-core.workspace = true
+database.workspace = true
+feature-admin.workspace = true
+feature-anime.workspace = true
+feature-info.workspace = true
+feature-settings.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
