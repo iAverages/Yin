@@ -66,6 +66,7 @@ pub fn build(
 
 fn commands() -> Vec<Command> {
     let mut commands = feature_admin::commands();
+    commands.extend(feature_endfield::commands());
     commands.extend(feature_info::commands());
     commands.extend(feature_settings::commands());
     commands

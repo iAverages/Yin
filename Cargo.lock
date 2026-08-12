@@ -181,6 +181,7 @@ dependencies = [
  "bot-core",
  "database",
  "feature-admin",
+ "feature-endfield",
  "feature-info",
  "feature-settings",
  "tokio",
@@ -583,6 +584,17 @@ version = "0.1.0"
 dependencies = [
  "bot-core",
  "poise",
+]
+
+[[package]]
+name = "feature-endfield"
+version = "0.1.0"
+dependencies = [
+ "bot-core",
+ "poise",
+ "reqwest",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

@@ -6,6 +6,7 @@ members = [
     "crates/bot-core",
     "crates/database",
     "crates/feature-admin",
+    "crates/feature-endfield",
     "crates/feature-info",
     "crates/feature-settings",
     "crates/migrate",
@@ -16,6 +17,7 @@ api = { path = "crates/api" }
 bot-core = { path = "crates/bot-core" }
 database = { path = "crates/database" }
 feature-admin = { path = "crates/feature-admin" }
+feature-endfield = { path = "crates/feature-endfield" }
 feature-info = { path = "crates/feature-info" }
 feature-settings = { path = "crates/feature-settings" }
 

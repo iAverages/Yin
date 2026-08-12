@@ -1,0 +1,13 @@
+[package]
+name = "feature-endfield"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bot-core.workspace = true
+poise.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+serde_json = "1"

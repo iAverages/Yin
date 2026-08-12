@@ -30,6 +30,7 @@ pub struct Embed {
     title: String,
     description: Option<String>,
     fields: Vec<(String, String, bool)>,
+    image: Option<String>,
     thumbnail: Option<String>,
 }
 
@@ -40,6 +41,7 @@ impl Embed {
             title: title.into(),
             description: None,
             fields: Vec::new(),
+            image: None,
             thumbnail: None,
         }
     }
@@ -63,6 +65,11 @@ impl Embed {
         self.thumbnail = Some(url.into());
         self
     }
+
+    pub fn image(mut self, url: impl Into<String>) -> Self {
+        self.image = Some(url.into());
+        self
+    }
 }
 
 pub async fn send(ctx: Context<'_>, embed: Embed) -> Result<(), Error> {
@@ -76,6 +83,10 @@ pub async fn send(ctx: Context<'_>, embed: Embed) -> Result<(), Error> {
 
     if let Some(thumbnail) = embed.thumbnail {
         create = create.thumbnail(thumbnail);
+    }
+
+    if let Some(image) = embed.image {
+        create = create.image(image);
     }
 
     for (name, value, inline) in embed.fields {
