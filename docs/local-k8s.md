@@ -89,12 +89,16 @@ DATABASE_URL=mysql://yin:yin@localhost:3306/yin cargo run -p migrate
 Generate Better Auth SQL into the Rust database migrations directory:
 
 ```bash
+MIGRATION_TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
 pnpm dlx @better-auth/cli@latest generate \
   --cwd apps/auth \
   --config src/auth.ts \
-  --output ../../crates/database/migrations/0002_better_auth.sql \
+  --output "../../crates/database/migrations/${MIGRATION_TIMESTAMP}_better_auth.sql" \
   --yes
 ```
+
+Migration filenames use UTC `YYYYMMDDHHMMSS_description.sql` prefixes. Never rename or edit a
+migration after it has been applied; add a new timestamped migration instead.
 
 Then rerun:
 
