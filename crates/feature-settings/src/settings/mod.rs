@@ -7,7 +7,7 @@ use bot_core::{Context, Error, poise};
     prefix_command,
     slash_command,
     guild_only,
-    subcommands("prefix"),
+    subcommands("prefix", "ladder"),
     install_context = "Guild",
     interaction_context = "Guild"
 )]
@@ -36,3 +36,7 @@ pub async fn settings(ctx: Context<'_>) -> Result<(), Error> {
 }
 
 pub use prefix::prefix;
+
+fn ladder() -> bot_core::Command {
+    feature_moderation::ladder_command()
+}

@@ -10,6 +10,13 @@ use sqlx::{MySql, MySqlPool};
 pub use config::DatabaseConfig;
 pub use error::DatabaseError;
 pub use repositories::guild_settings::{GuildSettings, GuildSettingsRepository};
+pub use repositories::moderation::{
+    ChannelLockOperation, ChannelLockTarget, ExternalAuditCaseInsert, ModerationCase,
+    ModerationCaseHistory, ModerationRepository, ModerationStatus, NewChannelLockOperation,
+    NewChannelLockTarget, NewExternalAuditCase, NewModerationCase, NewPunishmentLadderExecution,
+    NewPunishmentLadderRule, NewWarn, NewWarning, PunishmentLadderExecution, PunishmentLadderRule,
+    WarnResult, Warning,
+};
 
 pub struct Database {
     pool: MySqlPool,

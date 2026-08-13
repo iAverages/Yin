@@ -26,6 +26,7 @@ pub fn build(
                 ..Default::default()
             },
             on_error: |error| Box::pin(on_error(error)),
+            event_handler: |ctx, event, _, data| Box::pin(event_handler(ctx, event, data)),
             pre_command: |ctx| {
                 Box::pin(async move {
                     bot_core::trace::initialize(ctx).await;
@@ -52,13 +53,15 @@ pub fn build(
                     "bot connected"
                 );
 
-                Ok(BotState {
+                let state = BotState {
                     started_at: Instant::now(),
                     environment,
                     database,
                     auth_service_url,
                     auth_internal_token,
-                })
+                };
+                start_moderation_workers(ctx, &state);
+                Ok(state)
             })
         })
         .build()
@@ -68,8 +71,51 @@ fn commands() -> Vec<Command> {
     let mut commands = feature_admin::commands();
     commands.extend(feature_endfield::commands());
     commands.extend(feature_info::commands());
+    commands.extend(feature_moderation::commands());
     commands.extend(feature_settings::commands());
     commands
+}
+
+async fn event_handler(
+    _ctx: &serenity::Context,
+    event: &serenity::FullEvent,
+    data: &BotState,
+) -> Result<(), Error> {
+    if let serenity::FullEvent::GuildAuditLogEntryCreate { entry, guild_id } = event {
+        feature_moderation::audit::process_audit_entry(&data.database, *guild_id, entry).await?;
+    }
+    Ok(())
+}
+
+fn start_moderation_workers(ctx: &serenity::Context, data: &BotState) {
+    let http = ctx.http.clone();
+    let cache = ctx.cache.clone();
+    let database = data.database.clone();
+    tokio::spawn(async move {
+        let worker = format!("bot-{}", std::process::id());
+        loop {
+            if let Err(error) =
+                feature_moderation::process_due_unlocks(&http, &database, &worker).await
+            {
+                tracing::error!(error = %error, "auto-unlock worker failed");
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(15)).await;
+        }
+    });
+
+    let http = ctx.http.clone();
+    let database = data.database.clone();
+    tokio::spawn(async move {
+        loop {
+            let guilds = cache.guilds();
+            if let Err(error) =
+                feature_moderation::audit::reconcile_all_guilds(&http, &database, guilds).await
+            {
+                tracing::error!(error = %error, "audit-log reconciliation failed");
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+        }
+    });
 }
 
 fn dynamic_prefix(
