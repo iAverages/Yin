@@ -18,7 +18,31 @@ spec:
           image: yin-rust-dev
           imagePullPolicy: IfNotPresent
           workingDir: /workspace
-          command: ["cargo", "watch", "-x", "run -p bot"]
+          command:
+            - cargo
+            - watch
+            - --watch
+            - Cargo.toml
+            - --watch
+            - Cargo.lock
+            - --watch
+            - crates/bot
+            - --watch
+            - crates/bot-core
+            - --watch
+            - crates/database
+            - --watch
+            - crates/feature-admin
+            - --watch
+            - crates/feature-endfield
+            - --watch
+            - crates/feature-info
+            - --watch
+            - crates/feature-moderation
+            - --watch
+            - crates/feature-settings
+            - --exec
+            - run -p bot
           envFrom:
             - configMapRef:
                 name: yin-config
@@ -29,4 +53,6 @@ spec:
               mountPath: /workspace/target
       volumes:
         - name: rust-target
-          emptyDir: {}
+          hostPath:
+            path: /var/lib/yin-dev/cargo-target/bot
+            type: DirectoryOrCreate

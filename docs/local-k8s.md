@@ -125,7 +125,10 @@ DATABASE_URL=mysql://yin:yin@localhost:3306/yin cargo run -p migrate
 
 ## Live Update Behavior
 
-Rust services run through `cargo watch`. Tilt syncs source changes into the pod, and `cargo watch` restarts the relevant Rust process. Cargo incremental build cache is stored in an `emptyDir` mounted at `/workspace/target` while the pod exists.
+Rust services run through `cargo watch`. Tilt syncs source changes into the pod, and each watcher
+only observes crates used by that service. Cargo incremental build caches use separate local-node
+`hostPath` volumes for the bot and API, so pod rollouts do not cause cold rebuilds. Delete
+`/var/lib/yin-dev/cargo-target` inside the Kind node when a clean Rust rebuild is required.
 
 Auth service syncs TypeScript source changes into the pod. `tsx watch` reloads the auth server without a full image rebuild.
 

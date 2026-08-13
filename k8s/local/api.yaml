@@ -31,7 +31,19 @@ spec:
           image: yin-rust-dev
           imagePullPolicy: IfNotPresent
           workingDir: /workspace
-          command: ["cargo", "watch", "-x", "run -p api"]
+          command:
+            - cargo
+            - watch
+            - --watch
+            - Cargo.toml
+            - --watch
+            - Cargo.lock
+            - --watch
+            - crates/api
+            - --watch
+            - crates/database
+            - --exec
+            - run -p api
           ports:
             - name: http
               containerPort: 3000
@@ -43,4 +55,6 @@ spec:
               mountPath: /workspace/target
       volumes:
         - name: rust-target
-          emptyDir: {}
+          hostPath:
+            path: /var/lib/yin-dev/cargo-target/api
+            type: DirectoryOrCreate

@@ -1,0 +1,8 @@
+.direnv
+.git
+.idea
+.jj
+docs
+k8s
+node_modules
+target
