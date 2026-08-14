@@ -11,6 +11,7 @@ feature-endfield.workspace = true
 feature-info.workspace = true
 feature-moderation.workspace = true
 feature-settings.workspace = true
+feature-social.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true

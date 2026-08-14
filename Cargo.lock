@@ -185,6 +185,7 @@ dependencies = [
  "feature-info",
  "feature-moderation",
  "feature-settings",
+ "feature-social",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -626,6 +627,16 @@ dependencies = [
  "database",
  "feature-moderation",
  "poise",
+]
+
+[[package]]
+name = "feature-social"
+version = "0.1.0"
+dependencies = [
+ "bot-core",
+ "reqwest",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

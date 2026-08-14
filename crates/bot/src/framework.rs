@@ -77,10 +77,13 @@ fn commands() -> Vec<Command> {
 }
 
 async fn event_handler(
-    _ctx: &serenity::Context,
+    ctx: &serenity::Context,
     event: &serenity::FullEvent,
     data: &BotState,
 ) -> Result<(), Error> {
+    if let serenity::FullEvent::Message { new_message } = event {
+        feature_social::handle_message(ctx, new_message).await?;
+    }
     if let serenity::FullEvent::GuildAuditLogEntryCreate { entry, guild_id } = event {
         feature_moderation::audit::process_audit_entry(&data.database, *guild_id, entry).await?;
     }
