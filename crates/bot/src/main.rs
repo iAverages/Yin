@@ -1,8 +1,12 @@
 mod config;
+mod diagnostics;
 mod framework;
 mod shutdown;
 
 use std::sync::Arc;
+use std::time::{Duration, Instant};
+
+use database::repositories::admin::AdminRepository;
 
 use bot_core::Error;
 
@@ -15,16 +19,16 @@ async fn main() -> Result<(), Error> {
         )
         .init();
 
+    let started_at = Instant::now();
+    let instance_id = uuid::Uuid::now_v7().to_string();
     let config = config::BotConfig::from_env()?;
     let database = Arc::new(database::Database::connect(config.database).await?);
     let feature_flags = feature_flags::FeatureFlags::from_env().await?;
     let framework = framework::build(
         config.environment,
         config.dev_guild_id,
-        database,
+        database.clone(),
         feature_flags,
-        config.auth_service_url,
-        config.auth_internal_token,
     );
     let intents = bot_core::serenity::GatewayIntents::GUILDS
         | bot_core::serenity::GatewayIntents::GUILD_MODERATION
@@ -38,14 +42,37 @@ async fn main() -> Result<(), Error> {
 
     let shard_manager = client.shard_manager.clone();
 
-    tokio::select! {
-        result = client.start() => result?,
+    let diagnostics = diagnostics::run(
+        database.clone(),
+        shard_manager.clone(),
+        client.cache.clone(),
+        &instance_id,
+        config.environment,
+        started_at,
+    );
+    let result = tokio::select! {
+        result = client.start() => result.map_err(Error::from),
         result = shutdown::signal() => {
-            result?;
-            tracing::info!("shutdown signal received");
-            shard_manager.shutdown_all().await;
-        }
-    }
+            if result.is_ok() {
+                tracing::info!("shutdown signal received");
+            }
+            result
+        },
+        _ = diagnostics => unreachable!("diagnostics runs until shutdown"),
+    };
 
-    Ok(())
+    // Stop publishing before marking the process stopped. An abrupt termination
+    // instead ages into a stale snapshot after 45 seconds.
+    if !matches!(
+        tokio::time::timeout(
+            Duration::from_secs(2),
+            AdminRepository::new(&database).mark_stopped(&instance_id),
+        )
+        .await,
+        Ok(Ok(()))
+    ) {
+        tracing::warn!("could not mark bot diagnostics stopped");
+    }
+    shard_manager.shutdown_all().await;
+    result
 }

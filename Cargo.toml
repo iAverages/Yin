@@ -8,6 +8,7 @@ members = [
     "crates/feature-admin",
     "crates/feature-endfield",
     "crates/feature-flags",
+    "crates/feature-guilds",
     "crates/feature-info",
     "crates/feature-moderation",
     "crates/feature-settings",
@@ -22,6 +23,7 @@ database = { path = "crates/database" }
 feature-admin = { path = "crates/feature-admin" }
 feature-endfield = { path = "crates/feature-endfield" }
 feature-flags = { path = "crates/feature-flags" }
+feature-guilds = { path = "crates/feature-guilds" }
 feature-info = { path = "crates/feature-info" }
 feature-moderation = { path = "crates/feature-moderation" }
 feature-settings = { path = "crates/feature-settings" }
@@ -37,6 +39,7 @@ serenity = "0.12.5"
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "mysql", "uuid", "chrono", "json", "migrate"] }
 thiserror = "2"
 tokio = { version = "1.52.3", features = ["full"] }
+tower-http = { version = "0.6", features = ["cors"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 uuid = { version = "1", features = ["v7"] }

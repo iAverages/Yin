@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+@theme {
+    --color-canvas: #0c0d10;
+    --color-surface: #15171c;
+    --color-elevated: #1c1f26;
+    --color-line: #2a2e38;
+    --color-foreground: #f2f3f5;
+    --color-muted: #a5a9b4;
+    --color-accent: #805ad5;
+    --color-accent-hover: #906ee0;
+    --color-success: #3baa72;
+    --color-warning: #d9a441;
+    --color-danger: #e05a65;
+    --font-sans: Inter, sans-serif;
+    --font-mono: "JetBrains Mono", monospace;
+    --animate-fade-in: fade-in 180ms ease both;
+    --animate-fade-out: fade-out 180ms ease both;
+    --animate-dialog-in: dialog-in 200ms ease both;
+    --animate-dialog-out: dialog-out 180ms ease both;
+}
+
+@layer base {
+    :root {
+        color-scheme: dark;
+        font-family: var(--font-sans);
+        font-synthesis: none;
+    }
+
+    html,
+    body {
+        overflow-x: hidden;
+        background: var(--color-canvas);
+    }
+
+    body {
+        margin: 0;
+        color: var(--color-foreground);
+        font-size: 14px;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+        font: inherit;
+    }
+
+    button,
+    a,
+    input,
+    select,
+    textarea {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    ::selection {
+        background: rgb(128 90 213 / 38%);
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--color-accent-hover);
+        outline-offset: 2px;
+    }
+}
+
+.panel-popover {
+    transform-origin: var(--kb-popper-content-transform-origin);
+}
+
+.panel-popover[data-expanded] {
+    animation: popover-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.panel-popover[data-closed] {
+    animation: popover-out 120ms ease-in forwards;
+    pointer-events: none;
+}
+
+@keyframes popover-in {
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes popover-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes fade-out {
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes dialog-in {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+}
+
+@keyframes dialog-out {
+    to {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

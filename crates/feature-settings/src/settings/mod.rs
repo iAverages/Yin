@@ -49,8 +49,8 @@ pub async fn settings(ctx: Context<'_>) -> Result<(), Error> {
 }
 
 pub use language::language;
-pub use prefix::prefix;
-pub use social::social;
+pub use prefix::{DEFAULT_PREFIX, prefix};
+pub use social::{social, social_platform_keys, validate_social_platform};
 
 fn ladder() -> bot_core::Command {
     feature_moderation::ladder_command()

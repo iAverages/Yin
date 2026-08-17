@@ -30,7 +30,12 @@ Ingress hosts:
 ```text
 http://api.yin.localhost
 http://auth.yin.localhost
+http://panel.yin.localhost
 ```
+
+The panel's Service uses an EndpointSlice targeting the host-side IPv4 gateway of
+Docker's `kind` network. Tilt discovers this address and populates the EndpointSlice
+in `k8s/local/panel.yaml`. Vite listens on `0.0.0.0:3000` so Traefik can reach it.
 
 ## Configure Secrets
 
@@ -83,7 +88,16 @@ mariadb
 bot
 api
 auth
+panel
 ```
+
+The panel runs locally as a Tilt-managed Vite development server at
+<http://localhost:3000> and is routed through Traefik at
+<http://panel.yin.localhost>. Tilt installs workspace dependencies before starting
+the panel and provides its links and readiness status in the dashboard.
+
+The API is available at <http://api.yin.localhost> and is also port-forwarded at
+<http://localhost:3003>.
 
 Tilt does not run database migrations.
 
@@ -131,6 +145,15 @@ only observes crates used by that service. Cargo incremental build caches use se
 `/var/lib/yin-dev/cargo-target` inside the Kind node when a clean Rust rebuild is required.
 
 Auth service syncs TypeScript source changes into the pod. `tsx watch` reloads the auth server without a full image rebuild.
+
+The panel uses Vite's native HMR for source and CSS changes, including through the
+Traefik hostname. Tilt watches only the workspace package manifests, lockfile, and
+workspace configuration for this local resource, so source edits do not restart
+its process. Dependency changes rerun `pnpm install --frozen-lockfile` and restart
+Vite; update the root `pnpm-lock.yaml` with `pnpm install` when changing
+dependencies. Panel files are excluded from the auth image build context.
+
+This follows Tilt's [local server setup with `serve_cmd` and readiness probes](https://docs.tilt.dev/local_resource.html).
 
 Traefik dashboard is port-forwarded at:
 

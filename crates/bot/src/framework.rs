@@ -6,16 +6,13 @@ use bot_core::response::{self, Embed, EmbedKind};
 use bot_core::serenity;
 use bot_core::{BotState, Command, Environment, Error};
 use database::GuildSettingsRepository;
-
-const DEFAULT_PREFIX: &str = "!";
+use feature_settings::DEFAULT_PREFIX;
 
 pub fn build(
     environment: Environment,
     dev_guild_id: Option<serenity::GuildId>,
     database: Arc<database::Database>,
     feature_flags: feature_flags::FeatureFlags,
-    auth_service_url: String,
-    auth_internal_token: Option<String>,
 ) -> poise::Framework<BotState, Error> {
     poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -59,8 +56,6 @@ pub fn build(
                     environment,
                     database,
                     feature_flags,
-                    auth_service_url,
-                    auth_internal_token,
                 };
                 start_moderation_workers(ctx, &state);
                 Ok(state)
@@ -83,6 +78,7 @@ async fn event_handler(
     event: &serenity::FullEvent,
     data: &BotState,
 ) -> Result<(), Error> {
+    feature_guilds::handle_event(&data.database, ctx.shard_id.0, event).await?;
     if let serenity::FullEvent::GuildCreate { guild, .. } = event {
         data.feature_flags
             .identify_guild(guild.id.get(), &guild.name)?;

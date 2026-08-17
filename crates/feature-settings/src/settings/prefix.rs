@@ -1,9 +1,9 @@
 use bot_core::response::{self, Embed, EmbedKind};
 use bot_core::{Context, Error, poise};
 use database::GuildSettingsRepository;
+use database::settings::CommandPrefix;
 
-const DEFAULT_PREFIX: &str = "!";
-const MAX_PREFIX_LEN: usize = 16;
+pub const DEFAULT_PREFIX: &str = "!";
 
 #[poise::command(
     prefix_command,
@@ -76,7 +76,7 @@ pub async fn set(
         return response::error(ctx, "This command can only be used in a server.").await;
     };
 
-    let Some(prefix) = validate_prefix(&prefix) else {
+    let Some(prefix) = CommandPrefix::parse(&prefix) else {
         return response::send(
             ctx,
             Embed::new(EmbedKind::Error, "Invalid Prefix").description(
@@ -125,17 +125,4 @@ pub async fn reset(ctx: Context<'_>) -> Result<(), Error> {
         ),
     )
     .await
-}
-
-fn validate_prefix(prefix: &str) -> Option<String> {
-    let prefix = prefix.trim();
-
-    if prefix.is_empty()
-        || prefix.chars().count() > MAX_PREFIX_LEN
-        || prefix.chars().any(char::is_whitespace)
-    {
-        return None;
-    }
-
-    Some(prefix.to_owned())
 }

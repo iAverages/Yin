@@ -1,7 +1,8 @@
 use bot_core::response::{self, Embed, EmbedKind};
 use bot_core::{Context, Error, poise};
 use database::GuildSettingsRepository;
-use feature_social::{normalize_translation_language, primary_translation_language};
+use database::settings::TranslationLanguage;
+use feature_social::primary_translation_language;
 
 #[poise::command(
     prefix_command,
@@ -40,7 +41,7 @@ pub async fn set(
     #[description = "ISO language code, such as en, ja, pt-BR, or zh-Hant"] language: String,
 ) -> Result<(), Error> {
     let guild_id = ctx.guild_id().expect("guild-only command has a guild ID");
-    let Some(language) = normalize_translation_language(&language) else {
+    let Some(language) = TranslationLanguage::parse(&language) else {
         return response::error(
             ctx,
             "Use a valid ISO language code, such as `en` or `pt-BR`.",
@@ -56,7 +57,7 @@ pub async fn set(
         ctx,
         Embed::new(EmbedKind::Success, "Translation Language Updated").field(
             "Translation Language",
-            language,
+            language.as_str(),
             true,
         ),
     )

@@ -1,5 +1,6 @@
 use bot_core::serenity;
 use bot_core::{BotState, Error};
+use database::settings::TranslationLanguage;
 use feature_flags::FlagValue;
 use reqwest::Url;
 
@@ -64,7 +65,8 @@ impl EmbedSource for Twitter {
     fn request(&self, url: &Url, options: &Options, spoiler: bool) -> Option<Request> {
         let (username, id, language) = post_parts(url)?;
         let language = language
-            .and_then(normalize_translation_language)
+            .and_then(TranslationLanguage::parse)
+            .map(TranslationLanguage::into_string)
             .unwrap_or_else(|| options.language.clone());
 
         Some(match options.backend {
@@ -103,34 +105,9 @@ impl EmbedSource for Twitter {
     }
 }
 
-pub fn normalize_translation_language(language: &str) -> Option<String> {
-    let language = language.trim().to_ascii_lowercase().replace('_', "-");
-    let language = match language.as_str() {
-        "zh" | "cn" | "zh-hans" => "zh-cn",
-        "tw" | "hk" | "zh-hk" | "zh-mo" | "zh-hant" => "zh-tw",
-        "jp" => "ja",
-        "kr" => "ko",
-        "ua" => "uk",
-        language => language,
-    };
-    let mut parts = language.split('-');
-    let primary = parts.next()?;
-    let subtag = parts.next();
-    if parts.next().is_some()
-        || !(2..=3).contains(&primary.len())
-        || !primary.bytes().all(|byte| byte.is_ascii_alphabetic())
-        || subtag.is_some_and(|subtag| {
-            !(2..=4).contains(&subtag.len())
-                || !subtag.bytes().all(|byte| byte.is_ascii_alphabetic())
-        })
-    {
-        return None;
-    }
-    Some(language.to_owned())
-}
-
 pub fn primary_translation_language(locale: &str) -> Option<String> {
-    normalize_translation_language(locale.split(['-', '_']).next()?)
+    TranslationLanguage::parse(locale.split(['-', '_']).next()?)
+        .map(TranslationLanguage::into_string)
 }
 
 fn post_parts(url: &Url) -> Option<(&str, &str, Option<&str>)> {
@@ -190,7 +167,8 @@ async fn guild_translation_language(
         .find_by_guild_id(guild_id.get())
         .await?
         .and_then(|settings| settings.translation_language)
-        .and_then(|language| normalize_translation_language(&language));
+        .and_then(|language| TranslationLanguage::parse(&language))
+        .map(TranslationLanguage::into_string);
     Ok(configured.unwrap_or(default))
 }
 
@@ -252,19 +230,6 @@ mod tests {
                 spoiler: true,
             })
         );
-        assert_eq!(
-            normalize_translation_language("zh-Hant").as_deref(),
-            Some("zh-tw")
-        );
-        assert_eq!(
-            normalize_translation_language("pt-BR").as_deref(),
-            Some("pt-br")
-        );
-        assert_eq!(
-            normalize_translation_language("fil").as_deref(),
-            Some("fil")
-        );
-        assert_eq!(normalize_translation_language("unknown"), None);
         assert_eq!(primary_translation_language("pt-BR").as_deref(), Some("pt"));
         assert!(!Twitter.handles(&Url::parse("https://x.com.example/jack/status/20").unwrap()));
     }

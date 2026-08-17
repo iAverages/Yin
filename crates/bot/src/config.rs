@@ -9,8 +9,6 @@ pub struct BotConfig {
     pub environment: Environment,
     pub dev_guild_id: Option<serenity::GuildId>,
     pub database: database::DatabaseConfig,
-    pub auth_service_url: String,
-    pub auth_internal_token: Option<String>,
 }
 
 impl BotConfig {
@@ -37,21 +35,12 @@ impl BotConfig {
         }
 
         let database = database::DatabaseConfig::from_env()?;
-        let auth_service_url =
-            env::var("AUTH_SERVICE_URL").unwrap_or_else(|_| "http://auth:3001".to_owned());
-        let auth_internal_token = match env::var("AUTH_INTERNAL_TOKEN") {
-            Ok(value) if !value.trim().is_empty() => Some(value),
-            Ok(_) | Err(env::VarError::NotPresent) => None,
-            Err(error) => return Err(Box::new(error)),
-        };
 
         Ok(Self {
             discord_token,
             environment,
             dev_guild_id,
             database,
-            auth_service_url,
-            auth_internal_token,
         })
     }
 }

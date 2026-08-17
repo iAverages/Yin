@@ -1,6 +1,7 @@
 use sea_query::{Alias, Expr, Query, SelectStatement};
 use sqlx::Row;
 
+use crate::settings::{CommandPrefix, TranslationLanguage};
 use crate::{Database, DatabaseError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -70,7 +71,11 @@ impl<'a> GuildSettingsRepository<'a> {
         }))
     }
 
-    pub async fn upsert_prefix(&self, guild_id: u64, prefix: &str) -> Result<(), DatabaseError> {
+    pub async fn upsert_prefix(
+        &self,
+        guild_id: u64,
+        prefix: &CommandPrefix,
+    ) -> Result<(), DatabaseError> {
         sqlx::query(
             r#"
             INSERT INTO guild_settings (guild_id, command_prefix)
@@ -79,7 +84,7 @@ impl<'a> GuildSettingsRepository<'a> {
             "#,
         )
         .bind(guild_id)
-        .bind(prefix)
+        .bind(prefix.as_str())
         .execute(self.database.pool())
         .await?;
 
@@ -104,7 +109,7 @@ impl<'a> GuildSettingsRepository<'a> {
     pub async fn upsert_translation_language(
         &self,
         guild_id: u64,
-        language: &str,
+        language: &TranslationLanguage,
     ) -> Result<(), DatabaseError> {
         sqlx::query(
             r#"
@@ -114,7 +119,7 @@ impl<'a> GuildSettingsRepository<'a> {
             "#,
         )
         .bind(guild_id)
-        .bind(language)
+        .bind(language.as_str())
         .execute(self.database.pool())
         .await?;
 

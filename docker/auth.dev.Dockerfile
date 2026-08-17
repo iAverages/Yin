@@ -1,9 +1,9 @@
-FROM node:20-bookworm
+FROM node:26-bookworm
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
-RUN corepack enable
+RUN npm install -g corepack && corepack enable
 
 WORKDIR /workspace
 

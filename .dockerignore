@@ -4,5 +4,5 @@
 .jj
 docs
 k8s
-node_modules
+**/node_modules
 target

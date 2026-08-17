@@ -1,0 +1,14 @@
+{
+    "$schema": "../../node_modules/oxfmt/configuration_schema.json",
+    "tabWidth": 4,
+    "useTabs": false,
+    "ignorePatterns": [
+        "src/routeTree.gen.ts",
+        "AGENTS.md",
+        ".output/**",
+        ".nitro/**",
+        ".tanstack/**",
+        "test-results/**",
+        "playwright-report/**"
+    ]
+}

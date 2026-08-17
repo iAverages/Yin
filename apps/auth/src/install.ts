@@ -21,14 +21,6 @@ export function registerInstallRoutes(app: Hono, config: AuthConfig) {
   app.get("/install/discord/user", async (c) => {
     return startDiscordInstall(c.req.raw, config, "user");
   });
-
-  app.get("/install/discord/success", (c) => {
-    return c.text("Discord authorization complete. You can close this tab.");
-  });
-
-  app.get("/install/discord/error", (c) => {
-    return c.text("Discord authorization failed.", 400);
-  });
 }
 
 async function startDiscordInstall(
@@ -36,6 +28,10 @@ async function startDiscordInstall(
   config: AuthConfig,
   target: InstallTarget,
 ) {
+  const guildId = new URL(request.url).searchParams.get("guild_id");
+  if (guildId !== null && !/^[1-9]\d{0,19}$/.test(guildId)) {
+    return new Response("Invalid guild ID", { status: 400 });
+  }
   const scopes = target === "guild" ? guildInstallScopes : userInstallScopes;
   const response = await auth.handler(
     new Request(`${config.betterAuthUrl}/api/auth/sign-in/social`, {
@@ -67,6 +63,10 @@ async function startDiscordInstall(
 
   const redirectUrl = new URL(body.url);
   redirectUrl.searchParams.set("integration_type", target === "guild" ? "0" : "1");
+  if (target === "guild" && guildId) {
+    redirectUrl.searchParams.set("guild_id", guildId);
+    redirectUrl.searchParams.set("disable_guild_select", "true");
+  }
 
   const redirect = new Response(null, {
     status: 302,

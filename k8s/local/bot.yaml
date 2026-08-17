@@ -32,6 +32,8 @@ spec:
             - --watch
             - crates/database
             - --watch
+            - crates/feature-guilds
+            - --watch
             - crates/feature-admin
             - --watch
             - crates/feature-endfield

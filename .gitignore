@@ -5,3 +5,6 @@
 node_modules
 k8s/local/secret.yaml
 .idea
+apps/panel/test-results/
+apps/panel/playwright-report/
+.playwright-mcp/

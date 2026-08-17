@@ -42,6 +42,8 @@ spec:
             - crates/api
             - --watch
             - crates/database
+            - --watch
+            - crates/feature-guilds
             - --exec
             - run -p api
           ports:

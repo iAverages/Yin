@@ -1,0 +1,26 @@
+{
+    "$schema": "../../node_modules/oxlint/configuration_schema.json",
+    "categories": {
+        "correctness": "error"
+    },
+    "rules": {
+        "func-style": [
+            "error",
+            "expression",
+            {
+                "overrides": {
+                    "namedExports": "expression"
+                }
+            }
+        ],
+        "prefer-arrow-callback": "error"
+    },
+    "ignorePatterns": [
+        "src/routeTree.gen.ts",
+        ".output/**",
+        ".nitro/**",
+        ".tanstack/**",
+        "test-results/**",
+        "playwright-report/**"
+    ]
+}

@@ -1,0 +1,52 @@
+{
+    "name": "panel",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite dev --port 3000",
+        "generate-routes": "tsr generate",
+        "lint": "oxlint --deny-warnings .",
+        "format": "oxfmt --write .",
+        "format:check": "oxfmt --check .",
+        "test:e2e": "playwright test",
+        "test:unit": "vitest run",
+        "build": "vite build",
+        "start": "node .output/server/index.mjs",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "@corvu/drawer": "^0.2.4",
+        "@fontsource/inter": "^5.1.1",
+        "@fontsource/jetbrains-mono": "^5.3.0",
+        "@kobalte/core": "^0.13.14",
+        "@sentry/solid": "^10.67.0",
+        "@t3-oss/env-core": "^0.13.10",
+        "@tailwindcss/vite": "^4.1.18",
+        "@tanstack/solid-form": "latest",
+        "@tanstack/solid-query": "latest",
+        "@tanstack/solid-query-devtools": "latest",
+        "@tanstack/solid-router": "latest",
+        "@tanstack/solid-router-devtools": "latest",
+        "@tanstack/solid-router-ssr-query": "latest",
+        "@tanstack/solid-start": "latest",
+        "better-auth": "^1.6.20",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "nitro": "3.0.260610-beta",
+        "solid-js": "^1.9.12",
+        "solid-sonner": "0.3.1",
+        "tailwind-merge": "^3.0.2",
+        "tailwindcss": "^4.1.18",
+        "tailwindcss-animate": "^1.0.7",
+        "zod": "^4.3.6"
+    },
+    "devDependencies": {
+        "@playwright/test": "^1.63.0",
+        "@tanstack/devtools-vite": "latest",
+        "@tanstack/router-cli": "^1.133.21",
+        "typescript": "catalog:",
+        "vite": "^8.0.0",
+        "vite-plugin-solid": "^2.11.12",
+        "vitest": "catalog:"
+    }
+}

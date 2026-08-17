@@ -12,6 +12,15 @@ pub enum SocialScope {
     Server,
 }
 
+pub fn social_platform_keys() -> impl Iterator<Item = &'static str> {
+    SocialPlatform::ALL.into_iter().map(SocialPlatform::key)
+}
+
+pub fn validate_social_platform(platform: &str) -> Option<&'static str> {
+    let platform = platform.trim().to_ascii_lowercase();
+    social_platform_keys().find(|key| *key == platform)
+}
+
 /// Manage personal or server-wide social embed preferences.
 #[poise::command(
     prefix_command,

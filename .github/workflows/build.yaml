@@ -13,7 +13,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: tailscale/github-action@v3
@@ -30,10 +30,30 @@ jobs:
           token: ${{ secrets.ATTIC_TOKEN }}
 
       - name: Check flake
-        run: nix flake check --print-build-logs --fallback
+        run: nix flake check --print-build-logs --fallback --keep-going --keep-failed
+
+      - name: Collect failed browser test artifacts
+        if: failure()
+        run: |
+          mkdir -p test-artifacts
+          for build_dir in /tmp/nix-build-yin-panel-e2e-*; do
+            [ -d "$build_dir" ] || continue
+            sudo find "$build_dir" -type d \
+              \( -path '*/apps/panel/test-results' -o -path '*/apps/panel/playwright-report' \) \
+              -exec cp -R {} "$PWD/test-artifacts/" \;
+          done
+          sudo chown -R "$(id -u):$(id -g)" test-artifacts
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: panel-test-results
+          path: test-artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Log in to GHCR
-        if: github.event_name == 'push'
+        if: success() && github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -41,7 +61,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push containers
-        if: github.event_name == 'push'
+        if: success() && github.event_name == 'push'
         env:
           REGISTRY: ghcr.io/${{ github.repository_owner }}/yin
           TAG: production-${{ github.sha }}
@@ -50,7 +70,7 @@ jobs:
 
           registry="$(printf '%s' "$REGISTRY" | tr '[:upper:]' '[:lower:]')"
 
-          for service in api bot auth migrate; do
+          for service in api bot auth migrate panel; do
             image="$(nix build ".#${service}Image" --no-link --print-out-paths)"
             docker load --input "$image"
             docker tag "yin-${service}:latest" "$registry/$service:$TAG"

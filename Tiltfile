@@ -10,12 +10,11 @@ docker_build(
         ".idea",
         ".jj",
         "apps",
-        "apps/auth/node_modules",
         "docs",
         "flake.lock",
         "flake.nix",
         "k8s",
-        "node_modules",
+        "**/node_modules",
         "package.json",
         "pnpm-lock.yaml",
         "pnpm-workspace.yaml",
@@ -37,6 +36,7 @@ docker_build(
         ".git",
         ".idea",
         ".jj",
+        "apps/panel",
         "Cargo.lock",
         "Cargo.toml",
         "crates",
@@ -44,7 +44,7 @@ docker_build(
         "flake.lock",
         "flake.nix",
         "k8s",
-        "node_modules",
+        "**/node_modules",
         "target",
     ],
     live_update=[
@@ -71,6 +71,23 @@ local_resource(
     "kubectl apply -f k8s/local/namespace.yaml",
 )
 
+local_resource(
+    "panel",
+    cmd="pnpm install --frozen-lockfile",
+    serve_cmd="pnpm --dir apps/panel exec vite dev --host 0.0.0.0 --port 3000 --strictPort",
+    deps=[
+        "package.json",
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml",
+        "apps/auth/package.json",
+        "apps/panel/package.json",
+    ],
+    links=["http://panel.yin.localhost", "http://localhost:3000"],
+    readiness_probe=probe(
+        http_get=http_get_action(port=3000, path="/"),
+    ),
+)
+
 k8s_yaml([
     "k8s/local/configmap.yaml",
     "k8s/local/secret.yaml",
@@ -82,8 +99,22 @@ k8s_yaml([
     "k8s/local/ingress.yaml",
 ])
 
+kind_ipam = decode_json(local(
+    ["docker", "network", "inspect", "kind", "--format", "{{json .IPAM.Config}}"],
+    quiet=True,
+))
+kind_gateway = [
+    config["Gateway"]
+    for config in kind_ipam
+    if ":" not in config["Gateway"]
+][0]
+panel_yaml = read_yaml_stream("k8s/local/panel.yaml")
+panel_yaml[1]["endpoints"] = [{"addresses": [kind_gateway], "conditions": {"ready": True}}]
+k8s_yaml(encode_yaml_stream(panel_yaml))
+
 k8s_resource(
     "traefik",
+    objects=["panel:service", "panel-local:endpointslice"],
     resource_deps=["namespace"],
     port_forwards=["8080:8080"],
 )
@@ -97,7 +128,7 @@ k8s_resource(
 k8s_resource(
     "api",
     resource_deps=["mariadb", "traefik"],
-    port_forwards=["3000:3000"],
+    port_forwards=["3003:3000"],
 )
 
 k8s_resource(

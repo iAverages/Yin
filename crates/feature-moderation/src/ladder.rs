@@ -3,6 +3,51 @@ use bot_core::time::{format_duration, parse_duration};
 use bot_core::{Context, Error, poise};
 use database::{ModerationRepository, NewPunishmentLadderRule};
 
+const MAX_TIMEOUT_SECONDS: u64 = 28 * 86_400;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LadderRuleConfig {
+    pub warning_threshold: u32,
+    pub window_seconds: u64,
+    pub action: String,
+    pub duration_seconds: Option<u64>,
+}
+
+pub fn validate_ladder_rule_config(
+    warning_threshold: u32,
+    window_seconds: u64,
+    action: &str,
+    duration_seconds: Option<u64>,
+) -> Result<LadderRuleConfig, String> {
+    if warning_threshold == 0 {
+        return Err("Warning threshold must be greater than zero.".to_owned());
+    }
+    if window_seconds == 0 {
+        return Err("Counting window must be greater than zero.".to_owned());
+    }
+
+    let action = action.trim().to_ascii_lowercase();
+    if !matches!(action.as_str(), "timeout" | "kick" | "ban") {
+        return Err("Action must be timeout, kick, or ban.".to_owned());
+    }
+
+    match (action.as_str(), duration_seconds) {
+        ("timeout", Some(duration)) if duration > 0 && duration <= MAX_TIMEOUT_SECONDS => {}
+        ("timeout", _) => {
+            return Err("Timeout rules need a duration of 1 second to 28 days.".to_owned());
+        }
+        (_, Some(_)) => return Err("Only timeout rules accept a duration.".to_owned()),
+        (_, None) => {}
+    }
+
+    Ok(LadderRuleConfig {
+        warning_threshold,
+        window_seconds,
+        action,
+        duration_seconds,
+    })
+}
+
 pub fn ladder_command() -> bot_core::Command {
     ladder()
 }
@@ -79,36 +124,29 @@ async fn add(
     let Some(guild_id) = ctx.guild_id() else {
         return response::error(ctx, "This command can only be used in a server.").await;
     };
-    if threshold == 0 {
-        return response::error(ctx, "Warning threshold must be greater than zero.").await;
-    }
     let window = match parse_duration(&window) {
         Ok(value) => value,
         Err(error) => return response::error(ctx, format!("Invalid window: {error}.")).await,
     };
-    let action = action.to_ascii_lowercase();
-    if !matches!(action.as_str(), "timeout" | "kick" | "ban") {
-        return response::error(ctx, "Action must be timeout, kick, or ban.").await;
-    }
-    let duration_seconds = match (action.as_str(), duration) {
-        ("timeout", Some(value)) => match parse_duration(&value) {
-            Ok(value) if value.as_secs() <= 28 * 86_400 => Some(value.as_secs()),
-            Ok(_) => return response::error(ctx, "Timeout cannot exceed 28 days.").await,
+    let duration_seconds = match duration {
+        Some(value) => match parse_duration(&value) {
+            Ok(value) => Some(value.as_secs()),
             Err(error) => return response::error(ctx, format!("Invalid duration: {error}.")).await,
         },
-        ("timeout", None) => {
-            return response::error(ctx, "Timeout rules require a duration.").await;
-        }
-        (_, Some(_)) => return response::error(ctx, "Only timeout rules accept a duration.").await,
-        (_, None) => None,
+        None => None,
     };
+    let config =
+        match validate_ladder_rule_config(threshold, window.as_secs(), &action, duration_seconds) {
+            Ok(config) => config,
+            Err(error) => return response::error(ctx, error).await,
+        };
     let rule = ModerationRepository::new(&ctx.data().database)
         .create_ladder_rule(NewPunishmentLadderRule {
             guild_id: guild_id.get(),
-            warning_threshold: threshold,
-            window_seconds: window.as_secs(),
-            action: &action,
-            duration_seconds,
+            warning_threshold: config.warning_threshold,
+            window_seconds: config.window_seconds,
+            action: &config.action,
+            duration_seconds: config.duration_seconds,
         })
         .await?;
     response::send(
@@ -127,13 +165,10 @@ async fn add(
 )]
 async fn remove(ctx: Context<'_>, #[description = "Rule ID"] rule_id: u64) -> Result<(), Error> {
     let guild_id = ctx.guild_id().ok_or("guild command missing guild")?;
-    let repository = ModerationRepository::new(&ctx.data().database);
-    let belongs_to_guild = repository
-        .ladder_rules(guild_id.get())
+    if ModerationRepository::new(&ctx.data().database)
+        .delete_ladder_rule(guild_id.get(), rule_id)
         .await?
-        .iter()
-        .any(|rule| rule.id == rule_id);
-    if belongs_to_guild && repository.delete_ladder_rule(rule_id).await? {
+    {
         response::send(ctx, Embed::new(EmbedKind::Success, "Ladder Rule Removed")).await
     } else {
         response::error(ctx, "Ladder rule not found.").await

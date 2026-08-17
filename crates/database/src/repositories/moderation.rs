@@ -686,6 +686,7 @@ impl<'a> ModerationRepository<'a> {
 
     pub async fn update_ladder_rule(
         &self,
+        guild_id: u64,
         rule_id: u64,
         warning_threshold: u32,
         window_seconds: u64,
@@ -695,13 +696,14 @@ impl<'a> ModerationRepository<'a> {
         let result = sqlx::query(
             "UPDATE punishment_ladder_rules
              SET warning_threshold = ?, window_seconds = ?, action = ?, duration_seconds = ?
-             WHERE id = ?",
+             WHERE id = ? AND guild_id = ?",
         )
         .bind(warning_threshold)
         .bind(window_seconds)
         .bind(action)
         .bind(duration_seconds)
         .bind(rule_id)
+        .bind(guild_id)
         .execute(self.database.pool())
         .await?;
         if result.rows_affected() == 0 {
@@ -712,11 +714,17 @@ impl<'a> ModerationRepository<'a> {
         ))
     }
 
-    pub async fn delete_ladder_rule(&self, rule_id: u64) -> Result<bool, DatabaseError> {
-        let result = sqlx::query("DELETE FROM punishment_ladder_rules WHERE id = ?")
-            .bind(rule_id)
-            .execute(self.database.pool())
-            .await?;
+    pub async fn delete_ladder_rule(
+        &self,
+        guild_id: u64,
+        rule_id: u64,
+    ) -> Result<bool, DatabaseError> {
+        let result =
+            sqlx::query("DELETE FROM punishment_ladder_rules WHERE id = ? AND guild_id = ?")
+                .bind(rule_id)
+                .bind(guild_id)
+                .execute(self.database.pool())
+                .await?;
         Ok(result.rows_affected() == 1)
     }
 

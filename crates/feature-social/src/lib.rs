@@ -18,7 +18,7 @@ use serde_json::{Value, json};
 use source::{Request as EmbedRequest, Source};
 
 pub use source::SocialPlatform;
-pub use source::twitter::{normalize_translation_language, primary_translation_language};
+pub use source::twitter::primary_translation_language;
 
 const MESSAGE_COMPONENT_LIMIT: usize = 40;
 const EMBED_API_RETRIES: u32 = 3;

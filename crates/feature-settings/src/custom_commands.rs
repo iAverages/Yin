@@ -1,11 +1,10 @@
 use bot_core::response::{self, Embed, EmbedKind};
 use bot_core::serenity::{self, CreateAllowedMentions, CreateMessage};
 use bot_core::{BotState, Context, Error, poise};
+use database::settings::{CustomCommandName, CustomCommandText};
 use database::{CustomCommandRepository, GuildSettingsRepository};
 
-const DEFAULT_PREFIX: &str = "!";
-const MAX_NAME_LEN: usize = 32;
-const MAX_RESPONSE_LEN: usize = 2000;
+use crate::DEFAULT_PREFIX;
 
 #[poise::command(
     slash_command,
@@ -38,20 +37,19 @@ pub async fn create(
     let Some(guild_id) = ctx.guild_id() else {
         return response::error(ctx, "This command can only be used in a server.").await;
     };
-    let Some(name) = validate_name(&name) else {
+    let Some(name) = CustomCommandName::parse(&name) else {
         return response::error(
             ctx,
             "Names must be 1-32 characters using only letters, numbers, `_`, or `-`.",
         )
         .await;
     };
-    let text = text.trim();
-    if text.is_empty() || text.chars().count() > MAX_RESPONSE_LEN {
+    let Some(text) = CustomCommandText::parse(&text) else {
         return response::error(ctx, "Text must be 1-2,000 characters.").await;
-    }
+    };
 
     CustomCommandRepository::new(&ctx.data().database)
-        .upsert(guild_id.get(), &name, text)
+        .upsert(guild_id.get(), &name, &text)
         .await?;
 
     response::send(
@@ -109,11 +107,11 @@ pub async fn remove(
     let Some(guild_id) = ctx.guild_id() else {
         return response::error(ctx, "This command can only be used in a server.").await;
     };
-    let Some(name) = validate_name(&name) else {
+    let Some(name) = CustomCommandName::parse(&name) else {
         return response::error(ctx, "Invalid command name.").await;
     };
     let removed = CustomCommandRepository::new(&ctx.data().database)
-        .remove(guild_id.get(), &name)
+        .remove(guild_id.get(), name.as_str())
         .await?;
     if !removed {
         return response::error(ctx, "That custom command does not exist.").await;
@@ -152,7 +150,7 @@ pub async fn handle_message(
         return Ok(());
     };
     let Some(response) = CustomCommandRepository::new(&data.database)
-        .find(guild_id.get(), &name)
+        .find(guild_id.get(), name.as_str())
         .await?
     else {
         return Ok(());
@@ -170,21 +168,8 @@ pub async fn handle_message(
     Ok(())
 }
 
-fn validate_name(name: &str) -> Option<String> {
-    let name = name.trim().to_ascii_lowercase();
-    if name.is_empty()
-        || name.len() > MAX_NAME_LEN
-        || !name
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
-    {
-        return None;
-    }
-    Some(name)
-}
-
-fn invocation_name(content: &str, prefix: &str) -> Option<String> {
-    validate_name(content.strip_prefix(prefix)?.split_whitespace().next()?)
+fn invocation_name(content: &str, prefix: &str) -> Option<CustomCommandName> {
+    CustomCommandName::parse(content.strip_prefix(prefix)?.split_whitespace().next()?)
 }
 
 #[cfg(test)]
@@ -193,11 +178,18 @@ mod tests {
 
     #[test]
     fn validates_and_parses_command_names() {
-        assert_eq!(validate_name(" Road-Map ").as_deref(), Some("road-map"));
-        assert_eq!(validate_name("road map"), None);
         assert_eq!(
-            invocation_name("$RoadMap extra", "$"),
-            Some("roadmap".into())
+            CustomCommandName::parse(" Road-Map ")
+                .as_ref()
+                .map(CustomCommandName::as_str),
+            Some("road-map")
+        );
+        assert_eq!(CustomCommandName::parse("road map"), None);
+        assert_eq!(
+            invocation_name("$RoadMap extra", "$")
+                .as_ref()
+                .map(CustomCommandName::as_str),
+            Some("roadmap")
         );
         assert_eq!(invocation_name("!roadmap", "$"), None);
     }

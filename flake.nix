@@ -15,8 +15,8 @@
       pkgs = nixpkgs.legacyPackages.${system};
       inherit (pkgs) lib;
 
-      nodejs = pkgs.nodejs_24;
-      pnpm = pkgs.pnpm.override {inherit nodejs;};
+      nodejs = pkgs.nodejs_26;
+      pnpm = pkgs.pnpm;
 
       source = ./.;
       craneLib = crane.mkLib pkgs;
@@ -51,19 +51,20 @@
       bot = rustPackage "bot";
       migrate = rustPackage "migrate";
 
-      authPnpmDeps = pkgs.fetchPnpmDeps {
-        pname = "yin-auth-pnpm-deps";
+      pnpmDeps = pkgs.fetchPnpmDeps {
+        pname = "yin-pnpm-deps";
         version = "0.1.0";
         src = source;
-        fetcherVersion = 2;
-        hash = "sha256-p5BaGAqzTdNYOVVBeLfsliupqRKnQkHEbyV8UfNfsKE=";
+        inherit pnpm;
+        fetcherVersion = 4;
+        hash = "sha256-6fAV4DdVYfVTpNJOc8UM3qDrK21Btyg3VSjn2TZB7a8=";
       };
 
       auth = pkgs.stdenvNoCC.mkDerivation {
         pname = "yin-auth";
         version = "0.1.0";
         src = source;
-        pnpmDeps = authPnpmDeps;
+        inherit pnpmDeps;
 
         nativeBuildInputs = [
           nodejs
@@ -83,6 +84,57 @@
           cp -r apps package.json pnpm-lock.yaml pnpm-workspace.yaml node_modules "$out/"
           runHook postInstall
         '';
+      };
+
+      panel = pkgs.stdenvNoCC.mkDerivation {
+        pname = "yin-panel";
+        version = "0.1.0";
+        src = source;
+        inherit pnpmDeps;
+
+        nativeBuildInputs = [
+          nodejs
+          pnpm
+          pkgs.pnpmConfigHook
+        ];
+
+        VITE_API_URL = "https://api-yin.kirsi.dev";
+        VITE_AUTH_URL = "https://auth-yin.kirsi.dev";
+        NITRO_PRESET = "node-server";
+
+        buildPhase = ''
+          runHook preBuild
+          pnpm --filter panel build
+          runHook postBuild
+        '';
+
+        installPhase = ''
+          runHook preInstall
+          mkdir -p "$out"
+          cp -r apps/panel/.output/. "$out/"
+          runHook postInstall
+        '';
+      };
+
+      panelImage = pkgs.dockerTools.buildLayeredImage {
+        name = "yin-panel";
+        tag = "latest";
+        contents = [nodejs pkgs.cacert];
+        extraCommands = ''
+          mkdir -m 1777 tmp
+        '';
+        config = {
+          Cmd = ["${nodejs}/bin/node" "${panel}/server/index.mjs"];
+          Env = [
+            "HOST=0.0.0.0"
+            "PORT=3000"
+            "NODE_ENV=production"
+            "NODE_EXTRA_CA_CERTS=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+          ];
+          ExposedPorts."3000/tcp" = {};
+          User = "10001:10001";
+          WorkingDir = panel;
+        };
       };
 
       serviceImage = {
@@ -158,33 +210,31 @@
       };
     in {
       packages = {
-        inherit api bot migrate auth apiImage botImage migrateImage authImage;
+        inherit api bot migrate auth panel apiImage botImage migrateImage authImage panelImage;
         default = botImage;
       };
 
-      checks = {
-        inherit api bot migrate auth apiImage botImage migrateImage authImage;
+      checks =
+        {
+          inherit api bot migrate auth panel apiImage botImage migrateImage authImage panelImage;
 
-        rust-fmt = craneLib.cargoFmt {
-          pname = "yin-rust-fmt";
-          version = "0.1.0";
-          src = rustSource;
+          rust-fmt = craneLib.cargoFmt {
+            pname = "yin-rust-fmt";
+            version = "0.1.0";
+            src = rustSource;
+          };
+
+          rust-clippy = craneLib.cargoClippy (commonRustArgs
+            // {
+              pname = "yin-rust-clippy";
+              cargoArtifacts = workspaceArtifacts;
+              cargoClippyExtraArgs = "--workspace --all-targets -- --deny warnings";
+            });
+        }
+        // import ./nix/checks.nix {
+          inherit pkgs lib craneLib commonRustArgs source nodejs pnpm pnpmDeps;
+          cargoArtifacts = workspaceArtifacts;
         };
-
-        rust-clippy = craneLib.cargoClippy (commonRustArgs
-          // {
-            pname = "yin-rust-clippy";
-            cargoArtifacts = workspaceArtifacts;
-            cargoClippyExtraArgs = "--workspace --all-targets -- --deny warnings";
-          });
-
-        rust-tests = craneLib.cargoTest (commonRustArgs
-          // {
-            pname = "yin-rust-tests";
-            cargoArtifacts = workspaceArtifacts;
-            cargoTestExtraArgs = "--workspace";
-          });
-      };
 
       devShells.default = craneLib.devShell {
         packages = with pkgs; [
@@ -195,6 +245,7 @@
           mprocs
           rust-analyzer
           kind
+          tailwindcss-language-server
         ];
 
         shellHook = ''
