@@ -1,7 +1,56 @@
 use crate::{Context, Error, serenity};
+use std::collections::HashMap;
 
 pub async fn require_manage_guild(ctx: Context<'_>) -> Result<bool, Error> {
     author_has_guild_permission(ctx, serenity::Permissions::MANAGE_GUILD).await
+}
+
+pub async fn can_moderate_member(
+    ctx: Context<'_>,
+    target: &serenity::Member,
+) -> Result<bool, Error> {
+    let Some(guild_id) = ctx.guild_id() else {
+        return Ok(false);
+    };
+    if target.user.id == ctx.author().id {
+        return Ok(false);
+    }
+
+    let guild = guild_id.to_partial_guild(ctx.serenity_context()).await?;
+    if target.user.id == guild.owner_id {
+        return Ok(false);
+    }
+    let actor = guild_id
+        .member(ctx.serenity_context(), ctx.author().id)
+        .await?;
+    let bot_user_id = { ctx.serenity_context().cache.current_user().id };
+    let bot = guild_id.member(ctx.serenity_context(), bot_user_id).await?;
+
+    Ok(
+        (ctx.author().id == guild.owner_id || member_is_above(&guild.roles, &actor, target))
+            && member_is_above(&guild.roles, &bot, target),
+    )
+}
+
+pub fn member_is_above(
+    roles: &HashMap<serenity::RoleId, serenity::Role>,
+    actor: &serenity::Member,
+    target: &serenity::Member,
+) -> bool {
+    highest_role(roles, actor) > highest_role(roles, target)
+}
+
+fn highest_role(
+    roles: &HashMap<serenity::RoleId, serenity::Role>,
+    member: &serenity::Member,
+) -> (u16, std::cmp::Reverse<u64>) {
+    member
+        .roles
+        .iter()
+        .filter_map(|id| roles.get(id))
+        .map(|role| (role.position, std::cmp::Reverse(role.id.get())))
+        .max()
+        .unwrap_or_default()
 }
 
 pub async fn author_has_guild_permission(

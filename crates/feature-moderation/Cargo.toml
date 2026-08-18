@@ -1,10 +1,11 @@
 [package]
-name = "feature-settings"
+name = "feature-moderation"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 bot-core.workspace = true
 database.workspace = true
-feature-moderation.workspace = true
 poise.workspace = true
+serenity.workspace = true
+tracing.workspace = true

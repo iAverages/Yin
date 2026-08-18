@@ -9,6 +9,7 @@ database.workspace = true
 feature-admin.workspace = true
 feature-endfield.workspace = true
 feature-info.workspace = true
+feature-moderation.workspace = true
 feature-settings.workspace = true
 tokio.workspace = true
 tracing.workspace = true

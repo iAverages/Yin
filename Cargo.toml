@@ -8,6 +8,7 @@ members = [
     "crates/feature-admin",
     "crates/feature-endfield",
     "crates/feature-info",
+    "crates/feature-moderation",
     "crates/feature-settings",
     "crates/migrate",
 ]
@@ -19,6 +20,7 @@ database = { path = "crates/database" }
 feature-admin = { path = "crates/feature-admin" }
 feature-endfield = { path = "crates/feature-endfield" }
 feature-info = { path = "crates/feature-info" }
+feature-moderation = { path = "crates/feature-moderation" }
 feature-settings = { path = "crates/feature-settings" }
 
 poise = "0.6.2"

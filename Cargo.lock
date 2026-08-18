@@ -183,6 +183,7 @@ dependencies = [
  "feature-admin",
  "feature-endfield",
  "feature-info",
+ "feature-moderation",
  "feature-settings",
  "tokio",
  "tracing",
@@ -607,11 +608,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "feature-moderation"
+version = "0.1.0"
+dependencies = [
+ "bot-core",
+ "database",
+ "poise",
+ "serenity",
+ "tracing",
+]
+
+[[package]]
 name = "feature-settings"
 version = "0.1.0"
 dependencies = [
  "bot-core",
  "database",
+ "feature-moderation",
  "poise",
 ]
 
