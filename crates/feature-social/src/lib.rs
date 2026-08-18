@@ -24,6 +24,8 @@ const TWITTER_HOSTS: &[&str] = &[
 const BLUESKY_HOSTS: &[&str] = &["bsky.app", "www.bsky.app"];
 const INSTAGRAM_HOSTS: &[&str] = &["instagram.com", "www.instagram.com"];
 const TIKTOK_HOSTS: &[&str] = &["tiktok.com", "www.tiktok.com", "m.tiktok.com"];
+const TIKTOK_SHORT_HOSTS: &[&str] = &["vt.tiktok.com", "vm.tiktok.com"];
+const DESCRIPTION_LIMIT: usize = 500;
 const APP_USER_AGENT: &str = concat!("yin/", env!("CARGO_PKG_VERSION"));
 static HTTP: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
@@ -40,7 +42,7 @@ pub async fn handle_message(
         return Ok(());
     }
 
-    let Some(api_url) = api_url(&message.content) else {
+    let Some(api_url) = resolve_api_url(&message.content).await? else {
         return Ok(());
     };
 
@@ -85,6 +87,28 @@ async fn send_embed(
 
 fn request(url: &str) -> RequestBuilder {
     HTTP.get(url).header(USER_AGENT, APP_USER_AGENT)
+}
+
+async fn resolve_api_url(content: &str) -> Result<Option<String>, reqwest::Error> {
+    if let Some(api_url) = api_url(content) {
+        return Ok(Some(api_url));
+    }
+
+    let Some(url) = content.split_whitespace().find_map(parse_tiktok_short_url) else {
+        return Ok(None);
+    };
+    let response = HTTP
+        .head(url)
+        .header(USER_AGENT, APP_USER_AGENT)
+        .send()
+        .await?
+        .error_for_status()?;
+    Ok(api_url(response.url().as_str()))
+}
+
+fn parse_tiktok_short_url(word: &str) -> Option<Url> {
+    let url = Url::parse(word.trim_matches(|c: char| "<>()[]{}\"',.!?".contains(c))).ok()?;
+    (url.scheme() == "https" && TIKTOK_SHORT_HOSTS.contains(&url.host_str()?)).then_some(url)
 }
 
 fn api_url(content: &str) -> Option<String> {
@@ -166,7 +190,7 @@ fn append_post(components: &mut Vec<Value>, post: &Post, quoted: bool) {
     let text = if post.text.is_empty() {
         format!("{} post", provider_name(&post.provider))
     } else {
-        truncate(&post.text, 3500)
+        truncate(&post.text, DESCRIPTION_LIMIT)
     };
     let header = json!({
         "type": 10,
@@ -256,7 +280,7 @@ fn truncate(value: &str, limit: usize) -> String {
     if value.chars().count() <= limit {
         return value.to_owned();
     }
-    value.chars().take(limit - 1).collect::<String>() + "..."
+    value.chars().take(limit - 3).collect::<String>() + "..."
 }
 
 #[derive(Deserialize)]
@@ -380,12 +404,27 @@ mod tests {
     }
 
     #[test]
+    fn recognizes_tiktok_short_links() {
+        assert_eq!(
+            parse_tiktok_short_url("<https://vt.tiktok.com/ZSVhvYhGN/>"),
+            Some(Url::parse("https://vt.tiktok.com/ZSVhvYhGN/").unwrap())
+        );
+        assert_eq!(
+            parse_tiktok_short_url("https://vm.tiktok.com/ZN88Qw7ns/"),
+            Some(Url::parse("https://vm.tiktok.com/ZN88Qw7ns/").unwrap())
+        );
+        assert_eq!(
+            parse_tiktok_short_url("https://vt.tiktok.com.example/ZSVhvYhGN/"),
+            None
+        );
+    }
+
+    #[test]
     fn ignores_non_post_and_lookalike_links() {
         assert_eq!(api_url("https://x.com/jack"), None);
         assert_eq!(api_url("https://x.com.example/jack/status/20"), None);
         assert_eq!(api_url("https://bsky.app/profile/bsky.app"), None);
         assert_eq!(api_url("https://www.instagram.com/poster/"), None);
-        assert_eq!(api_url("https://vm.tiktok.com/ZN8Jwwa8P/"), None);
     }
 
     #[test]
@@ -453,7 +492,7 @@ mod tests {
     #[test]
     fn truncates_on_character_boundaries() {
         assert_eq!(truncate("hello", 5), "hello");
-        assert_eq!(truncate("ab😀cd", 4), "ab😀...");
+        assert_eq!(truncate("😀abcd", 4), "😀...");
     }
 
     #[test]
