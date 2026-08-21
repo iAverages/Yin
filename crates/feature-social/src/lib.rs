@@ -23,6 +23,7 @@ const TWITTER_HOSTS: &[&str] = &[
 ];
 const BLUESKY_HOSTS: &[&str] = &["bsky.app", "www.bsky.app"];
 const INSTAGRAM_HOSTS: &[&str] = &["instagram.com", "www.instagram.com"];
+const FACEBOOK_HOSTS: &[&str] = &["facebook.com", "www.facebook.com", "m.facebook.com"];
 const TIKTOK_HOSTS: &[&str] = &["tiktok.com", "www.tiktok.com", "m.tiktok.com"];
 const TIKTOK_SHORT_HOSTS: &[&str] = &["vt.tiktok.com", "vm.tiktok.com"];
 const DESCRIPTION_LIMIT: usize = 500;
@@ -139,6 +140,20 @@ fn api_url(content: &str) -> Option<String> {
             {
                 Some(format!("{ABEMBED_API}instagram/p/{shortcode}"))
             }
+            ["share", kind @ ("p" | "r"), code, ..]
+                if FACEBOOK_HOSTS.contains(&host)
+                    && !code.is_empty()
+                    && code.bytes().all(|byte| byte.is_ascii_alphanumeric()) =>
+            {
+                Some(format!("{ABEMBED_API}facebook/share/{kind}/{code}"))
+            }
+            ["share", code, ..]
+                if FACEBOOK_HOSTS.contains(&host)
+                    && !code.is_empty()
+                    && code.bytes().all(|byte| byte.is_ascii_alphanumeric()) =>
+            {
+                Some(format!("{ABEMBED_API}facebook/share/{code}"))
+            }
             [username, kind @ ("video" | "photo"), id, ..]
                 if TIKTOK_HOSTS.contains(&host)
                     && username.starts_with('@')
@@ -178,6 +193,7 @@ fn create_payload(post: &Post) -> Value {
             "accent_color": match post.provider.as_str() {
                 "bluesky" => 0x1185fe,
                 "instagram" => 0xce0071,
+                "facebook" => 0x1877f2,
                 _ => 0x1d9bf0,
             },
             "components": components,
@@ -252,6 +268,7 @@ fn provider_name(provider: &str) -> &str {
         "twitter" => "X / Twitter",
         "bluesky" => "Bluesky",
         "instagram" => "Instagram",
+        "facebook" => "Facebook",
         "tiktok" => "TikTok",
         provider => provider,
     }
@@ -401,6 +418,33 @@ mod tests {
             api_url("https://www.tiktok.com/@kopilawak/video/7665179028352945426"),
             Some("https://i.kirsi.dev/api/tiktok/@kopilawak/video/7665179028352945426".to_owned())
         );
+        for (url, route) in [
+            (
+                "https://www.facebook.com/share/p/1DL7Uac7xc/?mibextid=wwXIfr",
+                "share/p/1DL7Uac7xc",
+            ),
+            (
+                "https://www.facebook.com/share/r/1MbWc8LmKs/?mibextid=wwXIfr",
+                "share/r/1MbWc8LmKs",
+            ),
+            (
+                "https://www.facebook.com/share/1DTvc3LK3k/?mibextid=wwXIfr",
+                "share/1DTvc3LK3k",
+            ),
+            (
+                "https://www.facebook.com/share/p/1KHNpv7kw6/?mibextid=wwXIfr",
+                "share/p/1KHNpv7kw6",
+            ),
+            (
+                "https://www.facebook.com/share/r/1EudwBSGoX/?mibextid=wwXIfr",
+                "share/r/1EudwBSGoX",
+            ),
+        ] {
+            assert_eq!(
+                api_url(url),
+                Some(format!("https://i.kirsi.dev/api/facebook/{route}"))
+            );
+        }
     }
 
     #[test]
