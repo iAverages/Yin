@@ -82,6 +82,7 @@ async fn event_handler(
     data: &BotState,
 ) -> Result<(), Error> {
     if let serenity::FullEvent::Message { new_message } = event {
+        feature_settings::handle_message(data, ctx, new_message).await?;
         feature_social::handle_message(ctx, new_message).await?;
     }
     if let serenity::FullEvent::GuildAuditLogEntryCreate { entry, guild_id } = event {
@@ -172,6 +173,9 @@ async fn register_commands(
 }
 
 async fn on_error(error: FrameworkError<'_, BotState, Error>) {
+    if matches!(error, FrameworkError::UnknownCommand { .. }) {
+        return;
+    }
     let Some(ctx) = error.ctx() else {
         log_framework_error_without_context(&error);
         return;

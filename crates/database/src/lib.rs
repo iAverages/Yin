@@ -9,6 +9,7 @@ use sqlx::{MySql, MySqlPool};
 
 pub use config::DatabaseConfig;
 pub use error::DatabaseError;
+pub use repositories::custom_commands::CustomCommandRepository;
 pub use repositories::guild_settings::{GuildSettings, GuildSettingsRepository};
 pub use repositories::moderation::{
     ChannelLockOperation, ChannelLockTarget, ExternalAuditCaseInsert, ModerationCase,
