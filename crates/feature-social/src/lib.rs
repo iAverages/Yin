@@ -140,7 +140,7 @@ fn api_url(content: &str) -> Option<String> {
             {
                 Some(format!("{ABEMBED_API}instagram/p/{shortcode}"))
             }
-            ["share", kind @ ("p" | "r"), code, ..]
+            ["share", kind @ ("p" | "r" | "v"), code, ..]
                 if FACEBOOK_HOSTS.contains(&host)
                     && !code.is_empty()
                     && code.bytes().all(|byte| byte.is_ascii_alphanumeric()) =>
@@ -438,6 +438,10 @@ mod tests {
             (
                 "https://www.facebook.com/share/r/1EudwBSGoX/?mibextid=wwXIfr",
                 "share/r/1EudwBSGoX",
+            ),
+            (
+                "https://www.facebook.com/share/v/1DJnCygSRY/",
+                "share/v/1DJnCygSRY",
             ),
         ] {
             assert_eq!(
