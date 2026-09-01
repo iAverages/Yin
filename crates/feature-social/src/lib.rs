@@ -279,8 +279,22 @@ fn media_url(post: &Post, media: &MediaItem) -> String {
         return media.url.clone();
     }
 
+    if post.provider == "twitter" {
+        let Ok(mut url) = Url::parse(&media.url) else {
+            return media.url.clone();
+        };
+        if url.host_str() != Some("video.twimg.com") || !url.path().ends_with(".mp4") {
+            return media.url.clone();
+        }
+        let path = url.path().trim_end_matches(".mp4").to_owned() + ".gif";
+        if url.set_host(Some("gif.fxtwitter.com")).is_ok() {
+            url.set_path(&path);
+            return url.into();
+        }
+        return media.url.clone();
+    }
+
     let host = match post.provider.as_str() {
-        "twitter" => "d.fxtwitter.com",
         "bluesky" => "d.fxbsky.app",
         _ => return media.url.clone(),
     };
@@ -494,7 +508,7 @@ mod tests {
                     },
                     "media": {"all": [
                         {"type": "photo", "url": "https://example.com/image.jpg"},
-                        {"type": "gif", "url": "https://example.com/video.mp4", "format": "video/mp4"}
+                        {"type": "gif", "url": "https://video.twimg.com/tweet_video/animation.mp4", "format": "video/mp4"}
                     ]},
                     "quote": {
                         "url": "https://x.com/quoted/status/456",
@@ -523,7 +537,7 @@ mod tests {
         assert_eq!(message["flags"], 1 << 15);
         assert_eq!(
             message["components"][0]["components"][1]["items"][1]["media"]["url"],
-            "https://d.fxtwitter.com/user/status/123"
+            "https://gif.fxtwitter.com/tweet_video/animation.gif"
         );
         assert!(
             message["components"][0]["components"][4]["content"]
