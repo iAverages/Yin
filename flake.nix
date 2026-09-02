@@ -30,13 +30,14 @@
       };
 
       source = ./.;
+      cargoHash = "sha256-lWR0wx250oOJBUPHuWkMx5RWGnie3zDDpLmcuzfI3aQ=";
 
       rustPackage = name:
         pkgs.rustPlatform.buildRustPackage {
           pname = "yin-${name}";
           version = "0.1.0";
           src = source;
-          cargoLock.lockFile = ./Cargo.lock;
+          inherit cargoHash;
           cargoBuildFlags = ["--bin" name];
         };
 
@@ -48,7 +49,7 @@
           pname = "yin-${name}";
           version = "0.1.0";
           src = source;
-          cargoLock.lockFile = ./Cargo.lock;
+          inherit cargoHash;
           nativeBuildInputs = [rust];
           buildPhase = command;
           installPhase = "touch $out";
