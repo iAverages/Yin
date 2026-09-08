@@ -30,7 +30,7 @@
       };
 
       source = ./.;
-      cargoHash = "sha256-lWR0wx250oOJBUPHuWkMx5RWGnie3zDDpLmcuzfI3aQ=";
+      cargoHash = "sha256-+mQM+RRpZkVv4yAENKRd6CGAOJ4lVn8c+YoT80EQKEU=";
 
       rustPackage = name:
         pkgs.rustPlatform.buildRustPackage {
