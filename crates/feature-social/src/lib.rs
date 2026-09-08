@@ -27,6 +27,8 @@ const FACEBOOK_HOSTS: &[&str] = &["facebook.com", "www.facebook.com", "m.faceboo
 const TIKTOK_HOSTS: &[&str] = &["tiktok.com", "www.tiktok.com", "m.tiktok.com"];
 const TIKTOK_SHORT_HOSTS: &[&str] = &["vt.tiktok.com", "vm.tiktok.com"];
 const DESCRIPTION_LIMIT: usize = 500;
+const EMBED_API_RETRIES: u32 = 3;
+const EMBED_API_RETRY_DELAY: Duration = Duration::from_secs(1);
 const APP_USER_AGENT: &str = concat!("yin/", env!("CARGO_PKG_VERSION"));
 static HTTP: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
@@ -64,12 +66,7 @@ async fn send_embed(
     message: &serenity::Message,
     api_url: &str,
 ) -> Result<(), Error> {
-    let response = request(api_url).send().await?.error_for_status()?;
-    let post = if api_url.starts_with(ABEMBED_API) {
-        response.json::<LinkFixedPost>().await?.into()
-    } else {
-        response.json::<Response>().await?.status
-    };
+    let post = fetch_post(api_url).await?;
 
     let body = serde_json::to_vec(&create_payload(&post))?;
     ctx.http
@@ -84,6 +81,30 @@ async fn send_embed(
         )
         .await?;
     Ok(())
+}
+
+async fn fetch_post(api_url: &str) -> Result<Post, reqwest::Error> {
+    for retry in 0..=EMBED_API_RETRIES {
+        let result = async {
+            let response = request(api_url).send().await?.error_for_status()?;
+            if api_url.starts_with(ABEMBED_API) {
+                Ok(response.json::<LinkFixedPost>().await?.into())
+            } else {
+                Ok(response.json::<Response>().await?.status)
+            }
+        }
+        .await;
+
+        match result {
+            Ok(post) => return Ok(post),
+            Err(_) if retry < EMBED_API_RETRIES => {
+                tokio::time::sleep(EMBED_API_RETRY_DELAY * 2u32.pow(retry)).await;
+            }
+            Err(error) => return Err(error),
+        }
+    }
+
+    unreachable!()
 }
 
 fn request(url: &str) -> RequestBuilder {
@@ -606,5 +627,19 @@ mod tests {
             .unwrap();
 
         assert_eq!(request.headers()[USER_AGENT], APP_USER_AGENT);
+    }
+
+    #[test]
+    fn embed_api_retries_use_increasing_backoff() {
+        assert_eq!(
+            (0..EMBED_API_RETRIES)
+                .map(|retry| EMBED_API_RETRY_DELAY * 2u32.pow(retry))
+                .collect::<Vec<_>>(),
+            [
+                Duration::from_secs(1),
+                Duration::from_secs(2),
+                Duration::from_secs(4)
+            ]
+        );
     }
 }
