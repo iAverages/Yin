@@ -7,7 +7,10 @@ use bot_core::serenity::{
     builder::EditMessage,
     http::{LightMethod, Request, Route},
 };
-use reqwest::{Client, RequestBuilder, Url, header::USER_AGENT};
+use reqwest::{
+    Client, RequestBuilder, Url,
+    header::{CONTENT_TYPE, RANGE, USER_AGENT},
+};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
@@ -46,11 +49,16 @@ pub async fn handle_message(
         return Ok(());
     }
 
-    let Some(api_url) = resolve_api_url(&message.content).await? else {
-        return Ok(());
+    let result: Result<(), Error> = if let Some(url) = spotify_embed_url(&message.content) {
+        send_spotify_embed(ctx, message, &url).await
+    } else {
+        let Some(api_url) = resolve_api_url(&message.content).await? else {
+            return Ok(());
+        };
+        send_embed(ctx, message, &api_url).await
     };
 
-    if let Err(error) = send_embed(ctx, message, &api_url).await {
+    if let Err(error) = result {
         let _ = message.react(ctx, '❌').await;
         return Err(error);
     }
@@ -68,8 +76,77 @@ async fn send_embed(
     api_url: &str,
 ) -> Result<(), Error> {
     let post = fetch_post(api_url).await?;
+    send_payload(ctx, message, create_payload(&post)).await
+}
 
-    let body = serde_json::to_vec(&create_payload(&post))?;
+async fn send_spotify_embed(
+    ctx: &serenity::Context,
+    message: &serenity::Message,
+    embed_url: &str,
+) -> Result<(), Error> {
+    let mut spotify_url = Url::parse(embed_url)?;
+    spotify_url
+        .set_host(Some("open.spotify.com"))
+        .expect("validated Spotify embed URL");
+    let metadata = request("https://open.spotify.com/oembed")
+        .query(&[("url", spotify_url.as_str())])
+        .send()
+        .await?
+        .error_for_status()?
+        .json::<SpotifyOEmbed>()
+        .await?;
+
+    let (image_url, video_url) =
+        spqtify_asset_urls(embed_url).expect("validated Spotify embed URL");
+    let mut page_url = Url::parse(embed_url)?;
+    page_url.set_query(None);
+    page_url.set_fragment(None);
+
+    let image_response = request(image_url.as_str())
+        .send()
+        .await?
+        .error_for_status()?;
+    let accent_color = image_response
+        .headers()
+        .get("x-basecolor")
+        .and_then(|value| value.to_str().ok())
+        .and_then(parse_hex_color)
+        .ok_or_else(|| std::io::Error::other("spqtify response had no valid base color"))?;
+    drop(image_response);
+
+    let response = request(video_url.as_str())
+        .header(RANGE, "bytes=0-0")
+        .send()
+        .await?
+        .error_for_status()?;
+    if !response
+        .headers()
+        .get(CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|value| value.starts_with("video/"))
+    {
+        return Err(std::io::Error::other("spqtify response was not a video").into());
+    }
+
+    send_payload(
+        ctx,
+        message,
+        create_spotify_payload(
+            &metadata.title,
+            page_url.as_str(),
+            video_url.as_str(),
+            accent_color,
+        ),
+    )
+    .await
+}
+
+async fn send_payload(
+    ctx: &serenity::Context,
+    message: &serenity::Message,
+    payload: Value,
+) -> Result<(), Error> {
+    let body = serde_json::to_vec(&payload)?;
     ctx.http
         .request(
             Request::new(
@@ -132,6 +209,75 @@ async fn resolve_api_url(content: &str) -> Result<Option<String>, reqwest::Error
 fn parse_tiktok_short_url(word: &str) -> Option<Url> {
     let url = Url::parse(word.trim_matches(|c: char| "<>()[]{}\"',.!?".contains(c))).ok()?;
     (url.scheme() == "https" && TIKTOK_SHORT_HOSTS.contains(&url.host_str()?)).then_some(url)
+}
+
+fn spotify_embed_url(content: &str) -> Option<String> {
+    content.split_whitespace().find_map(|word| {
+        let mut url =
+            Url::parse(word.trim_matches(|c: char| "<>()[]{}\"',.!?".contains(c))).ok()?;
+        let parts: Vec<_> = url.path_segments()?.collect();
+        match parts.as_slice() {
+            ["track" | "episode" | "album" | "playlist", id]
+                if url.scheme() == "https"
+                    && url.host_str() == Some("open.spotify.com")
+                    && id.len() == 22
+                    && id.bytes().all(|byte| byte.is_ascii_alphanumeric()) =>
+            {
+                url.set_host(Some("open.spqtify.com")).ok()?;
+                Some(url.into())
+            }
+            _ => None,
+        }
+    })
+}
+
+fn spqtify_asset_urls(embed_url: &str) -> Option<(Url, Url)> {
+    let url = Url::parse(embed_url).ok()?;
+    let (kind, id) = {
+        let mut parts = url.path_segments()?;
+        let kind = parts.next()?.to_owned();
+        let id = parts.next()?.to_owned();
+        if parts.next().is_some() {
+            return None;
+        }
+        (kind, id)
+    };
+    let prefix = matches!(kind.as_str(), "album" | "playlist")
+        .then_some(format!("{kind}/"))
+        .unwrap_or_default();
+
+    let mut image_url = url.clone();
+    image_url.set_path(&format!("/api/generate/image/{prefix}{id}"));
+    let mut video_url = url;
+    video_url.set_path(&format!("/api/generate/video/{prefix}{id}.mp4"));
+    Some((image_url, video_url))
+}
+
+fn parse_hex_color(value: &str) -> Option<u32> {
+    let value = value.strip_prefix('#')?;
+    (value.len() == 6)
+        .then(|| u32::from_str_radix(value, 16).ok())
+        .flatten()
+}
+
+fn create_spotify_payload(
+    title: &str,
+    page_url: &str,
+    video_url: &str,
+    accent_color: u32,
+) -> Value {
+    json!({
+        "flags": 1 << 15,
+        "allowed_mentions": {"parse": []},
+        "components": [{
+            "type": 17,
+            "accent_color": accent_color,
+            "components": [
+                {"type": 10, "content": format!("**[{title}]({page_url})**")},
+                {"type": 12, "items": [{"media": {"url": video_url}}]},
+            ],
+        }],
+    })
 }
 
 fn api_url(content: &str) -> Option<String> {
@@ -342,6 +488,11 @@ struct Response {
 }
 
 #[derive(Deserialize)]
+struct SpotifyOEmbed {
+    title: String,
+}
+
+#[derive(Deserialize)]
 struct Post {
     url: String,
     text: String,
@@ -487,6 +638,57 @@ mod tests {
                 Some(format!("https://i.kirsi.dev/api/facebook/{route}"))
             );
         }
+    }
+
+    #[test]
+    fn rewrites_supported_spotify_links_for_spqtify_embeds() {
+        for kind in ["track", "episode", "album", "playlist"] {
+            assert_eq!(
+                spotify_embed_url(&format!(
+                    "listen <https://open.spotify.com/{kind}/11dFghVXANMlKmJXsNCbNl?si=abc>"
+                )),
+                Some(format!(
+                    "https://open.spqtify.com/{kind}/11dFghVXANMlKmJXsNCbNl?si=abc"
+                ))
+            );
+        }
+        assert_eq!(
+            spotify_embed_url("https://open.spotify.com/artist/0LyfQWJT6nXafLPZqxe9Of"),
+            None
+        );
+        assert_eq!(
+            spotify_embed_url("https://open.spotify.com.example/track/11dFghVXANMlKmJXsNCbNl"),
+            None
+        );
+
+        let payload = create_spotify_payload(
+            "Cut To The Feeling",
+            "https://open.spqtify.com/track/11dFghVXANMlKmJXsNCbNl",
+            "https://open.spqtify.com/api/generate/video/11dFghVXANMlKmJXsNCbNl.mp4?si=abc",
+            0x81c8cf,
+        );
+        assert_eq!(
+            payload["components"][0]["components"][0]["content"],
+            "**[Cut To The Feeling](https://open.spqtify.com/track/11dFghVXANMlKmJXsNCbNl)**"
+        );
+        assert_eq!(
+            payload["components"][0]["components"][1]["items"][0]["media"]["url"],
+            "https://open.spqtify.com/api/generate/video/11dFghVXANMlKmJXsNCbNl.mp4?si=abc"
+        );
+        assert_eq!(parse_hex_color("#81c8cf"), Some(0x81c8cf));
+        assert_eq!(parse_hex_color("81c8cf"), None);
+
+        let (image_url, video_url) =
+            spqtify_asset_urls("https://open.spqtify.com/album/11dFghVXANMlKmJXsNCbNl?track=2")
+                .unwrap();
+        assert_eq!(
+            image_url.as_str(),
+            "https://open.spqtify.com/api/generate/image/album/11dFghVXANMlKmJXsNCbNl?track=2"
+        );
+        assert_eq!(
+            video_url.as_str(),
+            "https://open.spqtify.com/api/generate/video/album/11dFghVXANMlKmJXsNCbNl.mp4?track=2"
+        );
     }
 
     #[test]
