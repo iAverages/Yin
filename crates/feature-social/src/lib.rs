@@ -27,6 +27,7 @@ const FACEBOOK_HOSTS: &[&str] = &["facebook.com", "www.facebook.com", "m.faceboo
 const TIKTOK_HOSTS: &[&str] = &["tiktok.com", "www.tiktok.com", "m.tiktok.com"];
 const TIKTOK_SHORT_HOSTS: &[&str] = &["vt.tiktok.com", "vm.tiktok.com"];
 const DESCRIPTION_LIMIT: usize = 500;
+const MEDIA_GALLERY_ITEM_LIMIT: usize = 10;
 const EMBED_API_RETRIES: u32 = 3;
 const EMBED_API_RETRY_DELAY: Duration = Duration::from_secs(1);
 const APP_USER_AGENT: &str = concat!("yin/", env!("CARGO_PKG_VERSION"));
@@ -250,10 +251,10 @@ fn append_post(components: &mut Vec<Value>, post: &Post, quoted: bool) {
         None => header,
     });
 
-    if !post.media.all.is_empty() {
+    for media in post.media.all.chunks(MEDIA_GALLERY_ITEM_LIMIT) {
         components.push(json!({
             "type": 12,
-            "items": post.media.all.iter().take(10).map(|media| json!({
+            "items": media.iter().map(|media| json!({
                 "media": {"url": media_url(post, media)},
             })).collect::<Vec<_>>(),
         }));
@@ -434,6 +435,8 @@ impl From<LinkFixedPost> for Post {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const MESSAGE_COMPONENT_LIMIT: usize = 40;
 
     #[test]
     fn recognizes_supported_post_links() {
@@ -618,6 +621,51 @@ mod tests {
             message["components"][0]["components"][2]["content"],
             "❤️ 4   💬 2\n[View on Instagram](https://www.instagram.com/p/DbCP6xzRzdo/)"
         );
+    }
+
+    #[test]
+    fn splits_more_than_ten_images_across_media_galleries() {
+        let message = create_payload(&post_with_media(11));
+        let components = message["components"][0]["components"].as_array().unwrap();
+        assert_eq!(components[1]["items"].as_array().unwrap().len(), 10);
+        assert_eq!(components[2]["items"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn supports_discords_maximum_number_of_images() {
+        let gallery_count = MESSAGE_COMPONENT_LIMIT - 3;
+        let message = create_payload(&post_with_media(gallery_count * MEDIA_GALLERY_ITEM_LIMIT));
+        let components = message["components"][0]["components"].as_array().unwrap();
+
+        assert_eq!(components.len() + 1, MESSAGE_COMPONENT_LIMIT);
+        assert_eq!(
+            components[1..=gallery_count]
+                .iter()
+                .map(|gallery| gallery["items"].as_array().unwrap().len())
+                .sum::<usize>(),
+            370
+        );
+    }
+
+    fn post_with_media(count: usize) -> Post {
+        Post {
+            url: "https://www.instagram.com/p/post/".to_owned(),
+            text: "post text".to_owned(),
+            likes: None,
+            reposts: None,
+            replies: None,
+            author: None,
+            media: Media {
+                all: (0..count)
+                    .map(|index| MediaItem {
+                        kind: "image".to_owned(),
+                        url: format!("https://example.com/{index}.jpg"),
+                    })
+                    .collect(),
+            },
+            provider: "instagram".to_owned(),
+            quote: None,
+        }
     }
 
     #[test]
