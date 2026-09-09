@@ -1,60 +1,51 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    rust-overlay.url = "github:oxalica/rust-overlay";
     flake-utils.url = "github:numtide/flake-utils";
+    crane.url = "github:ipetkov/crane";
   };
 
   outputs = {
     nixpkgs,
-    rust-overlay,
     flake-utils,
+    crane,
     ...
   }:
     flake-utils.lib.eachDefaultSystem (system: let
-      overlays = [(import rust-overlay)];
-      pkgs = import nixpkgs {
-        inherit system overlays;
-      };
+      pkgs = nixpkgs.legacyPackages.${system};
       inherit (pkgs) lib;
 
       nodejs = pkgs.nodejs_24;
       pnpm = pkgs.pnpm.override {inherit nodejs;};
-      rust = pkgs.rust-bin.stable.latest.default.override {
-        extensions = [
-          "clippy"
-          "rustfmt"
-          "rust-src"
-          "rust-analyzer"
-        ];
-      };
 
       source = ./.;
-      cargoHash = "sha256-+mQM+RRpZkVv4yAENKRd6CGAOJ4lVn8c+YoT80EQKEU=";
+      craneLib = crane.mkLib pkgs;
+      rustSource = lib.cleanSourceWith {
+        src = source;
+        filter = path: type:
+          craneLib.filterCargoSources path type || lib.hasSuffix ".sql" path;
+      };
+      commonRustArgs = {
+        pname = "yin";
+        version = "0.1.0";
+        src = rustSource;
+        strictDeps = true;
+      };
+      cargoArtifacts = craneLib.buildDepsOnly commonRustArgs;
+      workspaceArtifacts = craneLib.cargoBuild (commonRustArgs
+        // {
+          inherit cargoArtifacts;
+          cargoExtraArgs = "--workspace --bins";
+        });
 
       rustPackage = name:
-        pkgs.rustPlatform.buildRustPackage {
-          pname = "yin-${name}";
-          version = "0.1.0";
-          src = source;
-          inherit cargoHash;
-          cargoBuildFlags = ["--bin" name];
-        };
-
-      rustCheck = {
-        name,
-        command,
-      }:
-        pkgs.rustPlatform.buildRustPackage {
-          pname = "yin-${name}";
-          version = "0.1.0";
-          src = source;
-          inherit cargoHash;
-          nativeBuildInputs = [rust];
-          buildPhase = command;
-          installPhase = "touch $out";
-          doCheck = false;
-        };
+        craneLib.buildPackage (commonRustArgs
+          // {
+            pname = "yin-${name}";
+            cargoArtifacts = workspaceArtifacts;
+            cargoExtraArgs = "--bin ${name}";
+            doCheck = false;
+          });
 
       api = rustPackage "api";
       bot = rustPackage "bot";
@@ -174,46 +165,41 @@
       checks = {
         inherit api bot migrate auth apiImage botImage migrateImage authImage;
 
-        rust-fmt = pkgs.runCommand "yin-rust-fmt" {nativeBuildInputs = [rust];} ''
-          cd ${source}
-          cargo fmt --all --check
-          touch $out
-        '';
-
-        rust-clippy = rustCheck {
-          name = "rust-clippy";
-          command = ''
-            runHook preBuild
-            cargo clippy --workspace --all-targets --locked --offline -- -D warnings
-            runHook postBuild
-          '';
+        rust-fmt = craneLib.cargoFmt {
+          pname = "yin-rust-fmt";
+          version = "0.1.0";
+          src = rustSource;
         };
 
-        rust-tests = rustCheck {
-          name = "rust-tests";
-          command = ''
-            runHook preBuild
-            cargo test --workspace --locked --offline
-            runHook postBuild
-          '';
-        };
+        rust-clippy = craneLib.cargoClippy (commonRustArgs
+          // {
+            pname = "yin-rust-clippy";
+            cargoArtifacts = workspaceArtifacts;
+            cargoClippyExtraArgs = "--workspace --all-targets -- --deny warnings";
+          });
+
+        rust-tests = craneLib.cargoTest (commonRustArgs
+          // {
+            pname = "yin-rust-tests";
+            cargoArtifacts = workspaceArtifacts;
+            cargoTestExtraArgs = "--workspace";
+          });
       };
 
-      devShells.default = with pkgs;
-        mkShell {
-          packages = [
-            nodejs
-            pnpm
-            openssl
-            just
-            mprocs
-            rust
-            kind
-          ];
+      devShells.default = craneLib.devShell {
+        packages = with pkgs; [
+          nodejs
+          pnpm
+          openssl
+          just
+          mprocs
+          rust-analyzer
+          kind
+        ];
 
-          shellHook = ''
-            export PKG_CONFIG_PATH="${pkgs.openssl.dev}/lib/pkgconfig";
-          '';
-        };
+        shellHook = ''
+          export PKG_CONFIG_PATH="${pkgs.openssl.dev}/lib/pkgconfig";
+        '';
+      };
     });
 }
