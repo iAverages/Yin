@@ -144,8 +144,10 @@ async fn send_spotify_embed(
 async fn send_payload(
     ctx: &serenity::Context,
     message: &serenity::Message,
-    payload: Value,
+    mut payload: Value,
 ) -> Result<(), Error> {
+    payload["message_reference"] = json!({"message_id": message.id});
+    payload["allowed_mentions"]["replied_user"] = json!(false);
     let body = serde_json::to_vec(&payload)?;
     ctx.http
         .request(
