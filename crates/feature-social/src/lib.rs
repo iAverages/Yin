@@ -330,6 +330,13 @@ fn api_url(content: &str) -> Option<String> {
             {
                 Some(format!("{ABEMBED_API}tiktok/{username}/{kind}/{id}"))
             }
+            ["t", id, ..]
+                if TIKTOK_HOSTS.contains(&host)
+                    && !id.is_empty()
+                    && id.bytes().all(|byte| byte.is_ascii_alphanumeric()) =>
+            {
+                Some(format!("{ABEMBED_API}tiktok/t/{id}"))
+            }
             _ => None,
         }
     })
@@ -606,6 +613,10 @@ mod tests {
         assert_eq!(
             api_url("https://www.tiktok.com/@kopilawak/video/7665179028352945426"),
             Some("https://i.kirsi.dev/api/tiktok/@kopilawak/video/7665179028352945426".to_owned())
+        );
+        assert_eq!(
+            api_url("https://www.tiktok.com/t/ZP8T6SD9F"),
+            Some("https://i.kirsi.dev/api/tiktok/t/ZP8T6SD9F".to_owned())
         );
         for (url, route) in [
             (
