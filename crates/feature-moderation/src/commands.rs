@@ -15,6 +15,7 @@ const MAX_TIMEOUT_SECONDS: u64 = 28 * 86_400;
     slash_command,
     rename = "mod",
     guild_only,
+    default_member_permissions = "MODERATE_MEMBERS",
     subcommands(
         "warn",
         "revoke",
@@ -842,5 +843,13 @@ mod tests {
         assert_eq!(ladder_permission("kick"), Some(Permissions::KICK_MEMBERS));
         assert_eq!(ladder_permission("ban"), Some(Permissions::BAN_MEMBERS));
         assert_eq!(ladder_permission("unknown"), None);
+    }
+
+    #[test]
+    fn moderation_command_is_hidden_from_non_moderators() {
+        assert_eq!(
+            mod_command().default_member_permissions,
+            Permissions::MODERATE_MEMBERS
+        );
     }
 }
