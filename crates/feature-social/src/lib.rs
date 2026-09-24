@@ -3,12 +3,12 @@ use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
 use bot_core::Error;
-use bot_core::serenity::MessageId;
 use bot_core::serenity::{
     self,
     builder::EditMessage,
     http::{LightMethod, Request, Route},
 };
+use bot_core::serenity::{ChannelId, MessageId};
 use reqwest::{Client, RequestBuilder, Url, header::USER_AGENT};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -36,7 +36,7 @@ const EMBEDDED_MESSAGE_CACHE_LIMIT: usize = 100;
 const EMBEDDED_MESSAGE_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
 const APP_USER_AGENT: &str = concat!("yin/", env!("CARGO_PKG_VERSION"));
 const DISCORD_USER_AGENT: &str = "Discordbot/2.0";
-static EMBEDDED_MESSAGES: LazyLock<Mutex<VecDeque<(Instant, serenity::MessageId)>>> =
+static EMBEDDED_MESSAGES: LazyLock<Mutex<VecDeque<(Instant, MessageId, MessageId)>>> =
     LazyLock::new(|| Mutex::new(VecDeque::new()));
 static HTTP: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
@@ -53,7 +53,7 @@ pub async fn handle_message(
         return Ok(());
     }
 
-    let result: Result<(), Error> = if let Some(url) = spotify_embed_url(&message.content) {
+    let result: Result<MessageId, Error> = if let Some(url) = spotify_embed_url(&message.content) {
         send_spotify_embed(ctx, message, &url).await
     } else {
         let Some(api_url) = resolve_api_url(&message.content).await? else {
@@ -62,16 +62,30 @@ pub async fn handle_message(
         send_embed(ctx, message, &api_url).await
     };
 
-    if let Err(error) = result {
-        let _ = message.react(ctx, '❌').await;
-        return Err(error);
-    }
+    let response_id = match result {
+        Ok(response_id) => response_id,
+        Err(error) => {
+            let _ = message.react(ctx, '❌').await;
+            return Err(error);
+        }
+    };
 
-    remember_message(message.id, Instant::now());
+    remember_message(message.id, response_id, Instant::now());
     message
         .channel_id
         .edit_message(ctx, message.id, EditMessage::new().suppress_embeds(true))
         .await?;
+    Ok(())
+}
+
+pub async fn handle_message_delete(
+    ctx: &serenity::Context,
+    channel_id: ChannelId,
+    message_id: MessageId,
+) -> Result<(), Error> {
+    if let Some(response_id) = take_embedded_response(message_id) {
+        channel_id.delete_message(ctx, response_id).await?;
+    }
     Ok(())
 }
 
@@ -95,23 +109,32 @@ pub async fn handle_message_update(
     Ok(())
 }
 
-fn remember_message(message_id: MessageId, now: Instant) {
+fn remember_message(message_id: MessageId, response_id: MessageId, now: Instant) {
     let mut messages = EMBEDDED_MESSAGES.lock().unwrap();
     remove_expired_messages(&mut messages, now);
     if messages.len() == EMBEDDED_MESSAGE_CACHE_LIMIT {
         messages.pop_front();
     }
-    messages.push_back((now, message_id));
+    messages.push_back((now, message_id, response_id));
 }
 
 fn was_recently_embedded(message_id: MessageId) -> bool {
     let mut messages = EMBEDDED_MESSAGES.lock().unwrap();
     remove_expired_messages(&mut messages, Instant::now());
-    messages.iter().any(|(_, id)| *id == message_id)
+    messages.iter().any(|(_, id, _)| *id == message_id)
 }
 
-fn remove_expired_messages(messages: &mut VecDeque<(Instant, serenity::MessageId)>, now: Instant) {
-    while messages.front().is_some_and(|(created_at, _)| {
+fn take_embedded_response(message_id: MessageId) -> Option<MessageId> {
+    let mut messages = EMBEDDED_MESSAGES.lock().unwrap();
+    remove_expired_messages(&mut messages, Instant::now());
+    let index = messages.iter().position(|(_, id, _)| *id == message_id)?;
+    messages
+        .remove(index)
+        .map(|(_, _, response_id)| response_id)
+}
+
+fn remove_expired_messages(messages: &mut VecDeque<(Instant, MessageId, MessageId)>, now: Instant) {
+    while messages.front().is_some_and(|(created_at, _, _)| {
         now.saturating_duration_since(*created_at) >= EMBEDDED_MESSAGE_CACHE_TTL
     }) {
         messages.pop_front();
@@ -122,7 +145,7 @@ async fn send_embed(
     ctx: &serenity::Context,
     message: &serenity::Message,
     api_url: &str,
-) -> Result<(), Error> {
+) -> Result<MessageId, Error> {
     let post = fetch_post(api_url).await?;
     send_payload(ctx, message, create_payload(&post)).await
 }
@@ -131,7 +154,7 @@ async fn send_spotify_embed(
     ctx: &serenity::Context,
     message: &serenity::Message,
     embed_url: &str,
-) -> Result<(), Error> {
+) -> Result<MessageId, Error> {
     let html = spqtify_request(embed_url)
         .send()
         .await?
@@ -147,12 +170,13 @@ async fn send_payload(
     ctx: &serenity::Context,
     message: &serenity::Message,
     mut payload: Value,
-) -> Result<(), Error> {
+) -> Result<MessageId, Error> {
     payload["message_reference"] = json!({"message_id": message.id});
     payload["allowed_mentions"]["replied_user"] = json!(false);
     let body = serde_json::to_vec(&payload)?;
-    ctx.http
-        .request(
+    let response = ctx
+        .http
+        .fire::<serenity::Message>(
             Request::new(
                 Route::ChannelMessages {
                     channel_id: message.channel_id,
@@ -162,7 +186,7 @@ async fn send_payload(
             .body(Some(body)),
         )
         .await?;
-    Ok(())
+    Ok(response.id)
 }
 
 async fn fetch_post(api_url: &str) -> Result<Post, reqwest::Error> {
@@ -864,24 +888,41 @@ mod tests {
     }
 
     #[test]
-    fn embedded_message_cache_expires_old_entries_and_stays_bounded() {
+    fn embedded_message_cache_maps_responses_expires_entries_and_stays_bounded() {
         let now = Instant::now();
         let mut messages = EMBEDDED_MESSAGES.lock().unwrap();
         messages.clear();
         messages.push_back((
             now - EMBEDDED_MESSAGE_CACHE_TTL,
             serenity::MessageId::new(1),
+            serenity::MessageId::new(101),
         ));
         drop(messages);
 
         for id in 2..=EMBEDDED_MESSAGE_CACHE_LIMIT as u64 + 2 {
-            remember_message(serenity::MessageId::new(id), now);
+            remember_message(
+                serenity::MessageId::new(id),
+                serenity::MessageId::new(id + 100),
+                now,
+            );
         }
 
-        let mut messages = EMBEDDED_MESSAGES.lock().unwrap();
+        let messages = EMBEDDED_MESSAGES.lock().unwrap();
         assert_eq!(messages.len(), EMBEDDED_MESSAGE_CACHE_LIMIT);
         assert_eq!(messages.front().unwrap().1, serenity::MessageId::new(3));
         assert_eq!(messages.back().unwrap().1, serenity::MessageId::new(102));
-        messages.clear();
+        drop(messages);
+
+        assert_eq!(
+            take_embedded_response(serenity::MessageId::new(3)),
+            Some(serenity::MessageId::new(103))
+        );
+        assert_eq!(take_embedded_response(serenity::MessageId::new(3)), None);
+        assert_eq!(
+            take_embedded_response(serenity::MessageId::new(102)),
+            Some(serenity::MessageId::new(202))
+        );
+
+        EMBEDDED_MESSAGES.lock().unwrap().clear();
     }
 }

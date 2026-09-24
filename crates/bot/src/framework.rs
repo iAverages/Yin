@@ -88,6 +88,14 @@ async fn event_handler(
     if let serenity::FullEvent::MessageUpdate { event, .. } = event {
         feature_social::handle_message_update(ctx, event).await?;
     }
+    if let serenity::FullEvent::MessageDelete {
+        channel_id,
+        deleted_message_id,
+        ..
+    } = event
+    {
+        feature_social::handle_message_delete(ctx, *channel_id, *deleted_message_id).await?;
+    }
     if let serenity::FullEvent::GuildAuditLogEntryCreate { entry, guild_id } = event {
         feature_moderation::audit::process_audit_entry(&data.database, *guild_id, entry).await?;
     }
