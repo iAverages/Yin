@@ -37,7 +37,7 @@ const EMBEDDED_MESSAGE_CACHE_LIMIT: usize = 100;
 const EMBEDDED_MESSAGE_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
 const APP_USER_AGENT: &str = concat!("yin/", env!("CARGO_PKG_VERSION"));
 const DISCORD_USER_AGENT: &str = "Discordbot/2.0";
-static EMBEDDED_MESSAGES: LazyLock<Mutex<VecDeque<(Instant, MessageId, MessageId)>>> =
+static EMBEDDED_MESSAGES: LazyLock<Mutex<VecDeque<EmbeddedMessage>>> =
     LazyLock::new(|| Mutex::new(VecDeque::new()));
 static HTTP: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
@@ -63,9 +63,7 @@ pub async fn handle_message(
         }
     };
 
-    for response_id in response_ids {
-        remember_message(message.id, response_id, Instant::now());
-    }
+    remember_message(message.id, response_ids, &message.content, Instant::now());
     message
         .channel_id
         .edit_message(ctx, message.id, EditMessage::new().suppress_embeds(true))
@@ -88,58 +86,98 @@ pub async fn handle_message_update(
     ctx: &serenity::Context,
     event: &serenity::MessageUpdateEvent,
 ) -> Result<(), Error> {
-    if event
-        .flags
-        .flatten()
-        .is_some_and(|flags| flags.contains(serenity::MessageFlags::SUPPRESS_EMBEDS))
-        || !was_recently_embedded(event.id)
-    {
+    let Some(content) = event.content.as_deref() else {
+        return Ok(());
+    };
+    if !should_refresh_message(event.id, content) {
         return Ok(());
     }
 
-    event
-        .channel_id
-        .edit_message(ctx, event.id, EditMessage::new().suppress_embeds(true))
-        .await?;
+    let message = event.channel_id.message(ctx, event.id).await?;
+    let response_ids = match send_embeds(ctx, &message).await {
+        Ok(response_ids) => response_ids,
+        Err(error) => {
+            let _ = message.react(ctx, '❌').await;
+            return Err(error);
+        }
+    };
+    let suppress_embeds = !response_ids.is_empty();
+
+    let old_response_ids = take_embedded_responses(message.id);
+    remember_message(message.id, response_ids, &message.content, Instant::now());
+    for response_id in old_response_ids {
+        message.channel_id.delete_message(ctx, response_id).await?;
+    }
+    if suppression_changed(message.flags.unwrap_or_default(), suppress_embeds) {
+        message
+            .channel_id
+            .edit_message(
+                ctx,
+                message.id,
+                EditMessage::new().suppress_embeds(suppress_embeds),
+            )
+            .await?;
+    }
     Ok(())
 }
 
-fn remember_message(message_id: MessageId, response_id: MessageId, now: Instant) {
+struct EmbeddedMessage {
+    created_at: Instant,
+    message_id: MessageId,
+    response_ids: Vec<MessageId>,
+    content: String,
+}
+
+fn remember_message(
+    message_id: MessageId,
+    response_ids: Vec<MessageId>,
+    content: &str,
+    now: Instant,
+) {
     let mut messages = EMBEDDED_MESSAGES.lock().unwrap();
     remove_expired_messages(&mut messages, now);
     if messages.len() == EMBEDDED_MESSAGE_CACHE_LIMIT {
         messages.pop_front();
     }
-    messages.push_back((now, message_id, response_id));
+    messages.push_back(EmbeddedMessage {
+        created_at: now,
+        message_id,
+        response_ids,
+        content: content.to_owned(),
+    });
 }
 
-fn was_recently_embedded(message_id: MessageId) -> bool {
+fn should_refresh_message(message_id: MessageId, content: &str) -> bool {
     let mut messages = EMBEDDED_MESSAGES.lock().unwrap();
     remove_expired_messages(&mut messages, Instant::now());
-    messages.iter().any(|(_, id, _)| *id == message_id)
+    messages
+        .iter()
+        .find(|message| message.message_id == message_id)
+        .is_some_and(|message| message.content != content)
 }
 
 fn take_embedded_responses(message_id: MessageId) -> Vec<MessageId> {
     let mut messages = EMBEDDED_MESSAGES.lock().unwrap();
     remove_expired_messages(&mut messages, Instant::now());
-    let mut responses = Vec::new();
-    messages.retain(|(_, id, response_id)| {
-        if *id == message_id {
-            responses.push(*response_id);
-            false
-        } else {
-            true
-        }
-    });
-    responses
+    let Some(index) = messages
+        .iter()
+        .position(|message| message.message_id == message_id)
+    else {
+        return Vec::new();
+    };
+    messages.remove(index).unwrap().response_ids
 }
 
-fn remove_expired_messages(messages: &mut VecDeque<(Instant, MessageId, MessageId)>, now: Instant) {
-    while messages.front().is_some_and(|(created_at, _, _)| {
-        now.saturating_duration_since(*created_at) >= EMBEDDED_MESSAGE_CACHE_TTL
+fn remove_expired_messages(messages: &mut VecDeque<EmbeddedMessage>, now: Instant) {
+    while messages.front().is_some_and(|message| {
+        now.saturating_duration_since(message.created_at) >= EMBEDDED_MESSAGE_CACHE_TTL
     }) {
         messages.pop_front();
     }
+}
+
+fn suppression_changed(flags: serenity::MessageFlags, suppress: bool) -> bool {
+    flags.contains(serenity::MessageFlags::SUPPRESS_EMBEDS) != suppress
 }
 
 async fn send_embeds(
@@ -821,6 +859,19 @@ mod tests {
     }
 
     #[test]
+    fn only_updates_suppression_when_its_state_changes() {
+        assert!(!suppression_changed(
+            serenity::MessageFlags::SUPPRESS_EMBEDS,
+            true,
+        ));
+        assert!(suppression_changed(serenity::MessageFlags::empty(), true));
+        assert!(suppression_changed(
+            serenity::MessageFlags::SUPPRESS_EMBEDS,
+            false,
+        ));
+    }
+
+    #[test]
     fn ignores_non_post_and_lookalike_links() {
         assert_eq!(api_url("https://x.com/jack"), None);
         assert_eq!(api_url("https://x.com.example/jack/status/20"), None);
@@ -1028,27 +1079,43 @@ mod tests {
         let now = Instant::now();
         let mut messages = EMBEDDED_MESSAGES.lock().unwrap();
         messages.clear();
-        messages.push_back((
-            now - EMBEDDED_MESSAGE_CACHE_TTL,
-            serenity::MessageId::new(1),
-            serenity::MessageId::new(101),
-        ));
+        messages.push_back(EmbeddedMessage {
+            created_at: now - EMBEDDED_MESSAGE_CACHE_TTL,
+            message_id: serenity::MessageId::new(1),
+            response_ids: vec![serenity::MessageId::new(101)],
+            content: "expired".to_owned(),
+        });
         drop(messages);
 
         for id in 2..=EMBEDDED_MESSAGE_CACHE_LIMIT as u64 + 2 {
             remember_message(
                 serenity::MessageId::new(id),
-                serenity::MessageId::new(id + 100),
+                vec![serenity::MessageId::new(id + 100)],
+                &format!("content {id}"),
                 now,
             );
         }
 
         let messages = EMBEDDED_MESSAGES.lock().unwrap();
         assert_eq!(messages.len(), EMBEDDED_MESSAGE_CACHE_LIMIT);
-        assert_eq!(messages.front().unwrap().1, serenity::MessageId::new(3));
-        assert_eq!(messages.back().unwrap().1, serenity::MessageId::new(102));
+        assert_eq!(
+            messages.front().unwrap().message_id,
+            serenity::MessageId::new(3)
+        );
+        assert_eq!(
+            messages.back().unwrap().message_id,
+            serenity::MessageId::new(102)
+        );
         drop(messages);
 
+        assert!(!should_refresh_message(
+            serenity::MessageId::new(3),
+            "content 3"
+        ));
+        assert!(should_refresh_message(
+            serenity::MessageId::new(3),
+            "edited content"
+        ));
         assert_eq!(
             take_embedded_responses(serenity::MessageId::new(3)),
             vec![serenity::MessageId::new(103)]
@@ -1057,6 +1124,17 @@ mod tests {
         assert_eq!(
             take_embedded_responses(serenity::MessageId::new(102)),
             vec![serenity::MessageId::new(202)]
+        );
+
+        remember_message(
+            serenity::MessageId::new(200),
+            vec![serenity::MessageId::new(300), serenity::MessageId::new(301)],
+            "two embeds",
+            now,
+        );
+        assert_eq!(
+            take_embedded_responses(serenity::MessageId::new(200)),
+            [serenity::MessageId::new(300), serenity::MessageId::new(301)]
         );
 
         EMBEDDED_MESSAGES.lock().unwrap().clear();
