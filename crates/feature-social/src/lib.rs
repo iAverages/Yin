@@ -53,14 +53,15 @@ pub async fn handle_message(
         return Ok(());
     }
 
-    let result: Result<MessageId, Error> = if let Some(url) = spotify_embed_url(&message.content) {
-        send_spotify_embed(ctx, message, &url).await
-    } else {
-        let Some(api_url) = resolve_api_url(&message.content).await? else {
-            return Ok(());
+    let result: Result<MessageId, Error> =
+        if let Some((url, spoiler)) = spotify_embed_url(&message.content) {
+            send_spotify_embed(ctx, message, &url, spoiler).await
+        } else {
+            let Some((api_url, spoiler)) = resolve_api_url(&message.content).await? else {
+                return Ok(());
+            };
+            send_embed(ctx, message, &api_url, spoiler).await
         };
-        send_embed(ctx, message, &api_url).await
-    };
 
     let response_id = match result {
         Ok(response_id) => response_id,
@@ -145,15 +146,17 @@ async fn send_embed(
     ctx: &serenity::Context,
     message: &serenity::Message,
     api_url: &str,
+    spoiler: bool,
 ) -> Result<MessageId, Error> {
     let post = fetch_post(api_url).await?;
-    send_payload(ctx, message, create_payload(&post)).await
+    send_payload(ctx, message, create_payload(&post, spoiler)).await
 }
 
 async fn send_spotify_embed(
     ctx: &serenity::Context,
     message: &serenity::Message,
     embed_url: &str,
+    spoiler: bool,
 ) -> Result<MessageId, Error> {
     let html = spqtify_request(embed_url)
         .send()
@@ -163,7 +166,7 @@ async fn send_spotify_embed(
         .await?;
     let component = spqtify_component(&html)
         .ok_or_else(|| std::io::Error::other("spqtify response had no Discord component"))?;
-    send_payload(ctx, message, create_spotify_payload(component)).await
+    send_payload(ctx, message, create_spotify_payload(component, spoiler)).await
 }
 
 async fn send_payload(
@@ -221,12 +224,12 @@ fn spqtify_request(url: &str) -> RequestBuilder {
     HTTP.get(url).header(USER_AGENT, DISCORD_USER_AGENT)
 }
 
-async fn resolve_api_url(content: &str) -> Result<Option<String>, reqwest::Error> {
+async fn resolve_api_url(content: &str) -> Result<Option<(String, bool)>, reqwest::Error> {
     if let Some(api_url) = api_url(content) {
         return Ok(Some(api_url));
     }
 
-    let Some(url) = content.split_whitespace().find_map(parse_tiktok_short_url) else {
+    let Some((url, spoiler)) = content.split_whitespace().find_map(parse_tiktok_short_url) else {
         return Ok(None);
     };
     let response = HTTP
@@ -235,18 +238,31 @@ async fn resolve_api_url(content: &str) -> Result<Option<String>, reqwest::Error
         .send()
         .await?
         .error_for_status()?;
-    Ok(api_url(response.url().as_str()))
+    Ok(api_url(response.url().as_str()).map(|(url, _)| (url, spoiler)))
 }
 
-fn parse_tiktok_short_url(word: &str) -> Option<Url> {
+fn parse_url(word: &str) -> Option<(Url, bool)> {
+    let word = word.trim_matches(|c: char| "<>()[]{}\"',.!?".contains(c));
+    let (word, spoiler) = match word
+        .strip_prefix("||")
+        .and_then(|word| word.strip_suffix("||"))
+    {
+        Some(word) => (word, true),
+        None => (word, false),
+    };
     let url = Url::parse(word.trim_matches(|c: char| "<>()[]{}\"',.!?".contains(c))).ok()?;
-    (url.scheme() == "https" && TIKTOK_SHORT_HOSTS.contains(&url.host_str()?)).then_some(url)
+    Some((url, spoiler))
 }
 
-fn spotify_embed_url(content: &str) -> Option<String> {
+fn parse_tiktok_short_url(word: &str) -> Option<(Url, bool)> {
+    let (url, spoiler) = parse_url(word)?;
+    (url.scheme() == "https" && TIKTOK_SHORT_HOSTS.contains(&url.host_str()?))
+        .then_some((url, spoiler))
+}
+
+fn spotify_embed_url(content: &str) -> Option<(String, bool)> {
     content.split_whitespace().find_map(|word| {
-        let mut url =
-            Url::parse(word.trim_matches(|c: char| "<>()[]{}\"',.!?".contains(c))).ok()?;
+        let (mut url, spoiler) = parse_url(word)?;
         let parts: Vec<_> = url.path_segments()?.collect();
         match parts.as_slice() {
             ["track" | "episode" | "album" | "playlist", id]
@@ -256,7 +272,7 @@ fn spotify_embed_url(content: &str) -> Option<String> {
                     && id.bytes().all(|byte| byte.is_ascii_alphanumeric()) =>
             {
                 url.set_host(Some("open.spqtify.com")).ok()?;
-                Some(url.into())
+                Some((url.into(), spoiler))
             }
             _ => None,
         }
@@ -275,7 +291,8 @@ fn spqtify_component(html: &str) -> Option<Value> {
         .cloned()
 }
 
-fn create_spotify_payload(component: Value) -> Value {
+fn create_spotify_payload(mut component: Value, spoiler: bool) -> Value {
+    component["spoiler"] = json!(spoiler);
     json!({
         "flags": 1 << 15,
         "allowed_mentions": {"parse": []},
@@ -283,9 +300,9 @@ fn create_spotify_payload(component: Value) -> Value {
     })
 }
 
-fn api_url(content: &str) -> Option<String> {
+fn api_url(content: &str) -> Option<(String, bool)> {
     content.split_whitespace().find_map(|word| {
-        let url = Url::parse(word.trim_matches(|c: char| "<>()[]{}\"',.!?".contains(c))).ok()?;
+        let (url, spoiler) = parse_url(word)?;
         let host = url.host_str()?;
         let parts: Vec<_> = url.path_segments()?.collect();
 
@@ -295,12 +312,12 @@ fn api_url(content: &str) -> Option<String> {
                     && (2..=20).contains(&id.len())
                     && id.bytes().all(|byte| byte.is_ascii_digit()) =>
             {
-                Some(format!("{TWITTER_API}{id}"))
+                Some((format!("{TWITTER_API}{id}"), spoiler))
             }
             ["profile", handle, "post", rkey, ..]
                 if BLUESKY_HOSTS.contains(&host) && !handle.is_empty() && !rkey.is_empty() =>
             {
-                Some(format!("{BLUESKY_API}{handle}/{rkey}"))
+                Some((format!("{BLUESKY_API}{handle}/{rkey}"), spoiler))
             }
             ["p" | "reel" | "reels" | "tv", shortcode, ..]
                 if INSTAGRAM_HOSTS.contains(&host)
@@ -309,21 +326,24 @@ fn api_url(content: &str) -> Option<String> {
                         byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-')
                     }) =>
             {
-                Some(format!("{ABEMBED_API}instagram/p/{shortcode}"))
+                Some((format!("{ABEMBED_API}instagram/p/{shortcode}"), spoiler))
             }
             ["share", kind @ ("p" | "r" | "v"), code, ..]
                 if FACEBOOK_HOSTS.contains(&host)
                     && !code.is_empty()
                     && code.bytes().all(|byte| byte.is_ascii_alphanumeric()) =>
             {
-                Some(format!("{ABEMBED_API}facebook/share/{kind}/{code}"))
+                Some((
+                    format!("{ABEMBED_API}facebook/share/{kind}/{code}"),
+                    spoiler,
+                ))
             }
             ["share", code, ..]
                 if FACEBOOK_HOSTS.contains(&host)
                     && !code.is_empty()
                     && code.bytes().all(|byte| byte.is_ascii_alphanumeric()) =>
             {
-                Some(format!("{ABEMBED_API}facebook/share/{code}"))
+                Some((format!("{ABEMBED_API}facebook/share/{code}"), spoiler))
             }
             [username, kind @ ("video" | "photo"), id, ..]
                 if TIKTOK_HOSTS.contains(&host)
@@ -331,21 +351,24 @@ fn api_url(content: &str) -> Option<String> {
                     && (5..=30).contains(&id.len())
                     && id.bytes().all(|byte| byte.is_ascii_digit()) =>
             {
-                Some(format!("{ABEMBED_API}tiktok/{username}/{kind}/{id}"))
+                Some((
+                    format!("{ABEMBED_API}tiktok/{username}/{kind}/{id}"),
+                    spoiler,
+                ))
             }
             ["t", id, ..]
                 if TIKTOK_HOSTS.contains(&host)
                     && !id.is_empty()
                     && id.bytes().all(|byte| byte.is_ascii_alphanumeric()) =>
             {
-                Some(format!("{ABEMBED_API}tiktok/t/{id}"))
+                Some((format!("{ABEMBED_API}tiktok/t/{id}"), spoiler))
             }
             _ => None,
         }
     })
 }
 
-fn create_payload(post: &Post) -> Value {
+fn create_payload(post: &Post, spoiler: bool) -> Value {
     let mut components = Vec::new();
     append_post(&mut components, post, false);
 
@@ -368,6 +391,7 @@ fn create_payload(post: &Post) -> Value {
         "allowed_mentions": {"parse": []},
         "components": [{
             "type": 17,
+            "spoiler": spoiler,
             "accent_color": match post.provider.as_str() {
                 "bluesky" => 0x1185fe,
                 "instagram" => 0xce0071,
@@ -598,23 +622,35 @@ mod tests {
     fn recognizes_supported_post_links() {
         assert_eq!(
             api_url("look <https://x.com/jack/status/20?s=20>"),
-            Some("https://api.fxtwitter.com/2/status/20".to_owned())
+            Some(("https://api.fxtwitter.com/2/status/20".to_owned(), false))
         );
         assert_eq!(
             api_url("https://bsky.app/profile/bsky.app/post/3l6oveex3ii2l"),
-            Some("https://api.fxbsky.app/2/status/bsky.app/3l6oveex3ii2l".to_owned())
+            Some((
+                "https://api.fxbsky.app/2/status/bsky.app/3l6oveex3ii2l".to_owned(),
+                false,
+            ))
         );
         assert_eq!(
             api_url("https://www.instagram.com/reels/DbCP6xzRzdo/"),
-            Some("https://i.kirsi.dev/api/instagram/p/DbCP6xzRzdo".to_owned())
+            Some((
+                "https://i.kirsi.dev/api/instagram/p/DbCP6xzRzdo".to_owned(),
+                false,
+            ))
         );
         assert_eq!(
             api_url("https://www.tiktok.com/@kopilawak/video/7665179028352945426"),
-            Some("https://i.kirsi.dev/api/tiktok/@kopilawak/video/7665179028352945426".to_owned())
+            Some((
+                "https://i.kirsi.dev/api/tiktok/@kopilawak/video/7665179028352945426".to_owned(),
+                false,
+            ))
         );
         assert_eq!(
             api_url("https://www.tiktok.com/t/ZP8T6SD9F"),
-            Some("https://i.kirsi.dev/api/tiktok/t/ZP8T6SD9F".to_owned())
+            Some((
+                "https://i.kirsi.dev/api/tiktok/t/ZP8T6SD9F".to_owned(),
+                false,
+            ))
         );
         for (url, route) in [
             (
@@ -644,7 +680,7 @@ mod tests {
         ] {
             assert_eq!(
                 api_url(url),
-                Some(format!("https://i.kirsi.dev/api/facebook/{route}"))
+                Some((format!("https://i.kirsi.dev/api/facebook/{route}"), false,))
             );
         }
     }
@@ -656,8 +692,9 @@ mod tests {
                 spotify_embed_url(&format!(
                     "listen <https://open.spotify.com/{kind}/11dFghVXANMlKmJXsNCbNl?si=abc>"
                 )),
-                Some(format!(
-                    "https://open.spqtify.com/{kind}/11dFghVXANMlKmJXsNCbNl?si=abc"
+                Some((
+                    format!("https://open.spqtify.com/{kind}/11dFghVXANMlKmJXsNCbNl?si=abc"),
+                    false,
                 ))
             );
         }
@@ -676,7 +713,7 @@ mod tests {
             "</script></html>"
         ))
         .unwrap();
-        let payload = create_spotify_payload(component);
+        let payload = create_spotify_payload(component, false);
         assert_eq!(
             payload["components"][0]["components"][0]["content"],
             "# [Cut To The Feeling](https://open.spqtify.com/track/11dFghVXANMlKmJXsNCbNl)"
@@ -689,11 +726,17 @@ mod tests {
     fn recognizes_tiktok_short_links() {
         assert_eq!(
             parse_tiktok_short_url("<https://vt.tiktok.com/ZSVhvYhGN/>"),
-            Some(Url::parse("https://vt.tiktok.com/ZSVhvYhGN/").unwrap())
+            Some((
+                Url::parse("https://vt.tiktok.com/ZSVhvYhGN/").unwrap(),
+                false,
+            ))
         );
         assert_eq!(
             parse_tiktok_short_url("https://vm.tiktok.com/ZN88Qw7ns/"),
-            Some(Url::parse("https://vm.tiktok.com/ZN88Qw7ns/").unwrap())
+            Some((
+                Url::parse("https://vm.tiktok.com/ZN88Qw7ns/").unwrap(),
+                false,
+            ))
         );
         assert_eq!(
             parse_tiktok_short_url("https://vt.tiktok.com.example/ZSVhvYhGN/"),
@@ -707,6 +750,22 @@ mod tests {
         assert_eq!(api_url("https://x.com.example/jack/status/20"), None);
         assert_eq!(api_url("https://bsky.app/profile/bsky.app"), None);
         assert_eq!(api_url("https://www.instagram.com/poster/"), None);
+    }
+
+    #[test]
+    fn spoilers_the_generated_container_for_a_spoilered_link() {
+        let (url, spoiler) = parse_url("||<https://x.com/jack/status/20>||").unwrap();
+        assert_eq!(url.as_str(), "https://x.com/jack/status/20");
+        assert!(spoiler);
+        assert_eq!(
+            api_url("||https://x.com/jack/status/20||"),
+            Some(("https://api.fxtwitter.com/2/status/20".to_owned(), true))
+        );
+
+        let message = create_payload(&post_with_media(1), spoiler);
+        assert_eq!(message["components"][0]["spoiler"], true);
+        let spotify = create_spotify_payload(json!({"type": 17, "components": []}), spoiler);
+        assert_eq!(spotify["components"][0]["spoiler"], true);
     }
 
     #[test]
@@ -752,7 +811,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(response.status.media.all.len(), 2);
-        let message = create_payload(&response.status);
+        let message = create_payload(&response.status, false);
         assert!(message.get("content").is_none());
         assert_eq!(message["flags"], 1 << 15);
         assert_eq!(
@@ -803,7 +862,7 @@ mod tests {
         .unwrap()
         .into();
 
-        let message = create_payload(&post);
+        let message = create_payload(&post, false);
         assert_eq!(message["components"][0]["accent_color"], 0xce0071);
         assert_eq!(
             message["components"][0]["components"][0]["content"],
@@ -821,7 +880,7 @@ mod tests {
 
     #[test]
     fn splits_more_than_ten_images_across_media_galleries() {
-        let message = create_payload(&post_with_media(11));
+        let message = create_payload(&post_with_media(11), false);
         let components = message["components"][0]["components"].as_array().unwrap();
         assert_eq!(components[1]["items"].as_array().unwrap().len(), 10);
         assert_eq!(components[2]["items"].as_array().unwrap().len(), 1);
@@ -830,7 +889,10 @@ mod tests {
     #[test]
     fn supports_discords_maximum_number_of_images() {
         let gallery_count = MESSAGE_COMPONENT_LIMIT - 3;
-        let message = create_payload(&post_with_media(gallery_count * MEDIA_GALLERY_ITEM_LIMIT));
+        let message = create_payload(
+            &post_with_media(gallery_count * MEDIA_GALLERY_ITEM_LIMIT),
+            false,
+        );
         let components = message["components"][0]["components"].as_array().unwrap();
 
         assert_eq!(components.len() + 1, MESSAGE_COMPONENT_LIMIT);
