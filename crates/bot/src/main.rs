@@ -26,7 +26,6 @@ async fn main() -> Result<(), Error> {
     );
     let intents = bot_core::serenity::GatewayIntents::GUILDS
         | bot_core::serenity::GatewayIntents::GUILD_MODERATION
-        | bot_core::serenity::GatewayIntents::GUILD_MEMBERS
         | bot_core::serenity::GatewayIntents::GUILD_MESSAGES
         | bot_core::serenity::GatewayIntents::DIRECT_MESSAGES
         | bot_core::serenity::GatewayIntents::MESSAGE_CONTENT;
