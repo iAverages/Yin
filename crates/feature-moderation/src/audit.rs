@@ -124,12 +124,21 @@ pub async fn reconcile_all_guilds(
         match reconcile_guild_audit_logs(http, database, guild_id, INITIAL_AUDIT_IMPORT_LIMIT).await
         {
             Ok(count) => processed += count,
-            Err(error) => {
+            Err(error) if should_log_reconciliation_error(&error) => {
                 tracing::error!(guild_id = %guild_id, error = %error, "audit reconciliation failed");
             }
+            Err(_) => {}
         }
     }
     Ok(processed)
+}
+
+fn should_log_reconciliation_error(error: &bot_core::Error) -> bool {
+    let status_code = match error.downcast_ref::<serenity::Error>() {
+        Some(serenity::Error::Http(error)) => error.status_code(),
+        _ => None,
+    };
+    status_code != Some(serenity::http::StatusCode::FORBIDDEN)
 }
 
 fn page_selection(
