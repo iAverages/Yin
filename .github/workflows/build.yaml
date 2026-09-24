@@ -17,7 +17,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@v16
-      - uses: DeterminateSystems/magic-nix-cache-action@v8
+      - uses: ryanccn/attic-action@v0
+        with:
+          endpoint: ${{ secrets.ATTIC_ENDPOINT }}
+          cache: yin
+          token: ${{ secrets.ATTIC_TOKEN }}
 
       - name: Check flake
         run: nix flake check --print-build-logs
