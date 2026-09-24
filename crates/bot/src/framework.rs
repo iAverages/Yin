@@ -85,6 +85,9 @@ async fn event_handler(
         feature_settings::handle_message(data, ctx, new_message).await?;
         feature_social::handle_message(ctx, new_message).await?;
     }
+    if let serenity::FullEvent::MessageUpdate { event, .. } = event {
+        feature_social::handle_message_update(ctx, event).await?;
+    }
     if let serenity::FullEvent::GuildAuditLogEntryCreate { entry, guild_id } = event {
         feature_moderation::audit::process_audit_entry(&data.database, *guild_id, entry).await?;
     }

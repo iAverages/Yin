@@ -1,7 +1,9 @@
-use std::sync::LazyLock;
-use std::time::Duration;
+use std::collections::VecDeque;
+use std::sync::{LazyLock, Mutex};
+use std::time::{Duration, Instant};
 
 use bot_core::Error;
+use bot_core::serenity::MessageId;
 use bot_core::serenity::{
     self,
     builder::EditMessage,
@@ -30,8 +32,12 @@ const DESCRIPTION_LIMIT: usize = 500;
 const MEDIA_GALLERY_ITEM_LIMIT: usize = 10;
 const EMBED_API_RETRIES: u32 = 3;
 const EMBED_API_RETRY_DELAY: Duration = Duration::from_secs(1);
+const EMBEDDED_MESSAGE_CACHE_LIMIT: usize = 100;
+const EMBEDDED_MESSAGE_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
 const APP_USER_AGENT: &str = concat!("yin/", env!("CARGO_PKG_VERSION"));
 const DISCORD_USER_AGENT: &str = "Discordbot/2.0";
+static EMBEDDED_MESSAGES: LazyLock<Mutex<VecDeque<(Instant, serenity::MessageId)>>> =
+    LazyLock::new(|| Mutex::new(VecDeque::new()));
 static HTTP: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
         .timeout(Duration::from_secs(10))
@@ -61,11 +67,55 @@ pub async fn handle_message(
         return Err(error);
     }
 
+    remember_message(message.id, Instant::now());
     message
         .channel_id
         .edit_message(ctx, message.id, EditMessage::new().suppress_embeds(true))
         .await?;
     Ok(())
+}
+
+pub async fn handle_message_update(
+    ctx: &serenity::Context,
+    event: &serenity::MessageUpdateEvent,
+) -> Result<(), Error> {
+    if event
+        .flags
+        .flatten()
+        .is_some_and(|flags| flags.contains(serenity::MessageFlags::SUPPRESS_EMBEDS))
+        || !was_recently_embedded(event.id)
+    {
+        return Ok(());
+    }
+
+    event
+        .channel_id
+        .edit_message(ctx, event.id, EditMessage::new().suppress_embeds(true))
+        .await?;
+    Ok(())
+}
+
+fn remember_message(message_id: MessageId, now: Instant) {
+    let mut messages = EMBEDDED_MESSAGES.lock().unwrap();
+    remove_expired_messages(&mut messages, now);
+    if messages.len() == EMBEDDED_MESSAGE_CACHE_LIMIT {
+        messages.pop_front();
+    }
+    messages.push_back((now, message_id));
+}
+
+fn was_recently_embedded(message_id: MessageId) -> bool {
+    let mut messages = EMBEDDED_MESSAGES.lock().unwrap();
+    remove_expired_messages(&mut messages, Instant::now());
+    messages.iter().any(|(_, id)| *id == message_id)
+}
+
+fn remove_expired_messages(messages: &mut VecDeque<(Instant, serenity::MessageId)>, now: Instant) {
+    while messages.front().is_some_and(|(created_at, _)| {
+        now.saturating_duration_since(*created_at) >= EMBEDDED_MESSAGE_CACHE_TTL
+    }) {
+        messages.pop_front();
+    }
 }
 
 async fn send_embed(
@@ -811,5 +861,27 @@ mod tests {
                 Duration::from_secs(4)
             ]
         );
+    }
+
+    #[test]
+    fn embedded_message_cache_expires_old_entries_and_stays_bounded() {
+        let now = Instant::now();
+        let mut messages = EMBEDDED_MESSAGES.lock().unwrap();
+        messages.clear();
+        messages.push_back((
+            now - EMBEDDED_MESSAGE_CACHE_TTL,
+            serenity::MessageId::new(1),
+        ));
+        drop(messages);
+
+        for id in 2..=EMBEDDED_MESSAGE_CACHE_LIMIT as u64 + 2 {
+            remember_message(serenity::MessageId::new(id), now);
+        }
+
+        let mut messages = EMBEDDED_MESSAGES.lock().unwrap();
+        assert_eq!(messages.len(), EMBEDDED_MESSAGE_CACHE_LIMIT);
+        assert_eq!(messages.front().unwrap().1, serenity::MessageId::new(3));
+        assert_eq!(messages.back().unwrap().1, serenity::MessageId::new(102));
+        messages.clear();
     }
 }
