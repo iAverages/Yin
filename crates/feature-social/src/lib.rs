@@ -29,6 +29,7 @@ const FACEBOOK_HOSTS: &[&str] = &["facebook.com", "www.facebook.com", "m.faceboo
 const TIKTOK_HOSTS: &[&str] = &["tiktok.com", "www.tiktok.com", "m.tiktok.com"];
 const TIKTOK_SHORT_HOSTS: &[&str] = &["vt.tiktok.com", "vm.tiktok.com"];
 const DESCRIPTION_LIMIT: usize = 500;
+const MESSAGE_COMPONENT_LIMIT: usize = 40;
 const MEDIA_GALLERY_ITEM_LIMIT: usize = 10;
 const EMBED_API_RETRIES: u32 = 3;
 const EMBED_API_RETRY_DELAY: Duration = Duration::from_secs(1);
@@ -53,25 +54,18 @@ pub async fn handle_message(
         return Ok(());
     }
 
-    let result: Result<MessageId, Error> =
-        if let Some((url, spoiler)) = spotify_embed_url(&message.content) {
-            send_spotify_embed(ctx, message, &url, spoiler).await
-        } else {
-            let Some((api_url, spoiler)) = resolve_api_url(&message.content).await? else {
-                return Ok(());
-            };
-            send_embed(ctx, message, &api_url, spoiler).await
-        };
-
-    let response_id = match result {
-        Ok(response_id) => response_id,
+    let response_ids = match send_embeds(ctx, message).await {
+        Ok(response_ids) if response_ids.is_empty() => return Ok(()),
+        Ok(response_ids) => response_ids,
         Err(error) => {
             let _ = message.react(ctx, '❌').await;
             return Err(error);
         }
     };
 
-    remember_message(message.id, response_id, Instant::now());
+    for response_id in response_ids {
+        remember_message(message.id, response_id, Instant::now());
+    }
     message
         .channel_id
         .edit_message(ctx, message.id, EditMessage::new().suppress_embeds(true))
@@ -84,7 +78,7 @@ pub async fn handle_message_delete(
     channel_id: ChannelId,
     message_id: MessageId,
 ) -> Result<(), Error> {
-    if let Some(response_id) = take_embedded_response(message_id) {
+    for response_id in take_embedded_responses(message_id) {
         channel_id.delete_message(ctx, response_id).await?;
     }
     Ok(())
@@ -125,13 +119,19 @@ fn was_recently_embedded(message_id: MessageId) -> bool {
     messages.iter().any(|(_, id, _)| *id == message_id)
 }
 
-fn take_embedded_response(message_id: MessageId) -> Option<MessageId> {
+fn take_embedded_responses(message_id: MessageId) -> Vec<MessageId> {
     let mut messages = EMBEDDED_MESSAGES.lock().unwrap();
     remove_expired_messages(&mut messages, Instant::now());
-    let index = messages.iter().position(|(_, id, _)| *id == message_id)?;
-    messages
-        .remove(index)
-        .map(|(_, _, response_id)| response_id)
+    let mut responses = Vec::new();
+    messages.retain(|(_, id, response_id)| {
+        if *id == message_id {
+            responses.push(*response_id);
+            false
+        } else {
+            true
+        }
+    });
+    responses
 }
 
 fn remove_expired_messages(messages: &mut VecDeque<(Instant, MessageId, MessageId)>, now: Instant) {
@@ -142,31 +142,39 @@ fn remove_expired_messages(messages: &mut VecDeque<(Instant, MessageId, MessageI
     }
 }
 
-async fn send_embed(
+async fn send_embeds(
     ctx: &serenity::Context,
     message: &serenity::Message,
-    api_url: &str,
-    spoiler: bool,
-) -> Result<MessageId, Error> {
-    let post = fetch_post(api_url).await?;
-    send_payload(ctx, message, create_payload(&post, spoiler)).await
+) -> Result<Vec<MessageId>, Error> {
+    let mut components = Vec::new();
+    for link in embed_links(&message.content) {
+        let component = match link {
+            EmbedLink::Api(url, spoiler) => {
+                create_post_component(&fetch_post(&url).await?, spoiler)
+            }
+            EmbedLink::Spotify(url, spoiler) => fetch_spotify_component(&url, spoiler).await?,
+        };
+        components.push(component);
+    }
+
+    let mut response_ids = Vec::new();
+    for components in component_batches(components)? {
+        response_ids.push(send_payload(ctx, message, create_payload(components)).await?);
+    }
+    Ok(response_ids)
 }
 
-async fn send_spotify_embed(
-    ctx: &serenity::Context,
-    message: &serenity::Message,
-    embed_url: &str,
-    spoiler: bool,
-) -> Result<MessageId, Error> {
+async fn fetch_spotify_component(embed_url: &str, spoiler: bool) -> Result<Value, Error> {
     let html = spqtify_request(embed_url)
         .send()
         .await?
         .error_for_status()?
         .text()
         .await?;
-    let component = spqtify_component(&html)
+    let mut component = spqtify_component(&html)
         .ok_or_else(|| std::io::Error::other("spqtify response had no Discord component"))?;
-    send_payload(ctx, message, create_spotify_payload(component, spoiler)).await
+    component["spoiler"] = json!(spoiler);
+    Ok(component)
 }
 
 async fn send_payload(
@@ -224,23 +232,6 @@ fn spqtify_request(url: &str) -> RequestBuilder {
     HTTP.get(url).header(USER_AGENT, DISCORD_USER_AGENT)
 }
 
-async fn resolve_api_url(content: &str) -> Result<Option<(String, bool)>, reqwest::Error> {
-    if let Some(api_url) = api_url(content) {
-        return Ok(Some(api_url));
-    }
-
-    let Some((url, spoiler)) = content.split_whitespace().find_map(parse_tiktok_short_url) else {
-        return Ok(None);
-    };
-    let response = HTTP
-        .head(url)
-        .header(USER_AGENT, APP_USER_AGENT)
-        .send()
-        .await?
-        .error_for_status()?;
-    Ok(api_url(response.url().as_str()).map(|(url, _)| (url, spoiler)))
-}
-
 fn parse_url(word: &str) -> Option<(Url, bool)> {
     let word = word.trim_matches(|c: char| "<>()[]{}\"',.!?".contains(c));
     let (word, spoiler) = match word
@@ -254,10 +245,18 @@ fn parse_url(word: &str) -> Option<(Url, bool)> {
     Some((url, spoiler))
 }
 
-fn parse_tiktok_short_url(word: &str) -> Option<(Url, bool)> {
+fn tiktok_short_api_url(word: &str) -> Option<(String, bool)> {
     let (url, spoiler) = parse_url(word)?;
-    (url.scheme() == "https" && TIKTOK_SHORT_HOSTS.contains(&url.host_str()?))
-        .then_some((url, spoiler))
+    let parts: Vec<_> = url.path_segments()?.collect();
+    let shortcode = match parts.as_slice() {
+        [shortcode] | [shortcode, ""] => *shortcode,
+        _ => return None,
+    };
+    (url.scheme() == "https"
+        && TIKTOK_SHORT_HOSTS.contains(&url.host_str()?)
+        && (4..=32).contains(&shortcode.len())
+        && shortcode.bytes().all(|byte| byte.is_ascii_alphanumeric()))
+    .then(|| (format!("{ABEMBED_API}tiktok/{shortcode}"), spoiler))
 }
 
 fn spotify_embed_url(content: &str) -> Option<(String, bool)> {
@@ -279,6 +278,26 @@ fn spotify_embed_url(content: &str) -> Option<(String, bool)> {
     })
 }
 
+#[derive(Debug, PartialEq)]
+enum EmbedLink {
+    Api(String, bool),
+    Spotify(String, bool),
+}
+
+fn embed_links(content: &str) -> Vec<EmbedLink> {
+    content
+        .split_whitespace()
+        .filter_map(|word| {
+            spotify_embed_url(word)
+                .map(|(url, spoiler)| EmbedLink::Spotify(url, spoiler))
+                .or_else(|| api_url(word).map(|(url, spoiler)| EmbedLink::Api(url, spoiler)))
+                .or_else(|| {
+                    tiktok_short_api_url(word).map(|(url, spoiler)| EmbedLink::Api(url, spoiler))
+                })
+        })
+        .collect()
+}
+
 fn spqtify_component(html: &str) -> Option<Value> {
     let json = html
         .split_once(r#"<script id="discord:component-embed" type="application/json">"#)?
@@ -291,13 +310,49 @@ fn spqtify_component(html: &str) -> Option<Value> {
         .cloned()
 }
 
-fn create_spotify_payload(mut component: Value, spoiler: bool) -> Value {
-    component["spoiler"] = json!(spoiler);
+fn create_payload(components: Vec<Value>) -> Value {
     json!({
         "flags": 1 << 15,
         "allowed_mentions": {"parse": []},
-        "components": [component],
+        "components": components,
     })
+}
+
+fn component_batches(components: Vec<Value>) -> Result<Vec<Vec<Value>>, std::io::Error> {
+    let mut batches = Vec::new();
+    let mut batch = Vec::new();
+    let mut batch_size = 0;
+
+    for component in components {
+        let size = component_count(&component);
+        if size > MESSAGE_COMPONENT_LIMIT {
+            return Err(std::io::Error::other(format!(
+                "social embed has {size} components; Discord allows {MESSAGE_COMPONENT_LIMIT}"
+            )));
+        }
+        if batch_size + size > MESSAGE_COMPONENT_LIMIT {
+            batches.push(std::mem::take(&mut batch));
+            batch_size = 0;
+        }
+        batch_size += size;
+        batch.push(component);
+    }
+
+    if !batch.is_empty() {
+        batches.push(batch);
+    }
+    Ok(batches)
+}
+
+fn component_count(component: &Value) -> usize {
+    1 + component
+        .get("components")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .map(component_count)
+        .sum::<usize>()
+        + component.get("accessory").map_or(0, component_count)
 }
 
 fn api_url(content: &str) -> Option<(String, bool)> {
@@ -361,14 +416,14 @@ fn api_url(content: &str) -> Option<(String, bool)> {
                     && !id.is_empty()
                     && id.bytes().all(|byte| byte.is_ascii_alphanumeric()) =>
             {
-                Some((format!("{ABEMBED_API}tiktok/t/{id}"), spoiler))
+                Some((format!("{ABEMBED_API}tiktok/{id}"), spoiler))
             }
             _ => None,
         }
     })
 }
 
-fn create_payload(post: &Post, spoiler: bool) -> Value {
+fn create_post_component(post: &Post, spoiler: bool) -> Value {
     let mut components = Vec::new();
     append_post(&mut components, post, false);
 
@@ -387,19 +442,15 @@ fn create_payload(post: &Post, spoiler: bool) -> Value {
     }
 
     json!({
-        "flags": 1 << 15,
-        "allowed_mentions": {"parse": []},
-        "components": [{
-            "type": 17,
-            "spoiler": spoiler,
-            "accent_color": match post.provider.as_str() {
-                "bluesky" => 0x1185fe,
-                "instagram" => 0xce0071,
-                "facebook" => 0x1877f2,
-                _ => 0x1d9bf0,
-            },
-            "components": components,
-        }],
+        "type": 17,
+        "spoiler": spoiler,
+        "accent_color": match post.provider.as_str() {
+            "bluesky" => 0x1185fe,
+            "instagram" => 0xce0071,
+            "facebook" => 0x1877f2,
+            _ => 0x1d9bf0,
+        },
+        "components": components,
     })
 }
 
@@ -616,8 +667,6 @@ impl From<LinkFixedPost> for Post {
 mod tests {
     use super::*;
 
-    const MESSAGE_COMPONENT_LIMIT: usize = 40;
-
     #[test]
     fn recognizes_supported_post_links() {
         assert_eq!(
@@ -647,10 +696,7 @@ mod tests {
         );
         assert_eq!(
             api_url("https://www.tiktok.com/t/ZP8T6SD9F"),
-            Some((
-                "https://i.kirsi.dev/api/tiktok/t/ZP8T6SD9F".to_owned(),
-                false,
-            ))
+            Some(("https://i.kirsi.dev/api/tiktok/ZP8T6SD9F".to_owned(), false,))
         );
         for (url, route) in [
             (
@@ -713,7 +759,7 @@ mod tests {
             "</script></html>"
         ))
         .unwrap();
-        let payload = create_spotify_payload(component, false);
+        let payload = create_payload(vec![component]);
         assert_eq!(
             payload["components"][0]["components"][0]["content"],
             "# [Cut To The Feeling](https://open.spqtify.com/track/11dFghVXANMlKmJXsNCbNl)"
@@ -723,25 +769,55 @@ mod tests {
     }
 
     #[test]
-    fn recognizes_tiktok_short_links() {
+    fn creates_api_urls_for_tiktok_short_links() {
         assert_eq!(
-            parse_tiktok_short_url("<https://vt.tiktok.com/ZSVhvYhGN/>"),
-            Some((
-                Url::parse("https://vt.tiktok.com/ZSVhvYhGN/").unwrap(),
-                false,
-            ))
+            tiktok_short_api_url("<https://vt.tiktok.com/ZSVhvYhGN/>"),
+            Some(("https://i.kirsi.dev/api/tiktok/ZSVhvYhGN".to_owned(), false))
         );
         assert_eq!(
-            parse_tiktok_short_url("https://vm.tiktok.com/ZN88Qw7ns/"),
-            Some((
-                Url::parse("https://vm.tiktok.com/ZN88Qw7ns/").unwrap(),
-                false,
-            ))
+            tiktok_short_api_url("https://vm.tiktok.com/ZN88Qw7ns/"),
+            Some(("https://i.kirsi.dev/api/tiktok/ZN88Qw7ns".to_owned(), false))
         );
         assert_eq!(
-            parse_tiktok_short_url("https://vt.tiktok.com.example/ZSVhvYhGN/"),
+            tiktok_short_api_url("https://vt.tiktok.com.example/ZSVhvYhGN/"),
             None
         );
+    }
+
+    #[test]
+    fn finds_multiple_supported_links_in_message_order() {
+        assert_eq!(
+            embed_links(concat!(
+                "first https://x.com/jack/status/20 ",
+                "then ||https://open.spotify.com/track/11dFghVXANMlKmJXsNCbNl|| ",
+                "and https://vm.tiktok.com/ZN88Qw7ns/"
+            )),
+            vec![
+                EmbedLink::Api("https://api.fxtwitter.com/2/status/20".to_owned(), false),
+                EmbedLink::Spotify(
+                    "https://open.spqtify.com/track/11dFghVXANMlKmJXsNCbNl".to_owned(),
+                    true,
+                ),
+                EmbedLink::Api("https://i.kirsi.dev/api/tiktok/ZN88Qw7ns".to_owned(), false,),
+            ]
+        );
+    }
+
+    #[test]
+    fn batches_embeds_at_discords_component_limit() {
+        let component = |children| {
+            json!({
+                "type": 17,
+                "components": (0..children)
+                    .map(|_| json!({"type": 10, "content": "text"}))
+                    .collect::<Vec<_>>(),
+            })
+        };
+        let batches = component_batches(vec![component(19), component(19), component(1)]).unwrap();
+
+        assert_eq!(batches.iter().map(Vec::len).collect::<Vec<_>>(), [2, 1]);
+        assert_eq!(batches[0].iter().map(component_count).sum::<usize>(), 40);
+        assert_eq!(batches[1].iter().map(component_count).sum::<usize>(), 2);
     }
 
     #[test]
@@ -762,10 +838,8 @@ mod tests {
             Some(("https://api.fxtwitter.com/2/status/20".to_owned(), true))
         );
 
-        let message = create_payload(&post_with_media(1), spoiler);
-        assert_eq!(message["components"][0]["spoiler"], true);
-        let spotify = create_spotify_payload(json!({"type": 17, "components": []}), spoiler);
-        assert_eq!(spotify["components"][0]["spoiler"], true);
+        let component = create_post_component(&post_with_media(1), spoiler);
+        assert_eq!(component["spoiler"], true);
     }
 
     #[test]
@@ -811,7 +885,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(response.status.media.all.len(), 2);
-        let message = create_payload(&response.status, false);
+        let message = create_payload(vec![create_post_component(&response.status, false)]);
         assert!(message.get("content").is_none());
         assert_eq!(message["flags"], 1 << 15);
         assert_eq!(
@@ -862,7 +936,7 @@ mod tests {
         .unwrap()
         .into();
 
-        let message = create_payload(&post, false);
+        let message = create_payload(vec![create_post_component(&post, false)]);
         assert_eq!(message["components"][0]["accent_color"], 0xce0071);
         assert_eq!(
             message["components"][0]["components"][0]["content"],
@@ -880,7 +954,7 @@ mod tests {
 
     #[test]
     fn splits_more_than_ten_images_across_media_galleries() {
-        let message = create_payload(&post_with_media(11), false);
+        let message = create_payload(vec![create_post_component(&post_with_media(11), false)]);
         let components = message["components"][0]["components"].as_array().unwrap();
         assert_eq!(components[1]["items"].as_array().unwrap().len(), 10);
         assert_eq!(components[2]["items"].as_array().unwrap().len(), 1);
@@ -889,10 +963,10 @@ mod tests {
     #[test]
     fn supports_discords_maximum_number_of_images() {
         let gallery_count = MESSAGE_COMPONENT_LIMIT - 3;
-        let message = create_payload(
+        let message = create_payload(vec![create_post_component(
             &post_with_media(gallery_count * MEDIA_GALLERY_ITEM_LIMIT),
             false,
-        );
+        )]);
         let components = message["components"][0]["components"].as_array().unwrap();
 
         assert_eq!(components.len() + 1, MESSAGE_COMPONENT_LIMIT);
@@ -976,13 +1050,13 @@ mod tests {
         drop(messages);
 
         assert_eq!(
-            take_embedded_response(serenity::MessageId::new(3)),
-            Some(serenity::MessageId::new(103))
+            take_embedded_responses(serenity::MessageId::new(3)),
+            vec![serenity::MessageId::new(103)]
         );
-        assert_eq!(take_embedded_response(serenity::MessageId::new(3)), None);
+        assert!(take_embedded_responses(serenity::MessageId::new(3)).is_empty());
         assert_eq!(
-            take_embedded_response(serenity::MessageId::new(102)),
-            Some(serenity::MessageId::new(202))
+            take_embedded_responses(serenity::MessageId::new(102)),
+            vec![serenity::MessageId::new(202)]
         );
 
         EMBEDDED_MESSAGES.lock().unwrap().clear();
