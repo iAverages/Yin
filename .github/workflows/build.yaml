@@ -21,7 +21,6 @@ jobs:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
-          targets: attic.tail08ef9.ts.net
       - uses: DeterminateSystems/nix-installer-action@v16
       - uses: ryanccn/attic-action@v0
         with:
