@@ -1,3 +1,4 @@
+mod language;
 mod prefix;
 
 use bot_core::response::{self, Embed, EmbedKind};
@@ -7,7 +8,7 @@ use bot_core::{Context, Error, poise};
     prefix_command,
     slash_command,
     guild_only,
-    subcommands("prefix", "ladder"),
+    subcommands("prefix", "language", "ladder"),
     install_context = "Guild",
     interaction_context = "Guild"
 )]
@@ -30,11 +31,17 @@ pub async fn settings(ctx: Context<'_>) -> Result<(), Error> {
                 "Reset Prefix",
                 "`!settings prefix reset` or `/settings prefix reset`",
                 false,
+            )
+            .field(
+                "Translation Language",
+                "`!settings language` or `/settings language`",
+                false,
             ),
     )
     .await
 }
 
+pub use language::language;
 pub use prefix::prefix;
 
 fn ladder() -> bot_core::Command {

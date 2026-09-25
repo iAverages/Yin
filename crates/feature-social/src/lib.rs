@@ -2,13 +2,13 @@ use std::collections::VecDeque;
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
-use bot_core::Error;
 use bot_core::serenity::{
     self,
     builder::EditMessage,
     http::{LightMethod, Request, Route},
 };
 use bot_core::serenity::{ChannelId, MessageId};
+use bot_core::{BotState, Error};
 use reqwest::{Client, RequestBuilder, Url, header::USER_AGENT};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -47,6 +47,7 @@ static HTTP: LazyLock<Client> = LazyLock::new(|| {
 });
 
 pub async fn handle_message(
+    data: &BotState,
     ctx: &serenity::Context,
     message: &serenity::Message,
 ) -> Result<(), Error> {
@@ -54,7 +55,7 @@ pub async fn handle_message(
         return Ok(());
     }
 
-    let response_ids = match send_embeds(ctx, message).await {
+    let response_ids = match send_embeds(data, ctx, message).await {
         Ok(response_ids) if response_ids.is_empty() => return Ok(()),
         Ok(response_ids) => response_ids,
         Err(error) => {
@@ -83,6 +84,7 @@ pub async fn handle_message_delete(
 }
 
 pub async fn handle_message_update(
+    data: &BotState,
     ctx: &serenity::Context,
     event: &serenity::MessageUpdateEvent,
 ) -> Result<(), Error> {
@@ -94,7 +96,7 @@ pub async fn handle_message_update(
     }
 
     let message = event.channel_id.message(ctx, event.id).await?;
-    let response_ids = match send_embeds(ctx, &message).await {
+    let response_ids = match send_embeds(data, ctx, &message).await {
         Ok(response_ids) => response_ids,
         Err(error) => {
             let _ = message.react(ctx, '❌').await;
@@ -181,11 +183,21 @@ fn suppression_changed(flags: serenity::MessageFlags, suppress: bool) -> bool {
 }
 
 async fn send_embeds(
+    data: &BotState,
     ctx: &serenity::Context,
     message: &serenity::Message,
 ) -> Result<Vec<MessageId>, Error> {
+    let mut links = embed_links(&message.content, "en");
+    if links
+        .iter()
+        .any(|link| matches!(link, EmbedLink::Api(url, _) if url.starts_with(TWITTER_API)))
+    {
+        let language = guild_translation_language(data, ctx, message).await?;
+        links = embed_links(&message.content, &language);
+    }
+
     let mut components = Vec::new();
-    for link in embed_links(&message.content) {
+    for link in links {
         let component = match link {
             EmbedLink::Api(url, spoiler) => {
                 create_post_component(&fetch_post(&url).await?, spoiler)
@@ -200,6 +212,27 @@ async fn send_embeds(
         response_ids.push(send_payload(ctx, message, create_payload(components)).await?);
     }
     Ok(response_ids)
+}
+
+async fn guild_translation_language(
+    data: &BotState,
+    ctx: &serenity::Context,
+    message: &serenity::Message,
+) -> Result<String, Error> {
+    let Some(guild_id) = message.guild_id else {
+        return Ok("en".to_owned());
+    };
+    let default = ctx
+        .cache
+        .guild(guild_id)
+        .and_then(|guild| primary_translation_language(&guild.preferred_locale))
+        .unwrap_or_else(|| "en".to_owned());
+    let configured = database::GuildSettingsRepository::new(&data.database)
+        .find_by_guild_id(guild_id.get())
+        .await?
+        .and_then(|settings| settings.translation_language)
+        .and_then(|language| normalize_translation_language(&language));
+    Ok(configured.unwrap_or(default))
 }
 
 async fn fetch_spotify_component(embed_url: &str, spoiler: bool) -> Result<Value, Error> {
@@ -322,13 +355,15 @@ enum EmbedLink {
     Spotify(String, bool),
 }
 
-fn embed_links(content: &str) -> Vec<EmbedLink> {
+fn embed_links(content: &str, language: &str) -> Vec<EmbedLink> {
     content
         .split_whitespace()
         .filter_map(|word| {
             spotify_embed_url(word)
                 .map(|(url, spoiler)| EmbedLink::Spotify(url, spoiler))
-                .or_else(|| api_url(word).map(|(url, spoiler)| EmbedLink::Api(url, spoiler)))
+                .or_else(|| {
+                    api_url(word, language).map(|(url, spoiler)| EmbedLink::Api(url, spoiler))
+                })
                 .or_else(|| {
                     tiktok_short_api_url(word).map(|(url, spoiler)| EmbedLink::Api(url, spoiler))
                 })
@@ -393,7 +428,7 @@ fn component_count(component: &Value) -> usize {
         + component.get("accessory").map_or(0, component_count)
 }
 
-fn api_url(content: &str) -> Option<(String, bool)> {
+fn api_url(content: &str, language: &str) -> Option<(String, bool)> {
     content.split_whitespace().find_map(|word| {
         let (url, spoiler) = parse_url(word)?;
         let host = url.host_str()?;
@@ -405,7 +440,11 @@ fn api_url(content: &str) -> Option<(String, bool)> {
                     && (2..=20).contains(&id.len())
                     && id.bytes().all(|byte| byte.is_ascii_digit()) =>
             {
-                Some((format!("{TWITTER_API}{id}"), spoiler))
+                let language = parts
+                    .get(3)
+                    .and_then(|language| normalize_translation_language(language))
+                    .unwrap_or_else(|| language.to_owned());
+                Some((format!("{TWITTER_API}{id}?lang={language}"), spoiler))
             }
             ["profile", handle, "post", rkey, ..]
                 if BLUESKY_HOSTS.contains(&host) && !handle.is_empty() && !rkey.is_empty() =>
@@ -461,6 +500,36 @@ fn api_url(content: &str) -> Option<(String, bool)> {
     })
 }
 
+pub fn normalize_translation_language(language: &str) -> Option<String> {
+    let language = language.trim().to_ascii_lowercase().replace('_', "-");
+    let language = match language.as_str() {
+        "zh" | "cn" | "zh-hans" => "zh-cn",
+        "tw" | "hk" | "zh-hk" | "zh-mo" | "zh-hant" => "zh-tw",
+        "jp" => "ja",
+        "kr" => "ko",
+        "ua" => "uk",
+        language => language,
+    };
+    let mut parts = language.split('-');
+    let primary = parts.next()?;
+    let subtag = parts.next();
+    if parts.next().is_some()
+        || !(2..=3).contains(&primary.len())
+        || !primary.bytes().all(|byte| byte.is_ascii_alphabetic())
+        || subtag.is_some_and(|subtag| {
+            !(2..=4).contains(&subtag.len())
+                || !subtag.bytes().all(|byte| byte.is_ascii_alphabetic())
+        })
+    {
+        return None;
+    }
+    Some(language.to_owned())
+}
+
+pub fn primary_translation_language(locale: &str) -> Option<String> {
+    normalize_translation_language(locale.split(['-', '_']).next()?)
+}
+
 fn create_post_component(post: &Post, spoiler: bool) -> Value {
     let mut components = Vec::new();
     append_post(&mut components, post, false);
@@ -511,6 +580,19 @@ fn append_post(components: &mut Vec<Value>, post: &Post, quoted: bool) {
             None => format!("{}{}", if quoted { "**Quoted post**\n" } else { "" }, text),
         },
     });
+
+    if let Some(translation) = &post.translation {
+        components.push(json!({
+            "type": 10,
+            "content": format!(
+                "**Translation ({})**\n{}",
+                translation.target_lang,
+                truncate(&translation.text, DESCRIPTION_LIMIT),
+            ),
+        }));
+        components.push(json!({"type": 14, "divider": true, "spacing": 1}));
+    }
+
     components.push(match author.and_then(|author| author.avatar_url.as_ref()) {
         Some(avatar_url) => json!({
             "type": 9,
@@ -621,7 +703,14 @@ struct Post {
     #[serde(default)]
     media: Media,
     provider: String,
+    translation: Option<Translation>,
     quote: Option<Quote>,
+}
+
+#[derive(Deserialize)]
+struct Translation {
+    text: String,
+    target_lang: String,
 }
 
 #[derive(Deserialize)]
@@ -696,6 +785,7 @@ impl From<LinkFixedPost> for Post {
             }),
             media: Media { all: post.media },
             provider: post.platform,
+            translation: None,
             quote: None,
         }
     }
@@ -708,32 +798,52 @@ mod tests {
     #[test]
     fn recognizes_supported_post_links() {
         assert_eq!(
-            api_url("look <https://x.com/jack/status/20?s=20>"),
-            Some(("https://api.fxtwitter.com/2/status/20".to_owned(), false))
+            api_url("look <https://x.com/jack/status/20?s=20>", "fr"),
+            Some((
+                "https://api.fxtwitter.com/2/status/20?lang=fr".to_owned(),
+                false
+            ))
         );
         assert_eq!(
-            api_url("https://bsky.app/profile/bsky.app/post/3l6oveex3ii2l"),
+            api_url("https://x.com/jack/status/20/en", "fr"),
+            Some((
+                "https://api.fxtwitter.com/2/status/20?lang=en".to_owned(),
+                false
+            ))
+        );
+        assert_eq!(
+            api_url("https://x.com/jack/status/20/jp", "fr"),
+            Some((
+                "https://api.fxtwitter.com/2/status/20?lang=ja".to_owned(),
+                false
+            ))
+        );
+        assert_eq!(
+            api_url("https://bsky.app/profile/bsky.app/post/3l6oveex3ii2l", "fr"),
             Some((
                 "https://api.fxbsky.app/2/status/bsky.app/3l6oveex3ii2l".to_owned(),
                 false,
             ))
         );
         assert_eq!(
-            api_url("https://www.instagram.com/reels/DbCP6xzRzdo/"),
+            api_url("https://www.instagram.com/reels/DbCP6xzRzdo/", "fr"),
             Some((
                 "https://i.kirsi.dev/api/instagram/p/DbCP6xzRzdo".to_owned(),
                 false,
             ))
         );
         assert_eq!(
-            api_url("https://www.tiktok.com/@kopilawak/video/7665179028352945426"),
+            api_url(
+                "https://www.tiktok.com/@kopilawak/video/7665179028352945426",
+                "fr"
+            ),
             Some((
                 "https://i.kirsi.dev/api/tiktok/@kopilawak/video/7665179028352945426".to_owned(),
                 false,
             ))
         );
         assert_eq!(
-            api_url("https://www.tiktok.com/t/ZP8T6SD9F"),
+            api_url("https://www.tiktok.com/t/ZP8T6SD9F", "fr"),
             Some(("https://i.kirsi.dev/api/tiktok/ZP8T6SD9F".to_owned(), false,))
         );
         for (url, route) in [
@@ -763,10 +873,29 @@ mod tests {
             ),
         ] {
             assert_eq!(
-                api_url(url),
+                api_url(url, "fr"),
                 Some((format!("https://i.kirsi.dev/api/facebook/{route}"), false,))
             );
         }
+    }
+
+    #[test]
+    fn supports_fxtwitter_languages_and_aliases() {
+        assert_eq!(
+            normalize_translation_language("pt-BR").as_deref(),
+            Some("pt-br")
+        );
+        assert_eq!(
+            normalize_translation_language("zh-Hant").as_deref(),
+            Some("zh-tw")
+        );
+        assert_eq!(normalize_translation_language("jp").as_deref(), Some("ja"));
+        assert_eq!(
+            normalize_translation_language("fil").as_deref(),
+            Some("fil")
+        );
+        assert_eq!(normalize_translation_language("unknown"), None);
+        assert_eq!(primary_translation_language("pt-BR").as_deref(), Some("pt"));
     }
 
     #[test]
@@ -825,13 +954,19 @@ mod tests {
     #[test]
     fn finds_multiple_supported_links_in_message_order() {
         assert_eq!(
-            embed_links(concat!(
-                "first https://x.com/jack/status/20 ",
-                "then ||https://open.spotify.com/track/11dFghVXANMlKmJXsNCbNl|| ",
-                "and https://vm.tiktok.com/ZN88Qw7ns/"
-            )),
+            embed_links(
+                concat!(
+                    "first https://x.com/jack/status/20 ",
+                    "then ||https://open.spotify.com/track/11dFghVXANMlKmJXsNCbNl|| ",
+                    "and https://vm.tiktok.com/ZN88Qw7ns/"
+                ),
+                "en",
+            ),
             vec![
-                EmbedLink::Api("https://api.fxtwitter.com/2/status/20".to_owned(), false),
+                EmbedLink::Api(
+                    "https://api.fxtwitter.com/2/status/20?lang=en".to_owned(),
+                    false,
+                ),
                 EmbedLink::Spotify(
                     "https://open.spqtify.com/track/11dFghVXANMlKmJXsNCbNl".to_owned(),
                     true,
@@ -873,10 +1008,10 @@ mod tests {
 
     #[test]
     fn ignores_non_post_and_lookalike_links() {
-        assert_eq!(api_url("https://x.com/jack"), None);
-        assert_eq!(api_url("https://x.com.example/jack/status/20"), None);
-        assert_eq!(api_url("https://bsky.app/profile/bsky.app"), None);
-        assert_eq!(api_url("https://www.instagram.com/poster/"), None);
+        assert_eq!(api_url("https://x.com/jack", "en"), None);
+        assert_eq!(api_url("https://x.com.example/jack/status/20", "en"), None);
+        assert_eq!(api_url("https://bsky.app/profile/bsky.app", "en"), None);
+        assert_eq!(api_url("https://www.instagram.com/poster/", "en"), None);
     }
 
     #[test]
@@ -885,8 +1020,11 @@ mod tests {
         assert_eq!(url.as_str(), "https://x.com/jack/status/20");
         assert!(spoiler);
         assert_eq!(
-            api_url("||https://x.com/jack/status/20||"),
-            Some(("https://api.fxtwitter.com/2/status/20".to_owned(), true))
+            api_url("||https://x.com/jack/status/20||", "en"),
+            Some((
+                "https://api.fxtwitter.com/2/status/20?lang=en".to_owned(),
+                true
+            ))
         );
 
         let component = create_post_component(&post_with_media(1), spoiler);
@@ -904,6 +1042,11 @@ mod tests {
                     "reposts": 3,
                     "replies": 2,
                     "provider": "twitter",
+                    "translation": {
+                        "text": "translated post text",
+                        "source_lang": "ja",
+                        "target_lang": "en"
+                    },
                     "author": {
                         "name": "User",
                         "screen_name": "user",
@@ -940,17 +1083,26 @@ mod tests {
         assert!(message.get("content").is_none());
         assert_eq!(message["flags"], 1 << 15);
         assert_eq!(
-            message["components"][0]["components"][1]["items"][1]["media"]["url"],
+            message["components"][0]["components"][0]["content"],
+            "**Translation (en)**\ntranslated post text"
+        );
+        assert_eq!(message["components"][0]["components"][1]["type"], 14);
+        assert_eq!(
+            message["components"][0]["components"][2]["content"],
+            "**User (@user)**\npost text"
+        );
+        assert_eq!(
+            message["components"][0]["components"][3]["items"][1]["media"]["url"],
             "https://gif.fxtwitter.com/tweet_video/animation.gif"
         );
         assert!(
-            message["components"][0]["components"][4]["content"]
+            message["components"][0]["components"][6]["content"]
                 .as_str()
                 .unwrap()
                 .contains("quoted text")
         );
         assert_eq!(
-            message["components"][0]["components"][5]["items"][0]["media"]["url"],
+            message["components"][0]["components"][7]["items"][0]["media"]["url"],
             "https://example.com/quoted.jpg"
         );
     }
@@ -1047,6 +1199,7 @@ mod tests {
                     .collect(),
             },
             provider: "instagram".to_owned(),
+            translation: None,
             quote: None,
         }
     }

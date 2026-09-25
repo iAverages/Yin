@@ -83,10 +83,10 @@ async fn event_handler(
 ) -> Result<(), Error> {
     if let serenity::FullEvent::Message { new_message } = event {
         feature_settings::handle_message(data, ctx, new_message).await?;
-        feature_social::handle_message(ctx, new_message).await?;
+        feature_social::handle_message(data, ctx, new_message).await?;
     }
     if let serenity::FullEvent::MessageUpdate { event, .. } = event {
-        feature_social::handle_message_update(ctx, event).await?;
+        feature_social::handle_message_update(data, ctx, event).await?;
     }
     if let serenity::FullEvent::MessageDelete {
         channel_id,

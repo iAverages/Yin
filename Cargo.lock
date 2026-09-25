@@ -626,6 +626,7 @@ dependencies = [
  "bot-core",
  "database",
  "feature-moderation",
+ "feature-social",
  "poise",
 ]
 
@@ -634,6 +635,7 @@ name = "feature-social"
 version = "0.1.0"
 dependencies = [
  "bot-core",
+ "database",
  "reqwest",
  "serde",
  "serde_json",
