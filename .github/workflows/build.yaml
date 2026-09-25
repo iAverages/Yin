@@ -23,6 +23,7 @@ jobs:
           tags: tag:ci
       - uses: DeterminateSystems/nix-installer-action@v16
       - uses: ryanccn/attic-action@v0
+        continue-on-error: true
         with:
           endpoint: ${{ secrets.ATTIC_ENDPOINT }}
           cache: yin
