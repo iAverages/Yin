@@ -48,7 +48,13 @@ DISCORD_DEV_GUILD_ID
 BETTER_AUTH_SECRET
 DISCORD_CLIENT_ID
 DISCORD_CLIENT_SECRET
+POSTHOG_PROJECT_ID
+POSTHOG_PROJECT_TOKEN
+POSTHOG_PERSONAL_API_KEY
 ```
+
+The PostHog personal API key needs `feature_flag:read` and `feature_flag:write`
+scopes so bot owners can run `!admin flag <key> <true|false>`.
 
 `k8s/local/secret.yaml` is ignored by git.
 

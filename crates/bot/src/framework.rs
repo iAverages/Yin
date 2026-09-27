@@ -13,6 +13,7 @@ pub fn build(
     environment: Environment,
     dev_guild_id: Option<serenity::GuildId>,
     database: Arc<database::Database>,
+    feature_flags: feature_flags::FeatureFlags,
     auth_service_url: String,
     auth_internal_token: Option<String>,
 ) -> poise::Framework<BotState, Error> {
@@ -57,6 +58,7 @@ pub fn build(
                     started_at: Instant::now(),
                     environment,
                     database,
+                    feature_flags,
                     auth_service_url,
                     auth_internal_token,
                 };
@@ -81,6 +83,10 @@ async fn event_handler(
     event: &serenity::FullEvent,
     data: &BotState,
 ) -> Result<(), Error> {
+    if let serenity::FullEvent::GuildCreate { guild, .. } = event {
+        data.feature_flags
+            .identify_guild(guild.id.get(), &guild.name)?;
+    }
     if let serenity::FullEvent::Message { new_message } = event {
         feature_settings::handle_message(data, ctx, new_message).await?;
         feature_social::handle_message(data, ctx, new_message).await?;
