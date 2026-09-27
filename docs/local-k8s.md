@@ -48,13 +48,24 @@ DISCORD_DEV_GUILD_ID
 BETTER_AUTH_SECRET
 DISCORD_CLIENT_ID
 DISCORD_CLIENT_SECRET
-POSTHOG_PROJECT_ID
-POSTHOG_PROJECT_TOKEN
-POSTHOG_PERSONAL_API_KEY
 ```
 
+PostHog is optional. To enable feature flag evaluation, set
+`POSTHOG_PROJECT_TOKEN`. To manage flags with `!admin flag`, also set
+`POSTHOG_PROJECT_ID` and `POSTHOG_PERSONAL_API_KEY`.
+
 The PostHog personal API key needs `feature_flag:read` and `feature_flag:write`
-scopes so bot owners can run `!admin flag <key> <true|false>`.
+scopes so bot owners can manage flags with:
+
+```text
+!admin flag global <key> <value>
+!admin flag user <key> <value> <user-id>
+!admin flag guild <key> <value> <guild-id>
+!admin flag member <key> <value> <user-id> <guild-id>
+```
+
+Boolean flags accept `true` or `false`; multivariate flags accept a configured variant key.
+More specific settings take precedence: member, user, guild, then global.
 
 `k8s/local/secret.yaml` is ignored by git.
 
