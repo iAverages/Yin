@@ -41,7 +41,6 @@ pub async fn prefix(ctx: Context<'_>) -> Result<(), Error> {
     prefix_command,
     slash_command,
     guild_only,
-    check = "bot_core::permissions::require_manage_guild",
     install_context = "Guild",
     interaction_context = "Guild"
 )]
@@ -65,6 +64,7 @@ pub async fn view(ctx: Context<'_>) -> Result<(), Error> {
     prefix_command,
     slash_command,
     guild_only,
+    check = "bot_core::permissions::require_manage_guild",
     install_context = "Guild",
     interaction_context = "Guild"
 )]
