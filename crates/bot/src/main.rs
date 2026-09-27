@@ -17,10 +17,12 @@ async fn main() -> Result<(), Error> {
 
     let config = config::BotConfig::from_env()?;
     let database = Arc::new(database::Database::connect(config.database).await?);
+    let feature_flags = feature_flags::FeatureFlags::from_env().await?;
     let framework = framework::build(
         config.environment,
         config.dev_guild_id,
         database,
+        feature_flags,
         config.auth_service_url,
         config.auth_internal_token,
     );

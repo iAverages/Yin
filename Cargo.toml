@@ -7,6 +7,7 @@ members = [
     "crates/database",
     "crates/feature-admin",
     "crates/feature-endfield",
+    "crates/feature-flags",
     "crates/feature-info",
     "crates/feature-moderation",
     "crates/feature-settings",
@@ -20,6 +21,7 @@ bot-core = { path = "crates/bot-core" }
 database = { path = "crates/database" }
 feature-admin = { path = "crates/feature-admin" }
 feature-endfield = { path = "crates/feature-endfield" }
+feature-flags = { path = "crates/feature-flags" }
 feature-info = { path = "crates/feature-info" }
 feature-moderation = { path = "crates/feature-moderation" }
 feature-settings = { path = "crates/feature-settings" }
@@ -27,6 +29,7 @@ feature-social = { path = "crates/feature-social" }
 
 poise = "0.6.2"
 axum = "0.8"
+posthog-rs = { version = "0.27", default-features = false, features = ["async-client"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 sea-query = { version = "0.32", features = ["backend-mysql", "derive"] }
 serde = { version = "1", features = ["derive"] }
