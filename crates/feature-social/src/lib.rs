@@ -9,11 +9,15 @@ use bot_core::serenity::{
 };
 use bot_core::serenity::{ChannelId, MessageId};
 use bot_core::{BotState, Error};
+use feature_flags::FlagValue;
 use reqwest::{Client, RequestBuilder, Url, header::USER_AGENT};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
 const TWITTER_API: &str = "https://api.fxtwitter.com/2/status/";
+const ABEMBED_TWITTER: &str = "https://staging.abembed.com/twitter/";
+const TWITTER_BACKEND_FLAG: &str = "twitter-embed-backend";
+const ABEMBED_VARIANT: &str = "abembed";
 const BLUESKY_API: &str = "https://api.fxbsky.app/2/status/";
 const ABEMBED_API: &str = "https://i.kirsi.dev/api/";
 const TWITTER_HOSTS: &[&str] = &[
@@ -187,13 +191,17 @@ async fn send_embeds(
     ctx: &serenity::Context,
     message: &serenity::Message,
 ) -> Result<Vec<MessageId>, Error> {
-    let mut links = embed_links(&message.content, "en");
+    let mut links = embed_links(&message.content, "en", TwitterBackend::FxTwitter);
     if links
         .iter()
         .any(|link| matches!(link, EmbedLink::Api(url, _) if url.starts_with(TWITTER_API)))
     {
         let language = guild_translation_language(data, ctx, message).await?;
-        links = embed_links(&message.content, &language);
+        links = embed_links(
+            &message.content,
+            &language,
+            selected_twitter_backend(data, message).await,
+        );
     }
 
     let mut components = Vec::new();
@@ -202,7 +210,7 @@ async fn send_embeds(
             EmbedLink::Api(url, spoiler) => {
                 create_post_component(&fetch_post(&url).await?, spoiler)
             }
-            EmbedLink::Spotify(url, spoiler) => fetch_spotify_component(&url, spoiler).await?,
+            EmbedLink::Component(url, spoiler) => fetch_component(&url, spoiler).await?,
         };
         components.push(component);
     }
@@ -212,6 +220,31 @@ async fn send_embeds(
         response_ids.push(send_payload(ctx, message, create_payload(components)).await?);
     }
     Ok(response_ids)
+}
+
+async fn selected_twitter_backend(data: &BotState, message: &serenity::Message) -> TwitterBackend {
+    match data
+        .feature_flags
+        .value(
+            TWITTER_BACKEND_FLAG,
+            message.author.id.get(),
+            message.guild_id.map(|id| id.get()),
+        )
+        .await
+    {
+        Ok(value) => twitter_backend_from_flag(value),
+        Err(error) => {
+            tracing::warn!(error = %error, "failed to evaluate Twitter embed backend flag");
+            TwitterBackend::FxTwitter
+        }
+    }
+}
+
+fn twitter_backend_from_flag(value: Option<FlagValue>) -> TwitterBackend {
+    match value {
+        Some(FlagValue::String(value)) if value == ABEMBED_VARIANT => TwitterBackend::AbEmbed,
+        _ => TwitterBackend::FxTwitter,
+    }
 }
 
 async fn guild_translation_language(
@@ -235,15 +268,15 @@ async fn guild_translation_language(
     Ok(configured.unwrap_or(default))
 }
 
-async fn fetch_spotify_component(embed_url: &str, spoiler: bool) -> Result<Value, Error> {
-    let html = spqtify_request(embed_url)
+async fn fetch_component(embed_url: &str, spoiler: bool) -> Result<Value, Error> {
+    let html = component_request(embed_url)
         .send()
         .await?
         .error_for_status()?
         .text()
         .await?;
-    let mut component = spqtify_component(&html)
-        .ok_or_else(|| std::io::Error::other("spqtify response had no Discord component"))?;
+    let mut component = component_from_html(&html)
+        .ok_or_else(|| std::io::Error::other("embed response had no Discord component"))?;
     component["spoiler"] = json!(spoiler);
     Ok(component)
 }
@@ -299,7 +332,7 @@ fn request(url: &str) -> RequestBuilder {
     HTTP.get(url).header(USER_AGENT, APP_USER_AGENT)
 }
 
-fn spqtify_request(url: &str) -> RequestBuilder {
+fn component_request(url: &str) -> RequestBuilder {
     HTTP.get(url).header(USER_AGENT, DISCORD_USER_AGENT)
 }
 
@@ -352,17 +385,35 @@ fn spotify_embed_url(content: &str) -> Option<(String, bool)> {
 #[derive(Debug, PartialEq)]
 enum EmbedLink {
     Api(String, bool),
-    Spotify(String, bool),
+    Component(String, bool),
 }
 
-fn embed_links(content: &str, language: &str) -> Vec<EmbedLink> {
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum TwitterBackend {
+    FxTwitter,
+    AbEmbed,
+}
+
+fn embed_links(content: &str, language: &str, twitter_backend: TwitterBackend) -> Vec<EmbedLink> {
     content
         .split_whitespace()
         .filter_map(|word| {
             spotify_embed_url(word)
-                .map(|(url, spoiler)| EmbedLink::Spotify(url, spoiler))
+                .map(|(url, spoiler)| EmbedLink::Component(url, spoiler))
                 .or_else(|| {
-                    api_url(word, language).map(|(url, spoiler)| EmbedLink::Api(url, spoiler))
+                    let url = match twitter_backend {
+                        TwitterBackend::FxTwitter => api_url(word, language),
+                        TwitterBackend::AbEmbed => {
+                            api_url_for_backend(word, language, twitter_backend)
+                        }
+                    };
+                    url.map(|(url, spoiler)| {
+                        if url.starts_with(ABEMBED_TWITTER) {
+                            EmbedLink::Component(url, spoiler)
+                        } else {
+                            EmbedLink::Api(url, spoiler)
+                        }
+                    })
                 })
                 .or_else(|| {
                     tiktok_short_api_url(word).map(|(url, spoiler)| EmbedLink::Api(url, spoiler))
@@ -371,7 +422,7 @@ fn embed_links(content: &str, language: &str) -> Vec<EmbedLink> {
         .collect()
 }
 
-fn spqtify_component(html: &str) -> Option<Value> {
+fn component_from_html(html: &str) -> Option<Value> {
     let json = html
         .split_once(r#"<script id="discord:component-embed" type="application/json">"#)?
         .1
@@ -429,13 +480,21 @@ fn component_count(component: &Value) -> usize {
 }
 
 fn api_url(content: &str, language: &str) -> Option<(String, bool)> {
+    api_url_for_backend(content, language, TwitterBackend::FxTwitter)
+}
+
+fn api_url_for_backend(
+    content: &str,
+    language: &str,
+    twitter_backend: TwitterBackend,
+) -> Option<(String, bool)> {
     content.split_whitespace().find_map(|word| {
         let (url, spoiler) = parse_url(word)?;
         let host = url.host_str()?;
         let parts: Vec<_> = url.path_segments()?.collect();
 
         match parts.as_slice() {
-            [_, "status", id, ..]
+            [username, "status", id, ..]
                 if TWITTER_HOSTS.contains(&host)
                     && (2..=20).contains(&id.len())
                     && id.bytes().all(|byte| byte.is_ascii_digit()) =>
@@ -444,7 +503,17 @@ fn api_url(content: &str, language: &str) -> Option<(String, bool)> {
                     .get(3)
                     .and_then(|language| normalize_translation_language(language))
                     .unwrap_or_else(|| language.to_owned());
-                Some((format!("{TWITTER_API}{id}?lang={language}"), spoiler))
+                Some((
+                    match twitter_backend {
+                        TwitterBackend::FxTwitter => {
+                            format!("{TWITTER_API}{id}?lang={language}")
+                        }
+                        TwitterBackend::AbEmbed => {
+                            format!("{ABEMBED_TWITTER}{username}/status/{id}/{language}")
+                        }
+                    },
+                    spoiler,
+                ))
             }
             ["profile", handle, "post", rkey, ..]
                 if BLUESKY_HOSTS.contains(&host) && !handle.is_empty() && !rkey.is_empty() =>
@@ -880,6 +949,29 @@ mod tests {
     }
 
     #[test]
+    fn routes_the_abembed_variant_to_the_staging_component() {
+        assert_eq!(
+            twitter_backend_from_flag(Some(FlagValue::String(ABEMBED_VARIANT.to_owned()))),
+            TwitterBackend::AbEmbed
+        );
+        assert_eq!(
+            twitter_backend_from_flag(Some(FlagValue::Boolean(true))),
+            TwitterBackend::FxTwitter
+        );
+        assert_eq!(
+            embed_links(
+                "https://x.com/jack/status/20",
+                "fr",
+                TwitterBackend::AbEmbed,
+            ),
+            vec![EmbedLink::Component(
+                "https://staging.abembed.com/twitter/jack/status/20/fr".to_owned(),
+                false,
+            )]
+        );
+    }
+
+    #[test]
     fn supports_fxtwitter_languages_and_aliases() {
         assert_eq!(
             normalize_translation_language("pt-BR").as_deref(),
@@ -920,7 +1012,7 @@ mod tests {
             None
         );
 
-        let component = spqtify_component(concat!(
+        let component = component_from_html(concat!(
             r#"<html><script id="discord:component-embed" type="application/json">"#,
             r##"{"component":{"type":17,"accent_color":8505551,"components":[{"type":10,"content":"# [Cut To The Feeling](https://open.spqtify.com/track/11dFghVXANMlKmJXsNCbNl)"}]}}"##,
             "</script></html>"
@@ -932,7 +1024,7 @@ mod tests {
             "# [Cut To The Feeling](https://open.spqtify.com/track/11dFghVXANMlKmJXsNCbNl)"
         );
         assert_eq!(payload["components"][0]["accent_color"], 8505551);
-        assert!(spqtify_component("<html></html>").is_none());
+        assert!(component_from_html("<html></html>").is_none());
     }
 
     #[test]
@@ -961,13 +1053,14 @@ mod tests {
                     "and https://vm.tiktok.com/ZN88Qw7ns/"
                 ),
                 "en",
+                TwitterBackend::FxTwitter,
             ),
             vec![
                 EmbedLink::Api(
                     "https://api.fxtwitter.com/2/status/20?lang=en".to_owned(),
                     false,
                 ),
-                EmbedLink::Spotify(
+                EmbedLink::Component(
                     "https://open.spqtify.com/track/11dFghVXANMlKmJXsNCbNl".to_owned(),
                     true,
                 ),
