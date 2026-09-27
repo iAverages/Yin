@@ -780,6 +780,7 @@ dependencies = [
  "bot-core",
  "feature-flags",
  "poise",
+ "serde_json",
  "tracing",
 ]
 

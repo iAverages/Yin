@@ -1,10 +1,14 @@
 use bot_core::response::{self, Embed, EmbedKind};
-use bot_core::serenity;
+use bot_core::serenity::{
+    self,
+    http::{LightMethod, Request, Route},
+};
 use bot_core::time;
 use bot_core::{Context, Error, poise};
 use feature_flags::FeatureFlagScope;
+use serde_json::{Value, json};
 
-#[poise::command(prefix_command, owners_only, subcommands("flag"))]
+#[poise::command(prefix_command, owners_only, subcommands("flag", "component"))]
 pub async fn admin(ctx: Context<'_>) -> Result<(), Error> {
     response::send(
         ctx,
@@ -28,6 +32,42 @@ pub async fn admin(ctx: Context<'_>) -> Result<(), Error> {
             .field("Database", "Connected", true),
     )
     .await
+}
+
+#[poise::command(prefix_command, owners_only)]
+async fn component(
+    ctx: Context<'_>,
+    #[rest]
+    #[description = "Component V2 JSON"]
+    component: String,
+) -> Result<(), Error> {
+    let component = match serde_json::from_str::<Value>(&component) {
+        Ok(component) if component.is_object() => component,
+        Ok(_) => return response::error(ctx, "Component JSON must be an object.").await,
+        Err(error) => return response::error(ctx, format!("Invalid JSON: {error}")).await,
+    };
+    let body = component_payload(component)?;
+    ctx.serenity_context()
+        .http
+        .fire::<serenity::Message>(
+            Request::new(
+                Route::ChannelMessages {
+                    channel_id: ctx.channel_id(),
+                },
+                LightMethod::Post,
+            )
+            .body(Some(body)),
+        )
+        .await?;
+    Ok(())
+}
+
+fn component_payload(component: Value) -> Result<Vec<u8>, serde_json::Error> {
+    serde_json::to_vec(&json!({
+        "flags": 1 << 15,
+        "allowed_mentions": {"parse": []},
+        "components": [component],
+    }))
 }
 
 #[poise::command(
@@ -143,4 +183,19 @@ async fn set_flag(
             .field("Scope", scope_name, false),
     )
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wraps_component_v2_json_in_a_message() {
+        let body = component_payload(json!({"type": 10, "content": "hello"})).unwrap();
+        let payload: Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(payload["flags"], 1 << 15);
+        assert_eq!(payload["allowed_mentions"]["parse"], json!([]));
+        assert_eq!(payload["components"][0]["content"], "hello");
+    }
 }
