@@ -187,6 +187,7 @@ async fn send_embeds(
 
     let mut components = Vec::new();
     for link in links {
+        let source = link.source;
         let Some(request) = link.request(&twitter) else {
             continue;
         };
@@ -197,7 +198,13 @@ async fn send_embeds(
             EmbedRequest::AbEmbed { url, spoiler } => {
                 post::component(&fetch_post(&url, post::Format::AbEmbed).await?, spoiler)
             }
-            EmbedRequest::Component { url, spoiler } => fetch_component(&url, spoiler).await?,
+            EmbedRequest::Component { url, spoiler } => {
+                let mut component = fetch_component(&url, spoiler).await?;
+                if matches!(source, Source::Twitter(_)) {
+                    rewrite_abembed_gifs(&mut component);
+                }
+                component
+            }
         };
         components.push(component);
     }
@@ -283,6 +290,20 @@ fn component_from_html(html: &str) -> Option<Value> {
         .ok()?
         .get("component")
         .cloned()
+}
+
+fn rewrite_abembed_gifs(value: &mut Value) {
+    match value {
+        Value::String(url)
+            if url.starts_with("https://gif.abembed.com/") && url.ends_with(".gif") =>
+        {
+            url.truncate(url.len() - ".gif".len());
+            url.push_str(".webp");
+        }
+        Value::Array(values) => values.iter_mut().for_each(rewrite_abembed_gifs),
+        Value::Object(values) => values.values_mut().for_each(rewrite_abembed_gifs),
+        _ => {}
+    }
 }
 
 fn create_payload(components: Vec<Value>) -> Value {
@@ -380,6 +401,22 @@ mod tests {
         assert_eq!(payload["components"][0]["components"][0]["content"], "text");
         assert_eq!(payload["components"][0]["accent_color"], 8505551);
         assert!(component_from_html("<html></html>").is_none());
+    }
+
+    #[test]
+    fn rewrites_only_abembed_gif_urls_to_webp() {
+        let mut component = json!({
+            "components": [{"media": {"url": "https://gif.abembed.com/tweet_video/a.gif"}}],
+            "other": "https://example.com/a.gif",
+        });
+
+        rewrite_abembed_gifs(&mut component);
+
+        assert_eq!(
+            component["components"][0]["media"]["url"],
+            "https://gif.abembed.com/tweet_video/a.webp"
+        );
+        assert_eq!(component["other"], "https://example.com/a.gif");
     }
 
     #[test]
