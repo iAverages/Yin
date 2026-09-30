@@ -19,6 +19,38 @@ impl<'a> GuildSettingsRepository<'a> {
         Self { database }
     }
 
+    pub async fn disabled_social_platforms(
+        &self,
+        guild_id: u64,
+    ) -> Result<Vec<String>, DatabaseError> {
+        Ok(sqlx::query_scalar(
+            "SELECT platform FROM guild_social_embed_opt_outs WHERE guild_id = ? ORDER BY platform",
+        )
+        .bind(guild_id)
+        .fetch_all(self.database.pool())
+        .await?)
+    }
+
+    pub async fn set_social_embed_enabled(
+        &self,
+        guild_id: u64,
+        platform: &str,
+        enabled: bool,
+    ) -> Result<(), DatabaseError> {
+        let sql = if enabled {
+            "DELETE FROM guild_social_embed_opt_outs WHERE guild_id = ? AND platform = ?"
+        } else {
+            "INSERT INTO guild_social_embed_opt_outs (guild_id, platform) VALUES (?, ?) \
+             ON DUPLICATE KEY UPDATE platform = VALUES(platform)"
+        };
+        sqlx::query(sql)
+            .bind(guild_id)
+            .bind(platform)
+            .execute(self.database.pool())
+            .await?;
+        Ok(())
+    }
+
     pub async fn find_by_guild_id(
         &self,
         guild_id: u64,

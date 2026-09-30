@@ -39,8 +39,9 @@ pub async fn settings(ctx: Context<'_>) -> Result<(), Error> {
                 false,
             )
             .field(
-                "Your Social Embeds",
-                "`!settings social view` or `/settings social view`",
+                "Social Embeds",
+                "`/settings social view` for your preferences; add `scope:server` for server settings. \
+                 Prefix: `!settings social view [user|server]`.",
                 false,
             ),
     )

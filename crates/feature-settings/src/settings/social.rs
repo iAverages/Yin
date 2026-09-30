@@ -1,9 +1,18 @@
 use bot_core::response::{self, Embed, EmbedKind};
 use bot_core::{Context, Error, poise};
-use database::UserSocialEmbedsRepository;
+use database::{GuildSettingsRepository, UserSocialEmbedsRepository};
 use feature_social::SocialPlatform;
 
-/// Manage your social embed preferences across all servers.
+#[derive(Clone, Copy, Default, poise::ChoiceParameter)]
+pub enum SocialScope {
+    #[default]
+    #[name = "user"]
+    User,
+    #[name = "server"]
+    Server,
+}
+
+/// Manage personal or server-wide social embed preferences.
 #[poise::command(
     prefix_command,
     slash_command,
@@ -15,30 +24,52 @@ use feature_social::SocialPlatform;
 pub async fn social(ctx: Context<'_>) -> Result<(), Error> {
     response::send(
         ctx,
-        Embed::new(EmbedKind::Info, "Your Social Embeds").description(
+        Embed::new(EmbedKind::Info, "Social Embeds").description(
             "Use `/settings social view` to see your preferences or `/settings social set` to change them. \
-             Prefix commands: `!settings social view` and `!settings social set <platform> <true|false>`.",
+             Add `scope:server` to manage server-wide settings (changes require Manage Server). \
+             Prefix commands: `!settings social view [user|server]` and \
+             `!settings social set <platform> <true|false> [user|server]`.",
         ),
     )
     .await
 }
 
-/// View your social embed preferences across all servers.
+/// View personal or server-wide social embed preferences.
 #[poise::command(
     prefix_command,
     slash_command,
+    guild_only,
     ephemeral,
     install_context = "Guild",
     interaction_context = "Guild"
 )]
-pub async fn view(ctx: Context<'_>) -> Result<(), Error> {
-    let disabled = UserSocialEmbedsRepository::new(&ctx.data().database)
-        .disabled_platforms(ctx.author().id.get())
-        .await?;
-    let mut embed = Embed::new(EmbedKind::Info, "Your Social Embeds").description(
-        "These preferences apply to your links across all servers. \
-         Use `/settings social set` or `!settings social set <platform> <true|false>` to change them.",
-    );
+pub async fn view(
+    ctx: Context<'_>,
+    #[description = "View your preferences (default) or this server's settings"] scope: Option<
+        SocialScope,
+    >,
+) -> Result<(), Error> {
+    let (disabled, title, description) = match scope.unwrap_or_default() {
+        SocialScope::User => (
+            UserSocialEmbedsRepository::new(&ctx.data().database)
+                .disabled_platforms(ctx.author().id.get())
+                .await?,
+            "Your Social Embeds",
+            "Applies to your links across all servers. Server settings may also disable embeds.",
+        ),
+        SocialScope::Server => (
+            GuildSettingsRepository::new(&ctx.data().database)
+                .disabled_social_platforms(
+                    ctx.guild_id()
+                        .expect("guild-only command has a guild ID")
+                        .get(),
+                )
+                .await?,
+            "Server Social Embeds",
+            "Applies to everyone's links in this server. Personal opt-outs still apply.",
+        ),
+    };
+    let mut embed = Embed::new(EmbedKind::Info, title).description(description);
     for platform in SocialPlatform::ALL {
         let enabled = !disabled.iter().any(|disabled| disabled == platform.key());
         embed = embed.field(
@@ -50,10 +81,11 @@ pub async fn view(ctx: Context<'_>) -> Result<(), Error> {
     response::send(ctx, embed).await
 }
 
-/// Enable or disable bot embeds for your links from a social platform.
+/// Enable or disable personal or server-wide embeds for a social platform.
 #[poise::command(
     prefix_command,
     slash_command,
+    guild_only,
     ephemeral,
     install_context = "Guild",
     interaction_context = "Guild"
@@ -61,15 +93,48 @@ pub async fn view(ctx: Context<'_>) -> Result<(), Error> {
 pub async fn set(
     ctx: Context<'_>,
     #[description = "Social platform to configure"] platform: SocialPlatform,
-    #[description = "Whether the bot should embed your links from this platform"] enabled: bool,
+    #[description = "Whether the bot should embed links from this platform"] enabled: bool,
+    #[description = "Change your preferences (default) or this server's settings"] scope: Option<
+        SocialScope,
+    >,
 ) -> Result<(), Error> {
-    UserSocialEmbedsRepository::new(&ctx.data().database)
-        .set_enabled(ctx.author().id.get(), platform.key(), enabled)
-        .await?;
+    let (title, description) = match scope.unwrap_or_default() {
+        SocialScope::User => {
+            UserSocialEmbedsRepository::new(&ctx.data().database)
+                .set_enabled(ctx.author().id.get(), platform.key(), enabled)
+                .await?;
+            (
+                "Your Social Embeds Updated",
+                "Applies to your links across all servers. Server settings may also disable embeds.",
+            )
+        }
+        SocialScope::Server => {
+            if !bot_core::permissions::require_manage_guild(ctx).await? {
+                return response::error(
+                    ctx,
+                    "You need Manage Server permission to change server social embeds.",
+                )
+                .await;
+            }
+            GuildSettingsRepository::new(&ctx.data().database)
+                .set_social_embed_enabled(
+                    ctx.guild_id()
+                        .expect("guild-only command has a guild ID")
+                        .get(),
+                    platform.key(),
+                    enabled,
+                )
+                .await?;
+            (
+                "Server Social Embeds Updated",
+                "Applies to everyone's links in this server. Personal opt-outs still apply.",
+            )
+        }
+    };
     response::send(
         ctx,
-        Embed::new(EmbedKind::Success, "Your Social Embeds Updated")
-            .description("Applies to your links across all servers.")
+        Embed::new(EmbedKind::Success, title)
+            .description(description)
             .field(
                 platform.key(),
                 if enabled { "Enabled" } else { "Disabled" },

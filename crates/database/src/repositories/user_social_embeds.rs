@@ -18,6 +18,22 @@ impl<'a> UserSocialEmbedsRepository<'a> {
         .await?)
     }
 
+    pub async fn effective_disabled_platforms(
+        &self,
+        user_id: u64,
+        guild_id: Option<u64>,
+    ) -> Result<Vec<String>, DatabaseError> {
+        Ok(sqlx::query_scalar(
+            "SELECT platform FROM user_social_embed_opt_outs WHERE user_id = ? \
+             UNION SELECT platform FROM guild_social_embed_opt_outs WHERE guild_id = ? \
+             ORDER BY platform",
+        )
+        .bind(user_id)
+        .bind(guild_id)
+        .fetch_all(self.database.pool())
+        .await?)
+    }
+
     pub async fn set_enabled(
         &self,
         user_id: u64,
@@ -42,6 +58,76 @@ impl<'a> UserSocialEmbedsRepository<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::GuildSettingsRepository;
+
+    #[sqlx::test(migrations = "./migrations")]
+    #[ignore = "requires DATABASE_URL with permission to create test databases"]
+    async fn server_and_user_opt_outs_apply_independently(
+        pool: sqlx::MySqlPool,
+    ) -> Result<(), DatabaseError> {
+        let database = Database { pool };
+        let users = UserSocialEmbedsRepository::new(&database);
+        let guilds = GuildSettingsRepository::new(&database);
+        assert!(guilds.disabled_social_platforms(10).await?.is_empty());
+        assert!(
+            users
+                .effective_disabled_platforms(1, Some(10))
+                .await?
+                .is_empty()
+        );
+
+        guilds
+            .set_social_embed_enabled(10, "twitter", false)
+            .await?;
+        guilds
+            .set_social_embed_enabled(10, "twitter", false)
+            .await?;
+        guilds
+            .set_social_embed_enabled(10, "spotify", false)
+            .await?;
+        guilds
+            .set_social_embed_enabled(20, "instagram", false)
+            .await?;
+        users.set_enabled(1, "twitter", false).await?;
+        users.set_enabled(1, "tiktok", false).await?;
+
+        for (user_id, guild_id, expected) in [
+            (1, Some(10), vec!["spotify", "tiktok", "twitter"]),
+            (2, Some(10), vec!["spotify", "twitter"]),
+            (1, Some(20), vec!["instagram", "tiktok", "twitter"]),
+            (1, None, vec!["tiktok", "twitter"]),
+            (2, None, vec![]),
+        ] {
+            assert_eq!(
+                users
+                    .effective_disabled_platforms(user_id, guild_id)
+                    .await?,
+                expected
+            );
+        }
+
+        users.set_enabled(1, "twitter", true).await?;
+        assert_eq!(
+            users.effective_disabled_platforms(1, Some(10)).await?,
+            ["spotify", "tiktok", "twitter"]
+        );
+        users.set_enabled(1, "twitter", false).await?;
+        guilds.set_social_embed_enabled(10, "twitter", true).await?;
+        guilds.set_social_embed_enabled(10, "twitter", true).await?;
+        assert_eq!(
+            users.effective_disabled_platforms(1, Some(10)).await?,
+            ["spotify", "tiktok", "twitter"]
+        );
+        assert_eq!(
+            users.effective_disabled_platforms(2, Some(10)).await?,
+            ["spotify"]
+        );
+        assert_eq!(guilds.disabled_social_platforms(20).await?, ["instagram"]);
+
+        guilds.set_social_embed_enabled(10, "spotify", true).await?;
+        assert!(guilds.disabled_social_platforms(10).await?.is_empty());
+        Ok(())
+    }
 
     #[sqlx::test(migrations = "./migrations")]
     #[ignore = "requires DATABASE_URL with permission to create test databases"]

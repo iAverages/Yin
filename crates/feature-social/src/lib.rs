@@ -182,7 +182,7 @@ async fn send_embeds(
         return Ok(Vec::new());
     }
     let disabled_platforms = UserSocialEmbedsRepository::new(&data.database)
-        .disabled_platforms(message.author.id.get())
+        .effective_disabled_platforms(message.author.id.get(), message.guild_id.map(|id| id.get()))
         .await?;
     source::retain_enabled_links(&mut links, &disabled_platforms);
     if links.is_empty() {
