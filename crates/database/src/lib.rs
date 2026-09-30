@@ -18,6 +18,7 @@ pub use repositories::moderation::{
     NewPunishmentLadderRule, NewWarn, NewWarning, PunishmentLadderExecution, PunishmentLadderRule,
     WarnResult, Warning,
 };
+pub use repositories::user_social_embeds::UserSocialEmbedsRepository;
 
 pub struct Database {
     pool: MySqlPool,

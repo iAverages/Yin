@@ -9,6 +9,38 @@ pub(crate) mod twitter;
 
 pub(super) const ABEMBED_API: &str = "https://abembed.com/api/";
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, poise::ChoiceParameter)]
+pub enum SocialPlatform {
+    #[name = "twitter"]
+    #[name = "x"]
+    Twitter,
+    #[name = "bluesky"]
+    Bluesky,
+    #[name = "instagram"]
+    Instagram,
+    #[name = "facebook"]
+    Facebook,
+    #[name = "tiktok"]
+    TikTok,
+    #[name = "spotify"]
+    Spotify,
+}
+
+impl SocialPlatform {
+    pub const ALL: [Self; 6] = [
+        Self::Twitter,
+        Self::Bluesky,
+        Self::Instagram,
+        Self::Facebook,
+        Self::TikTok,
+        Self::Spotify,
+    ];
+
+    pub fn key(self) -> &'static str {
+        poise::ChoiceParameter::name(&self)
+    }
+}
+
 trait EmbedSource {
     fn handles(&self, url: &Url) -> bool;
     fn request(
@@ -58,6 +90,17 @@ impl Link {
 }
 
 impl Source {
+    pub(crate) fn platform(self) -> SocialPlatform {
+        match self {
+            Self::Twitter(_) => SocialPlatform::Twitter,
+            Self::Bluesky(_) => SocialPlatform::Bluesky,
+            Self::Instagram(_) => SocialPlatform::Instagram,
+            Self::Facebook(_) => SocialPlatform::Facebook,
+            Self::TikTok(_) => SocialPlatform::TikTok,
+            Self::Spotify(_) => SocialPlatform::Spotify,
+        }
+    }
+
     fn recognize(url: &Url) -> Option<Self> {
         match () {
             _ if spotify::Spotify.handles(url) => Some(Self::Spotify(spotify::Spotify)),
@@ -120,6 +163,14 @@ pub(crate) fn parse_links(content: &str) -> Vec<Link> {
         .collect()
 }
 
+pub(crate) fn retain_enabled_links(links: &mut Vec<Link>, disabled_platforms: &[String]) {
+    links.retain(|link| {
+        !disabled_platforms
+            .iter()
+            .any(|platform| platform == link.source.platform().key())
+    });
+}
+
 fn parse_url(word: &str) -> Option<(Url, bool)> {
     let word = word.trim_matches(|c: char| "<>()[]{}\"',.!?".contains(c));
     let (word, spoiler) = match word
@@ -136,6 +187,21 @@ fn parse_url(word: &str) -> Option<(Url, bool)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_supported_platform_has_an_independent_toggle() {
+        for platform in SocialPlatform::ALL {
+            let source = Source::from_provider(platform.key()).unwrap();
+            assert_eq!(source.platform(), platform);
+            let mut links = vec![Link {
+                source,
+                url: Url::parse("https://example.com").unwrap(),
+                spoiler: false,
+            }];
+            retain_enabled_links(&mut links, &[platform.key().to_owned()]);
+            assert!(links.is_empty());
+        }
+    }
 
     #[test]
     fn parses_supported_links_in_message_order_and_preserves_spoilers() {

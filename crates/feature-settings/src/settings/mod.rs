@@ -1,5 +1,6 @@
 mod language;
 mod prefix;
+mod social;
 
 use bot_core::response::{self, Embed, EmbedKind};
 use bot_core::{Context, Error, poise};
@@ -8,7 +9,7 @@ use bot_core::{Context, Error, poise};
     prefix_command,
     slash_command,
     guild_only,
-    subcommands("prefix", "language", "ladder"),
+    subcommands("prefix", "language", "ladder", "social"),
     install_context = "Guild",
     interaction_context = "Guild"
 )]
@@ -36,6 +37,11 @@ pub async fn settings(ctx: Context<'_>) -> Result<(), Error> {
                 "Translation Language",
                 "`!settings language` or `/settings language`",
                 false,
+            )
+            .field(
+                "Your Social Embeds",
+                "`!settings social view` or `/settings social view`",
+                false,
             ),
     )
     .await
@@ -43,6 +49,7 @@ pub async fn settings(ctx: Context<'_>) -> Result<(), Error> {
 
 pub use language::language;
 pub use prefix::prefix;
+pub use social::social;
 
 fn ladder() -> bot_core::Command {
     feature_moderation::ladder_command()

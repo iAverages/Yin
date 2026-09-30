@@ -12,10 +12,12 @@ use bot_core::serenity::{
 };
 use bot_core::serenity::{ChannelId, MessageId};
 use bot_core::{BotState, Error};
+use database::UserSocialEmbedsRepository;
 use reqwest::{Client, RequestBuilder, header::USER_AGENT};
 use serde_json::{Value, json};
 use source::{Request as EmbedRequest, Source};
 
+pub use source::SocialPlatform;
 pub use source::twitter::{normalize_translation_language, primary_translation_language};
 
 const MESSAGE_COMPONENT_LIMIT: usize = 40;
@@ -175,7 +177,17 @@ async fn send_embeds(
     ctx: &serenity::Context,
     message: &serenity::Message,
 ) -> Result<Vec<MessageId>, Error> {
-    let links = source::parse_links(&message.content);
+    let mut links = source::parse_links(&message.content);
+    if links.is_empty() {
+        return Ok(Vec::new());
+    }
+    let disabled_platforms = UserSocialEmbedsRepository::new(&data.database)
+        .disabled_platforms(message.author.id.get())
+        .await?;
+    source::retain_enabled_links(&mut links, &disabled_platforms);
+    if links.is_empty() {
+        return Ok(Vec::new());
+    }
     let twitter = if links
         .iter()
         .any(|link| matches!(link.source, Source::Twitter(_)))
