@@ -52,6 +52,23 @@ impl<'a> GuildSettingsRepository<'a> {
         Ok(())
     }
 
+    pub async fn reset_social_embeds(
+        &self,
+        guild_id: u64,
+        platform: Option<&str>,
+    ) -> Result<(), DatabaseError> {
+        if let Some(platform) = platform {
+            return self
+                .set_social_embed_enabled(guild_id, platform, true)
+                .await;
+        }
+        sqlx::query("DELETE FROM guild_social_embed_opt_outs WHERE guild_id = ?")
+            .bind(guild_id)
+            .execute(self.database.pool())
+            .await?;
+        Ok(())
+    }
+
     pub async fn find_by_guild_id(
         &self,
         guild_id: u64,

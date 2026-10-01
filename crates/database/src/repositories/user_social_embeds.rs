@@ -53,6 +53,17 @@ impl<'a> UserSocialEmbedsRepository<'a> {
             .await?;
         Ok(())
     }
+
+    pub async fn reset(&self, user_id: u64, platform: Option<&str>) -> Result<(), DatabaseError> {
+        if let Some(platform) = platform {
+            return self.set_enabled(user_id, platform, true).await;
+        }
+        sqlx::query("DELETE FROM user_social_embed_opt_outs WHERE user_id = ?")
+            .bind(user_id)
+            .execute(self.database.pool())
+            .await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -126,6 +137,38 @@ mod tests {
 
         guilds.set_social_embed_enabled(10, "spotify", true).await?;
         assert!(guilds.disabled_social_platforms(10).await?.is_empty());
+
+        users.set_enabled(2, "spotify", false).await?;
+        users.reset(1, Some("twitter")).await?;
+        users.reset(1, Some("twitter")).await?;
+        assert_eq!(users.disabled_platforms(1).await?, ["tiktok"]);
+
+        guilds
+            .set_social_embed_enabled(10, "twitter", false)
+            .await?;
+        guilds
+            .set_social_embed_enabled(10, "spotify", false)
+            .await?;
+        guilds.reset_social_embeds(10, Some("twitter")).await?;
+        guilds.reset_social_embeds(10, Some("twitter")).await?;
+        assert_eq!(guilds.disabled_social_platforms(10).await?, ["spotify"]);
+        assert_eq!(users.disabled_platforms(1).await?, ["tiktok"]);
+
+        users.reset(1, None).await?;
+        assert!(users.disabled_platforms(1).await?.is_empty());
+        assert_eq!(users.disabled_platforms(2).await?, ["spotify"]);
+        assert_eq!(
+            users.effective_disabled_platforms(1, Some(20)).await?,
+            ["instagram"]
+        );
+
+        guilds.reset_social_embeds(10, None).await?;
+        assert!(guilds.disabled_social_platforms(10).await?.is_empty());
+        assert_eq!(guilds.disabled_social_platforms(20).await?, ["instagram"]);
+        assert_eq!(
+            users.effective_disabled_platforms(2, Some(10)).await?,
+            ["spotify"]
+        );
         Ok(())
     }
 

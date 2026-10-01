@@ -4,7 +4,7 @@ mod settings;
 use bot_core::Command;
 
 pub fn commands() -> Vec<Command> {
-    vec![custom_commands::cmd(), settings::settings()]
+    vec![settings::settings(), settings::guild()]
 }
 
 pub use custom_commands::handle_message;

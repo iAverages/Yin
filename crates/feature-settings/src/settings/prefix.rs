@@ -5,12 +5,13 @@ use database::settings::CommandPrefix;
 
 pub const DEFAULT_PREFIX: &str = "!";
 
+/// View, set, or reset this server's command prefix.
 #[poise::command(
     prefix_command,
     slash_command,
     guild_only,
     subcommand_required,
-    subcommands("view", "set", "reset"),
+    subcommands("view_prefix", "set_prefix", "reset_prefix"),
     install_context = "Guild",
     interaction_context = "Guild"
 )]
@@ -18,14 +19,9 @@ pub async fn prefix(_ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-#[poise::command(
-    prefix_command,
-    slash_command,
-    guild_only,
-    install_context = "Guild",
-    interaction_context = "Guild"
-)]
-pub async fn view(ctx: Context<'_>) -> Result<(), Error> {
+/// View this server's command prefix.
+#[poise::command(prefix_command, slash_command, rename = "view", guild_only)]
+async fn view_prefix(ctx: Context<'_>) -> Result<(), Error> {
     let guild_id = ctx.guild_id().expect("guild-only command has a guild ID");
 
     let repository = GuildSettingsRepository::new(&ctx.data().database);
@@ -39,15 +35,9 @@ pub async fn view(ctx: Context<'_>) -> Result<(), Error> {
     response::send(ctx, embed).await
 }
 
-#[poise::command(
-    prefix_command,
-    slash_command,
-    guild_only,
-    check = "bot_core::permissions::require_manage_guild",
-    install_context = "Guild",
-    interaction_context = "Guild"
-)]
-pub async fn set(
+/// Set this server's command prefix.
+#[poise::command(prefix_command, slash_command, rename = "set", guild_only)]
+async fn set_prefix(
     ctx: Context<'_>,
     #[description = "New command prefix"] prefix: String,
 ) -> Result<(), Error> {
@@ -77,15 +67,9 @@ pub async fn set(
     .await
 }
 
-#[poise::command(
-    prefix_command,
-    slash_command,
-    guild_only,
-    check = "bot_core::permissions::require_manage_guild",
-    install_context = "Guild",
-    interaction_context = "Guild"
-)]
-pub async fn reset(ctx: Context<'_>) -> Result<(), Error> {
+/// Reset this server's command prefix to the default.
+#[poise::command(prefix_command, slash_command, rename = "reset", guild_only)]
+async fn reset_prefix(ctx: Context<'_>) -> Result<(), Error> {
     let guild_id = ctx.guild_id().expect("guild-only command has a guild ID");
 
     let repository = GuildSettingsRepository::new(&ctx.data().database);

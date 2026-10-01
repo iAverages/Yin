@@ -8,6 +8,7 @@ use crate::DEFAULT_PREFIX;
 
 #[poise::command(
     slash_command,
+    rename = "commands",
     guild_only,
     subcommand_required,
     subcommands("create", "list", "remove"),
@@ -21,7 +22,6 @@ pub async fn cmd(_ctx: Context<'_>) -> Result<(), Error> {
 #[poise::command(
     slash_command,
     guild_only,
-    check = "bot_core::permissions::require_manage_guild",
     install_context = "Guild",
     interaction_context = "Guild"
 )]
@@ -88,7 +88,6 @@ pub async fn list(ctx: Context<'_>) -> Result<(), Error> {
 #[poise::command(
     slash_command,
     guild_only,
-    check = "bot_core::permissions::require_manage_guild",
     install_context = "Guild",
     interaction_context = "Guild"
 )]

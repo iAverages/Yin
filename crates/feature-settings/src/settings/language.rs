@@ -4,15 +4,23 @@ use database::GuildSettingsRepository;
 use database::settings::TranslationLanguage;
 use feature_social::primary_translation_language;
 
+/// View, set, or reset this server's translation language.
 #[poise::command(
     prefix_command,
     slash_command,
     guild_only,
-    subcommands("set", "reset"),
+    subcommand_required,
+    subcommands("view_language", "set_language", "reset_language"),
     install_context = "Guild",
     interaction_context = "Guild"
 )]
-pub async fn language(ctx: Context<'_>) -> Result<(), Error> {
+pub async fn language(_ctx: Context<'_>) -> Result<(), Error> {
+    Ok(())
+}
+
+/// View this server's translation language.
+#[poise::command(prefix_command, slash_command, rename = "view", guild_only)]
+async fn view_language(ctx: Context<'_>) -> Result<(), Error> {
     let guild_id = ctx.guild_id().expect("guild-only command has a guild ID");
     let default = guild_language(ctx);
     let configured = GuildSettingsRepository::new(&ctx.data().database)
@@ -28,15 +36,9 @@ pub async fn language(ctx: Context<'_>) -> Result<(), Error> {
     .await
 }
 
-#[poise::command(
-    prefix_command,
-    slash_command,
-    guild_only,
-    check = "bot_core::permissions::require_manage_guild",
-    install_context = "Guild",
-    interaction_context = "Guild"
-)]
-pub async fn set(
+/// Set this server's translation language.
+#[poise::command(prefix_command, slash_command, rename = "set", guild_only)]
+async fn set_language(
     ctx: Context<'_>,
     #[description = "ISO language code, such as en, ja, pt-BR, or zh-Hant"] language: String,
 ) -> Result<(), Error> {
@@ -64,15 +66,9 @@ pub async fn set(
     .await
 }
 
-#[poise::command(
-    prefix_command,
-    slash_command,
-    guild_only,
-    check = "bot_core::permissions::require_manage_guild",
-    install_context = "Guild",
-    interaction_context = "Guild"
-)]
-pub async fn reset(ctx: Context<'_>) -> Result<(), Error> {
+/// Reset this server's translation language to the default.
+#[poise::command(prefix_command, slash_command, rename = "reset", guild_only)]
+async fn reset_language(ctx: Context<'_>) -> Result<(), Error> {
     let guild_id = ctx.guild_id().expect("guild-only command has a guild ID");
     GuildSettingsRepository::new(&ctx.data().database)
         .clear_translation_language(guild_id.get())
