@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/solid-router";
-import { For, createComputed, createSignal, type Accessor } from "solid-js";
+import { revalidateLogic } from "@tanstack/solid-form";
+import { For, type Accessor } from "solid-js";
+import { z } from "zod";
 
 import { GuildSettingsContent } from "../components/guild-settings-content";
 import { GuildPageSkeleton } from "../components/loading";
 import { Button } from "../components/button";
-import { Field, FieldLabel, inputClass } from "../components/field";
+import { useAppForm } from "../components/form";
 import { Table } from "../components/table";
-import { Toggle } from "../components/toggle";
 import {
     deleteCustomCommand,
     updateGeneralSettings,
@@ -17,9 +18,8 @@ import {
     type GuildSettings,
     type SocialEmbedsInput,
 } from "../lib/api-client";
-import { createSettingsMutation } from "../lib/settings-feedback";
+import { createSettingsMutation, saveSettings } from "../lib/settings-feedback";
 import { loadGuildSettings } from "../lib/guild-queries";
-import { cn } from "../lib/utils";
 
 const GuildSettingsPage = () => {
     const params = Route.useParams();
@@ -33,22 +33,6 @@ const GuildSettingsPage = () => {
 const SettingsEditor = (props: { settings: Accessor<GuildSettings>; guildId: string }) => {
     const guildId = props.guildId;
     const settingsMutation = createSettingsMutation(guildId, props.settings().guild.name);
-    const [prefix, setPrefix] = createSignal("");
-    const [language, setLanguage] = createSignal("");
-    const [disabledPlatforms, setDisabledPlatforms] = createSignal<string[]>([]);
-    const [commandName, setCommandName] = createSignal("");
-    const [commandResponse, setCommandResponse] = createSignal("");
-
-    createComputed(() => {
-        const settings = props.settings();
-        setPrefix(settings.commandPrefix ?? "");
-        setLanguage(settings.translationLanguage ?? "");
-        setDisabledPlatforms(
-            settings.socialEmbeds
-                .filter((platform) => !platform.enabled)
-                .map((platform) => platform.platform),
-        );
-    });
 
     const generalMutation = settingsMutation(
         (input: GeneralSettingsInput) => updateGeneralSettings(guildId, input),
@@ -61,29 +45,45 @@ const SettingsEditor = (props: { settings: Accessor<GuildSettings>; guildId: str
     const commandMutation = settingsMutation(
         (input: CustomCommand) => upsertCustomCommand(guildId, input),
         "Custom command saved.",
-        () => {
-            setCommandName("");
-            setCommandResponse("");
-        },
     );
     const removeCommandMutation = settingsMutation(
         (name: string) => deleteCustomCommand(guildId, name),
         "Custom command removed.",
     );
-    const saveGeneral = () => {
-        generalMutation.mutate({
-            commandPrefix: blankToNull(prefix()),
-            translationLanguage: blankToNull(language()),
-        });
-    };
 
-    const saveSocial = () => {
-        socialMutation.mutate({ disabledPlatforms: disabledPlatforms() });
-    };
+    const generalForm = useAppForm(() => ({
+        defaultValues: generalValues(props.settings()),
+        validationLogic: revalidateLogic(),
+        validators: { onDynamic: generalSchema },
+        onSubmit: async ({ value, formApi }) => {
+            const settings = await saveSettings(generalMutation, {
+                commandPrefix: blankToNull(value.commandPrefix),
+                translationLanguage: blankToNull(value.translationLanguage),
+            });
+            if (settings) formApi.reset(generalValues(settings));
+        },
+    }));
 
-    const saveCommand = () => {
-        commandMutation.mutate({ name: commandName(), response: commandResponse() });
-    };
+    const socialForm = useAppForm(() => ({
+        defaultValues: socialValues(props.settings()),
+        onSubmit: async ({ value, formApi }) => {
+            const settings = await saveSettings(socialMutation, {
+                disabledPlatforms: Object.keys(value.enabled).filter(
+                    (platform) => !value.enabled[platform],
+                ),
+            });
+            if (settings) formApi.reset(socialValues(settings));
+        },
+    }));
+
+    const commandForm = useAppForm(() => ({
+        defaultValues: { name: "", response: "" },
+        validationLogic: revalidateLogic(),
+        validators: { onDynamic: commandSchema },
+        onSubmit: async ({ value, formApi }) => {
+            if (await saveSettings(commandMutation, value)) formApi.reset();
+        },
+    }));
 
     return (
         <div class="min-w-0">
@@ -100,38 +100,44 @@ const SettingsEditor = (props: { settings: Accessor<GuildSettings>; guildId: str
                     aria-labelledby="general-title"
                 >
                     <SectionHeader title="General" id="general-title" />
-                    <div class="mt-5 grid gap-4 sm:grid-cols-2">
-                        <Field
-                            label="Command prefix"
-                            description={`Leave blank to use ${props.settings().activePrefix === "!" ? "the default !" : "the bot default"}. No spaces.`}
-                            value={prefix()}
-                            maxlength={16}
-                            placeholder="!"
-                            onInput={(event) => setPrefix(event.currentTarget.value)}
-                        />
-                        <Field
-                            label="Translation language"
-                            description="ISO code used by translated social embeds. Leave blank for English."
-                            value={language()}
-                            placeholder="en, ja, pt-BR"
-                            onInput={(event) => setLanguage(event.currentTarget.value)}
-                        />
-                    </div>
-                    <div class="mt-5 flex items-center justify-between gap-3 border-t border-line pt-5">
-                        <p class="m-0 text-xs text-muted">
-                            Active prefix:{" "}
-                            <span class="font-mono text-foreground">
-                                {props.settings().activePrefix}
-                            </span>{" "}
-                            - Language:{" "}
-                            <span class="font-mono text-foreground">
-                                {props.settings().activeTranslationLanguage}
-                            </span>
-                        </p>
-                        <Button onClick={saveGeneral} disabled={generalMutation.isPending}>
-                            Save general
-                        </Button>
-                    </div>
+                    <generalForm.AppForm>
+                        <generalForm.Form>
+                            <div class="mt-5 grid gap-4 sm:grid-cols-2">
+                                <generalForm.AppField name="commandPrefix">
+                                    {(field) => (
+                                        <field.TextField
+                                            label="Command prefix"
+                                            description={`Leave blank to use ${props.settings().activePrefix === "!" ? "the default !" : "the bot default"}. No spaces.`}
+                                            maxlength={16}
+                                            placeholder="!"
+                                        />
+                                    )}
+                                </generalForm.AppField>
+                                <generalForm.AppField name="translationLanguage">
+                                    {(field) => (
+                                        <field.TextField
+                                            label="Translation language"
+                                            description="ISO code used by translated social embeds. Leave blank for English."
+                                            placeholder="en, ja, pt-BR"
+                                        />
+                                    )}
+                                </generalForm.AppField>
+                            </div>
+                            <div class="mt-5 flex items-center justify-between gap-3 border-t border-line pt-5">
+                                <p class="m-0 text-xs text-muted">
+                                    Active prefix:{" "}
+                                    <span class="font-mono text-foreground">
+                                        {props.settings().activePrefix}
+                                    </span>{" "}
+                                    - Language:{" "}
+                                    <span class="font-mono text-foreground">
+                                        {props.settings().activeTranslationLanguage}
+                                    </span>
+                                </p>
+                                <generalForm.SubmitButton>Save general</generalForm.SubmitButton>
+                            </div>
+                        </generalForm.Form>
+                    </generalForm.AppForm>
                 </section>
 
                 <section
@@ -139,35 +145,27 @@ const SettingsEditor = (props: { settings: Accessor<GuildSettings>; guildId: str
                     aria-labelledby="social-title"
                 >
                     <SectionHeader title="Social embeds" id="social-title" />
-                    <div class="mt-2">
-                        <For each={props.settings().socialEmbeds}>
-                            {(platform) => (
-                                <Toggle
-                                    label={platformLabel(platform.platform)}
-                                    description="Replace links with embeds."
-                                    checked={!disabledPlatforms().includes(platform.platform)}
-                                    onChange={(checked) => {
-                                        setDisabledPlatforms((current) => {
-                                            if (checked)
-                                                return current.filter(
-                                                    (item) => item !== platform.platform,
-                                                );
-                                            return Array.from(
-                                                new Set([...current, platform.platform]),
-                                            );
-                                        });
-                                    }}
-                                />
-                            )}
-                        </For>
-                    </div>
-                    <Button
-                        class="mt-5 w-full"
-                        onClick={saveSocial}
-                        disabled={socialMutation.isPending}
-                    >
-                        Save social embeds
-                    </Button>
+                    <socialForm.AppForm>
+                        <socialForm.Form>
+                            <div class="mt-2">
+                                <For each={props.settings().socialEmbeds}>
+                                    {(platform) => (
+                                        <socialForm.AppField name={`enabled.${platform.platform}`}>
+                                            {(field) => (
+                                                <field.ToggleField
+                                                    label={platformLabel(platform.platform)}
+                                                    description="Replace links with embeds."
+                                                />
+                                            )}
+                                        </socialForm.AppField>
+                                    )}
+                                </For>
+                            </div>
+                            <socialForm.SubmitButton class="mt-5 w-full">
+                                Save social embeds
+                            </socialForm.SubmitButton>
+                        </socialForm.Form>
+                    </socialForm.AppForm>
                 </section>
             </div>
 
@@ -177,37 +175,34 @@ const SettingsEditor = (props: { settings: Accessor<GuildSettings>; guildId: str
             >
                 <SectionHeader title="Custom commands" id="commands-title" />
                 <div class="mt-5 grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-                    <div class="rounded-md border border-line bg-elevated/40 p-4">
-                        <Field
-                            label="Command name"
-                            description="Letters, numbers, dashes, and underscores only."
-                            value={commandName()}
-                            placeholder="rules"
-                            onInput={(event) => setCommandName(event.currentTarget.value)}
-                        />
-                        <FieldLabel
-                            class="mt-4"
-                            for="command-response"
-                            label="Response text"
-                            description="Yin sends this text when someone uses the command."
-                        >
-                            <textarea
-                                id="command-response"
-                                class={cn(inputClass, "min-h-32 resize-y bg-surface py-2")}
-                                maxlength={2000}
-                                value={commandResponse()}
-                                placeholder="Read #start-here before posting."
-                                onInput={(event) => setCommandResponse(event.currentTarget.value)}
-                            />
-                        </FieldLabel>
-                        <Button
-                            class="mt-4 w-full"
-                            onClick={saveCommand}
-                            disabled={commandMutation.isPending}
-                        >
-                            Create or update command
-                        </Button>
-                    </div>
+                    <commandForm.AppForm>
+                        <commandForm.Form class="rounded-md border border-line bg-elevated/40 p-4">
+                            <commandForm.AppField name="name">
+                                {(field) => (
+                                    <field.TextField
+                                        label="Command name"
+                                        description="Letters, numbers, dashes, and underscores only."
+                                        placeholder="rules"
+                                    />
+                                )}
+                            </commandForm.AppField>
+                            <div class="mt-4">
+                                <commandForm.AppField name="response">
+                                    {(field) => (
+                                        <field.TextareaField
+                                            label="Response text"
+                                            description="Yin sends this text when someone uses the command."
+                                            maxlength={2000}
+                                            placeholder="Read #start-here before posting."
+                                        />
+                                    )}
+                                </commandForm.AppField>
+                            </div>
+                            <commandForm.SubmitButton class="mt-4 w-full">
+                                Create or update command
+                            </commandForm.SubmitButton>
+                        </commandForm.Form>
+                    </commandForm.AppForm>
 
                     <div class="overflow-hidden rounded-md border border-line">
                         <Table>
@@ -269,6 +264,51 @@ const SectionHeader = (props: { title: string; id: string }) => {
         </h2>
     );
 };
+
+const generalSchema = z.object({
+    commandPrefix: z
+        .string()
+        .trim()
+        .refine(
+            (prefix) => prefix === "" || ([...prefix].length <= 16 && !/\s/.test(prefix)),
+            "Prefixes must be at most 16 characters and contain no whitespace.",
+        ),
+    translationLanguage: z
+        .string()
+        .trim()
+        .refine(
+            (language) => language === "" || /^[a-z]{2,3}([-_][a-z]{2,4})?$/i.test(language),
+            "Use a valid ISO language code such as en, ja, pt-BR, or zh-Hant.",
+        ),
+});
+
+const commandSchema = z.object({
+    name: z
+        .string()
+        .trim()
+        .regex(
+            /^[a-z0-9_-]{1,32}$/i,
+            "Names must be 1-32 characters using only letters, numbers, `_`, or `-`.",
+        ),
+    response: z
+        .string()
+        .trim()
+        .refine(
+            (response) => response.length > 0 && [...response].length <= 2000,
+            "Command response must be 1-2,000 characters.",
+        ),
+});
+
+const generalValues = (settings: GuildSettings) => ({
+    commandPrefix: settings.commandPrefix ?? "",
+    translationLanguage: settings.translationLanguage ?? "",
+});
+
+const socialValues = (settings: GuildSettings) => ({
+    enabled: Object.fromEntries(
+        settings.socialEmbeds.map((platform) => [platform.platform, platform.enabled]),
+    ) as Record<string, boolean>,
+});
 
 const blankToNull = (value: string) => {
     const trimmed = value.trim();

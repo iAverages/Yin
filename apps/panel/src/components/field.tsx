@@ -9,8 +9,22 @@ export const inputClass =
 export const fieldId = (props: { id?: string; label: string }) =>
     props.id ?? props.label.toLowerCase().replaceAll(" ", "-");
 
+export const invalidInputClass =
+    "aria-invalid:border-danger aria-invalid:focus:shadow-[0_0_0_3px_rgb(224_90_101_/_12%)]";
+
+export const errorProps = (id: string, error?: string) => ({
+    "aria-invalid": Boolean(error),
+    "aria-describedby": error ? `${id}-error` : undefined,
+});
+
 export const FieldLabel = (
-    props: ParentProps<{ for: string; label: string; description?: string; class?: string }>,
+    props: ParentProps<{
+        for: string;
+        label: string;
+        description?: string;
+        error?: string;
+        class?: string;
+    }>,
 ) => {
     return (
         <label class={cn("flex min-w-0 flex-col items-stretch", props.class)} for={props.for}>
@@ -19,6 +33,11 @@ export const FieldLabel = (
                 <span class="mt-1 block text-xs leading-[1.4] text-muted">{props.description}</span>
             </Show>
             {props.children}
+            <Show when={props.error}>
+                <span class="mt-1.5 text-xs text-[#f07982]" id={`${props.for}-error`}>
+                    {props.error}
+                </span>
+            </Show>
         </label>
     );
 };
@@ -34,23 +53,18 @@ export const Field = (props: FieldProps) => {
     const id = fieldId(local);
 
     return (
-        <FieldLabel for={id} label={local.label} description={local.description}>
+        <FieldLabel
+            for={id}
+            label={local.label}
+            description={local.description}
+            error={local.error}
+        >
             <input
                 {...inputProps}
                 id={id}
-                class={cn(
-                    inputClass,
-                    "h-[38px] aria-invalid:border-danger aria-invalid:focus:shadow-[0_0_0_3px_rgb(224_90_101_/_12%)]",
-                    local.class,
-                )}
-                aria-invalid={Boolean(local.error)}
-                aria-describedby={local.error ? `${id}-error` : undefined}
+                class={cn(inputClass, "h-[38px]", invalidInputClass, local.class)}
+                {...errorProps(id, local.error)}
             />
-            <Show when={local.error}>
-                <span class="mt-1.5 text-xs text-[#f07982]" id={`${id}-error`}>
-                    {local.error}
-                </span>
-            </Show>
         </FieldLabel>
     );
 };

@@ -740,6 +740,43 @@ for (const mobile of [false, true]) {
     });
 }
 
+test("invalid form input shows an error on the field without calling the API", async ({ page }) => {
+    let requests = 0;
+    await page.route("**/guilds/103/settings/general", (route) => {
+        requests += 1;
+        return route.fulfill({ json: settings("103") });
+    });
+    await page.route("**/guilds/103/ladder-rules", (route) => {
+        requests += 1;
+        return route.fulfill({ json: settings("103") });
+    });
+    await page.goto("/guilds/103", { waitUntil: "domcontentloaded" });
+
+    const prefix = page.getByRole("textbox", { name: /^Command prefix/ });
+    await prefix.fill("a b");
+    await page.getByRole("button", { name: "Save general", exact: true }).click();
+    await expect(prefix).toHaveAttribute("aria-invalid", "true");
+    await expect(prefix).toHaveAccessibleDescription(/contain no whitespace/);
+    await prefix.fill("?");
+    await expect(prefix).toHaveAttribute("aria-invalid", "false");
+
+    const name = page.getByRole("textbox", { name: /^Command name/ });
+    const response = page.getByRole("textbox", { name: /^Response text/ });
+    await page.getByRole("button", { name: "Create or update command", exact: true }).click();
+    await expect(name).toHaveAccessibleDescription(/1-32 characters/);
+    await expect(response).toHaveAccessibleDescription(/1-2,000 characters/);
+
+    await page
+        .getByRole("navigation", { name: "Dashboard navigation", exact: true })
+        .getByRole("link", { name: "Moderation", exact: true })
+        .click();
+    const timeoutDays = page.getByRole("spinbutton", { name: "Timeout days" });
+    await timeoutDays.fill("29");
+    await page.getByRole("button", { name: "Add ladder rule", exact: true }).click();
+    await expect(timeoutDays).toHaveAccessibleDescription("Timeout must be 1-28 days.");
+    expect(requests).toBe(0);
+});
+
 test("all settings actions report success in toasts", async ({ page }) => {
     await page.goto("/guilds/103", { waitUntil: "domcontentloaded" });
     const cases = [

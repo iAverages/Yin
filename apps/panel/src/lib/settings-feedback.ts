@@ -7,17 +7,12 @@ import { settingsQueryKey } from "./guild-queries";
 export const createSettingsMutation = (guildId: string, guildName: string) => {
     const queryClient = useQueryClient();
     const toastId = `guild-settings:${guildId}`;
-    return <TInput>(
-        mutationFn: (input: TInput) => Promise<GuildSettings>,
-        message: string,
-        onSaved?: () => void,
-    ) =>
+    return <TInput>(mutationFn: (input: TInput) => Promise<GuildSettings>, message: string) =>
         createMutation(() => ({
             mutationFn,
             onSuccess: (settings: GuildSettings) => {
                 queryClient.setQueryData(settingsQueryKey(guildId), settings);
                 toast.success(message, { id: toastId, description: guildName, duration: 5000 });
-                onSaved?.();
             },
             onError: (error: unknown) => {
                 toast.error(error instanceof Error ? error.message : "Request failed.", {
@@ -28,3 +23,9 @@ export const createSettingsMutation = (guildId: string, guildName: string) => {
             },
         }));
 };
+
+// Failures are already reported by the mutation's onError toast.
+export const saveSettings = <TInput>(
+    mutation: { mutateAsync: (input: TInput) => Promise<GuildSettings> },
+    input: TInput,
+) => mutation.mutateAsync(input).catch(() => undefined);
