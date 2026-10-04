@@ -1,4 +1,6 @@
-use sqlx::{FromRow, MySql, QueryBuilder};
+use sea_query::{Expr, Iden, MysqlQueryBuilder, OnConflict, Query};
+use sea_query_binder::SqlxBinder;
+use sqlx::FromRow;
 
 use crate::{Database, DatabaseError};
 
@@ -7,6 +9,14 @@ pub struct BotGuild {
     pub guild_id: u64,
     pub name: Option<String>,
     pub icon: Option<String>,
+}
+
+#[derive(Iden)]
+enum BotGuilds {
+    Table,
+    GuildId,
+    ShardId,
+    BotPresent,
 }
 
 pub struct GuildDirectoryRepository<'a> {
@@ -51,15 +61,25 @@ impl<'a> GuildDirectoryRepository<'a> {
             .await?;
 
         for batch in ids.chunks(BATCH_SIZE) {
-            let mut present = QueryBuilder::<MySql>::new(
-                "INSERT INTO bot_guilds (guild_id, shard_id, bot_present) ",
-            );
-            present.push_values(batch, |mut row, id| {
-                row.push_bind(id).push_bind(shard_id).push("TRUE");
-            });
-            present
-                .push(" ON DUPLICATE KEY UPDATE shard_id = VALUES(shard_id), bot_present = TRUE");
-            present.build().execute(&mut *tx).await?;
+            let mut insert = Query::insert();
+            insert
+                .into_table(BotGuilds::Table)
+                .columns([
+                    BotGuilds::GuildId,
+                    BotGuilds::ShardId,
+                    BotGuilds::BotPresent,
+                ])
+                .on_conflict(
+                    OnConflict::new()
+                        .update_column(BotGuilds::ShardId)
+                        .value(BotGuilds::BotPresent, Expr::cust("TRUE"))
+                        .to_owned(),
+                );
+            for id in batch {
+                insert.values_panic([(*id).into(), shard_id.into(), Expr::cust("TRUE")]);
+            }
+            let (sql, values) = insert.build_sqlx(MysqlQueryBuilder);
+            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
         }
         tx.commit().await?;
         Ok(())

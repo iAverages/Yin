@@ -596,6 +596,7 @@ name = "database"
 version = "0.1.0"
 dependencies = [
  "sea-query",
+ "sea-query-binder",
  "serde",
  "sqlx",
  "thiserror 2.0.18",
@@ -2611,6 +2612,16 @@ checksum = "8a5d1c518eaf5eda38e5773f902b26ab6d5e9e9e2bb2349ca6c64cf96f80448c"
 dependencies = [
  "inherent",
  "sea-query-derive",
+]
+
+[[package]]
+name = "sea-query-binder"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0019f47430f7995af63deda77e238c17323359af241233ec768aba1faea7608"
+dependencies = [
+ "sea-query",
+ "sqlx",
 ]
 
 [[package]]

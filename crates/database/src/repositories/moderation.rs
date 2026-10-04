@@ -1,4 +1,6 @@
-use sqlx::{FromRow, MySql, QueryBuilder};
+use sea_query::{Alias, Expr, Iden, MysqlQueryBuilder, Order, Query, SelectStatement};
+use sea_query_binder::SqlxBinder;
+use sqlx::{FromRow, MySql};
 
 use crate::{Database, DatabaseError};
 
@@ -949,9 +951,11 @@ impl<'a> ModerationRepository<'a> {
         &self,
         operation_id: u64,
     ) -> Result<Option<ChannelLockOperation>, DatabaseError> {
+        let (sql, values) = lock_operations()
+            .and_where(Expr::col(ChannelLockOperations::Id).eq(operation_id))
+            .build_sqlx(MysqlQueryBuilder);
         Ok(
-            sqlx::query_as::<_, ChannelLockOperation>(LOCK_OPERATION_SELECT_BY_ID)
-                .bind(operation_id)
+            sqlx::query_as_with::<_, ChannelLockOperation, _>(&sql, values)
                 .fetch_optional(self.database.pool())
                 .await?,
         )
@@ -1000,27 +1004,26 @@ impl<'a> ModerationRepository<'a> {
             return Ok(Vec::new());
         }
 
-        let mut update = QueryBuilder::<MySql>::new(
-            "UPDATE channel_lock_operations SET status = 'unlocking', \
-             claimed_at = CURRENT_TIMESTAMP(3), claimed_by = ",
-        );
-        update.push_bind(worker).push(" WHERE id IN (");
-        let mut separated = update.separated(", ");
-        for id in &ids {
-            separated.push_bind(id);
-        }
-        separated.push_unseparated(")");
-        update.build().execute(&mut *transaction).await?;
+        let (sql, values) = Query::update()
+            .table(ChannelLockOperations::Table)
+            .value(ChannelLockOperations::Status, "unlocking")
+            .value(
+                ChannelLockOperations::ClaimedAt,
+                Expr::cust("CURRENT_TIMESTAMP(3)"),
+            )
+            .value(ChannelLockOperations::ClaimedBy, worker)
+            .and_where(Expr::col(ChannelLockOperations::Id).is_in(ids.iter().copied()))
+            .build_sqlx(MysqlQueryBuilder);
+        sqlx::query_with(&sql, values)
+            .execute(&mut *transaction)
+            .await?;
 
-        let mut select =
-            QueryBuilder::<MySql>::new(format!("{} WHERE id IN (", LOCK_OPERATION_SELECT));
-        let mut separated = select.separated(", ");
-        for id in &ids {
-            separated.push_bind(id);
-        }
-        separated.push_unseparated(") ORDER BY due_at, id");
-        let claimed = select
-            .build_query_as::<ChannelLockOperation>()
+        let (sql, values) = lock_operations()
+            .and_where(Expr::col(ChannelLockOperations::Id).is_in(ids.iter().copied()))
+            .order_by(ChannelLockOperations::DueAt, Order::Asc)
+            .order_by(ChannelLockOperations::Id, Order::Asc)
+            .build_sqlx(MysqlQueryBuilder);
+        let claimed = sqlx::query_as_with::<_, ChannelLockOperation, _>(&sql, values)
             .fetch_all(&mut *transaction)
             .await?;
         transaction.commit().await?;
@@ -1213,18 +1216,33 @@ impl<'a> ModerationRepository<'a> {
         &self,
         guild_id: u64,
     ) -> Result<Vec<ChannelLockOperation>, DatabaseError> {
-        Ok(sqlx::query_as::<_, ChannelLockOperation>(&format!(
-            "{LOCK_OPERATION_SELECT} WHERE guild_id = ?
-               AND (status IN ('active', 'unlocking') OR EXISTS (
-                   SELECT 1 FROM channel_lock_targets t
-                   WHERE t.operation_id = channel_lock_operations.id
-                     AND t.status IN ('active', 'restore_failed')
-               ))
-             ORDER BY created_at, id"
-        ))
-        .bind(guild_id)
-        .fetch_all(self.database.pool())
-        .await?)
+        let held_target = Query::select()
+            .expr(Expr::val(1))
+            .from_as(ChannelLockTargets::Table, Alias::new("t"))
+            .and_where(
+                Expr::col((Alias::new("t"), ChannelLockTargets::OperationId))
+                    .equals((ChannelLockOperations::Table, ChannelLockOperations::Id)),
+            )
+            .and_where(
+                Expr::col((Alias::new("t"), ChannelLockTargets::Status))
+                    .is_in(["active", "restore_failed"]),
+            )
+            .to_owned();
+        let (sql, values) = lock_operations()
+            .and_where(Expr::col(ChannelLockOperations::GuildId).eq(guild_id))
+            .cond_where(
+                Expr::col(ChannelLockOperations::Status)
+                    .is_in(["active", "unlocking"])
+                    .or(Expr::exists(held_target)),
+            )
+            .order_by(ChannelLockOperations::CreatedAt, Order::Asc)
+            .order_by(ChannelLockOperations::Id, Order::Asc)
+            .build_sqlx(MysqlQueryBuilder);
+        Ok(
+            sqlx::query_as_with::<_, ChannelLockOperation, _>(&sql, values)
+                .fetch_all(self.database.pool())
+                .await?,
+        )
     }
 }
 
@@ -1278,20 +1296,44 @@ const WARNING_SELECT_FOR_TARGET: &str =
             revoked_by_user_id, revocation_reason
      FROM moderation_warnings WHERE guild_id = ? AND target_user_id = ?
      ORDER BY created_at DESC, id DESC";
-const LOCK_OPERATION_SELECT: &str =
-    "SELECT id, case_id, guild_id, actor_user_id, action, reason, status,
-            CAST(UNIX_TIMESTAMP(due_at) AS SIGNED) AS due_at,
-            CAST(UNIX_TIMESTAMP(claimed_at) AS SIGNED) AS claimed_at, claimed_by,
-            CAST(UNIX_TIMESTAMP(completed_at) AS SIGNED) AS completed_at, failure_reason,
-            CAST(UNIX_TIMESTAMP(created_at) AS SIGNED) AS created_at
-     FROM channel_lock_operations";
-const LOCK_OPERATION_SELECT_BY_ID: &str =
-    "SELECT id, case_id, guild_id, actor_user_id, action, reason, status,
-            CAST(UNIX_TIMESTAMP(due_at) AS SIGNED) AS due_at,
-            CAST(UNIX_TIMESTAMP(claimed_at) AS SIGNED) AS claimed_at, claimed_by,
-            CAST(UNIX_TIMESTAMP(completed_at) AS SIGNED) AS completed_at, failure_reason,
-            CAST(UNIX_TIMESTAMP(created_at) AS SIGNED) AS created_at
-     FROM channel_lock_operations WHERE id = ?";
+#[derive(Iden)]
+enum ChannelLockOperations {
+    Table,
+    Id,
+    CaseId,
+    GuildId,
+    ActorUserId,
+    Action,
+    Reason,
+    Status,
+    DueAt,
+    ClaimedAt,
+    ClaimedBy,
+    CompletedAt,
+    FailureReason,
+    CreatedAt,
+}
+
+#[derive(Iden)]
+enum ChannelLockTargets {
+    Table,
+    OperationId,
+    Status,
+}
+
+fn lock_operations() -> SelectStatement {
+    use ChannelLockOperations::*;
+    let mut select = Query::select();
+    select
+        .columns([Id, CaseId, GuildId, ActorUserId, Action, Reason, Status])
+        .columns([ClaimedBy, FailureReason])
+        .from(Table);
+    for column in [DueAt, ClaimedAt, CompletedAt, CreatedAt] {
+        let timestamp = format!("CAST(UNIX_TIMESTAMP({}) AS SIGNED)", column.to_string());
+        select.expr_as(Expr::cust(timestamp), column);
+    }
+    select
+}
 
 async fn insert_case_history(
     transaction: &mut sqlx::Transaction<'_, MySql>,
@@ -1378,9 +1420,11 @@ async fn fetch_lock_operation<'e, E>(
 where
     E: sqlx::Executor<'e, Database = MySql>,
 {
+    let (sql, values) = lock_operations()
+        .and_where(Expr::col(ChannelLockOperations::Id).eq(operation_id))
+        .build_sqlx(MysqlQueryBuilder);
     Ok(
-        sqlx::query_as::<_, ChannelLockOperation>(LOCK_OPERATION_SELECT_BY_ID)
-            .bind(operation_id)
+        sqlx::query_as_with::<_, ChannelLockOperation, _>(&sql, values)
             .fetch_one(executor)
             .await?,
     )
@@ -1427,5 +1471,80 @@ mod tests {
         ];
 
         assert_eq!(sorted_channel_ids(&targets), vec![3, 9]);
+    }
+
+    #[sqlx::test(migrations = "./migrations")]
+    #[ignore = "requires DATABASE_URL with permission to create test databases"]
+    async fn channel_lock_queries_select_list_and_claim_operations(
+        pool: sqlx::MySqlPool,
+    ) -> Result<(), DatabaseError> {
+        let database = Database { pool };
+        let repository = ModerationRepository::new(&database);
+        let case = repository
+            .create_pending_case(NewModerationCase {
+                guild_id: 10,
+                target_user_id: None,
+                target_channel_id: Some(20),
+                actor_user_id: Some(1),
+                source: "bot",
+                action: "lock",
+                reason: None,
+                duration_seconds: Some(60),
+                expires_at: None,
+                parent_case_id: None,
+            })
+            .await?;
+        let operation = repository
+            .create_channel_lock(NewChannelLockOperation {
+                case_id: case.id,
+                guild_id: 10,
+                actor_user_id: 1,
+                action: "lock",
+                reason: None,
+                due_at: Some(1),
+                targets: &[NewChannelLockTarget {
+                    channel_id: 20,
+                    overwrite_target_id: 10,
+                    overwrite_target_kind: "role",
+                    previous_allow: None,
+                    previous_deny: None,
+                }],
+            })
+            .await?;
+        assert_eq!(operation.status, "pending");
+        assert_eq!(operation.due_at, Some(1));
+        assert!(repository.active_channel_locks(10).await?.is_empty());
+
+        for target in repository.channel_lock_targets(operation.id).await? {
+            assert!(
+                repository
+                    .mark_channel_lock_target_active(target.id)
+                    .await?
+            );
+        }
+        repository.mark_channel_lock_active(operation.id).await?;
+        let active = repository.active_channel_locks(10).await?;
+        assert_eq!(
+            active.iter().map(|lock| lock.id).collect::<Vec<_>>(),
+            [operation.id]
+        );
+        assert!(repository.active_channel_locks(11).await?.is_empty());
+
+        let claimed = repository.claim_due_channel_locks("worker-1", 25).await?;
+        assert_eq!(claimed.len(), 1);
+        assert_eq!(claimed[0].status, "unlocking");
+        assert_eq!(claimed[0].claimed_by.as_deref(), Some("worker-1"));
+        assert!(claimed[0].claimed_at.is_some());
+        assert_eq!(
+            repository.channel_lock_by_id(operation.id).await?,
+            Some(claimed[0].clone())
+        );
+        assert!(
+            repository
+                .claim_due_channel_locks("worker-2", 25)
+                .await?
+                .is_empty()
+        );
+        Ok(())
     }
 }
