@@ -53,8 +53,6 @@ pub struct ManagedGuild {
     pub id: String,
     pub name: String,
     pub icon: Option<String>,
-    pub permissions: String,
-    pub can_manage: bool,
     pub bot_installed: bool,
 }
 
@@ -75,8 +73,6 @@ pub fn managed_guilds(guilds: Vec<UserGuild>, installed: Vec<BotGuild>) -> Vec<M
                     _ => guild.icon,
                 },
                 id: guild.id,
-                permissions: guild.permissions,
-                can_manage: true,
                 bot_installed: bot.is_some(),
             }
         })

@@ -1,7 +1,7 @@
 use bot_core::response::{self, Embed, EmbedKind};
 use bot_core::{Context, Error, poise, serenity};
 
-use crate::client::{BASE_URL, CodexClient, asset_url, item_url};
+use crate::client::{BASE_URL, CodexClient, absolute_url, item_url};
 use crate::model::{
     BlackboardEntry, BlackboardValue, CatalogEntry, CodexType, EquipmentSet, OperatorPayload,
     Skill, Weapon,
@@ -274,14 +274,14 @@ fn equipment_embed(equipment: EquipmentSet, slug: &str) -> Embed {
 
 fn with_thumbnail(embed: Embed, image_url: Option<String>) -> Embed {
     match image_url {
-        Some(image_url) => embed.thumbnail(asset_url(&image_url)),
+        Some(image_url) => embed.thumbnail(absolute_url(&image_url)),
         None => embed,
     }
 }
 
 fn with_image(embed: Embed, image_url: Option<String>) -> Embed {
     match image_url {
-        Some(image_url) => embed.image(asset_url(&image_url)),
+        Some(image_url) => embed.image(absolute_url(&image_url)),
         None => embed,
     }
 }

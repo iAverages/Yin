@@ -7,24 +7,18 @@ const guilds: ManagedGuild[] = [
         id: "103",
         name: "Night Shift",
         icon: null,
-        permissions: "8",
-        canManage: true,
         botInstalled: true,
     },
     {
         id: "102",
         name: "Yin Community",
         icon: null,
-        permissions: "32",
-        canManage: true,
         botInstalled: true,
     },
     {
         id: "101",
         name: "Art Collective",
         icon: null,
-        permissions: "32",
-        canManage: true,
         botInstalled: false,
     },
 ];
@@ -427,7 +421,7 @@ test("selector handles no installed servers without hiding dashboard install lin
     await context.addCookies([
         { name: "fixture-guilds", value: "empty", url: "http://127.0.0.1:3010" },
     ]);
-    await page.route("**/guilds", (route) => route.fulfill({ json: [guilds[0]] }));
+    await page.route("**/guilds", (route) => route.fulfill({ json: [guilds[2]] }));
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("link", { name: "Add Yin to Art Collective" })).toBeVisible();
     await page.getByRole("button", { name: "Select server" }).click();

@@ -8,16 +8,10 @@ pub struct CommandTrace {
 }
 
 impl CommandTrace {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             trace_id: Uuid::now_v7(),
         }
-    }
-}
-
-impl Default for CommandTrace {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

@@ -7,24 +7,18 @@ const guilds = [
         id: "103",
         name: "Night Shift",
         icon: null,
-        permissions: "8",
-        canManage: true,
         botInstalled: true,
     },
     {
         id: "102",
         name: "Yin Community",
         icon: null,
-        permissions: "32",
-        canManage: true,
         botInstalled: true,
     },
     {
         id: "101",
         name: "Art Collective",
         icon: null,
-        permissions: "32",
-        canManage: true,
         botInstalled: false,
     },
 ];
@@ -89,7 +83,7 @@ http.createServer(async (request, response) => {
             return response.end("Sign in again.");
         }
         return response.end(
-            JSON.stringify(cookies.includes("fixture-guilds=empty") ? [guilds[0]] : guilds),
+            JSON.stringify(cookies.includes("fixture-guilds=empty") ? [guilds[2]] : guilds),
         );
     }
     const match = request.url?.match(/^\/guilds\/(\d+)\/settings$/);

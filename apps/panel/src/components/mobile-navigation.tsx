@@ -93,7 +93,7 @@ const MobileNavigationContent = (props: {
             />
             <Drawer.Content
                 ref={setContent}
-                class="fixed inset-x-0 bottom-0 z-40 flex h-[min(32rem,85dvh)] flex-col rounded-t-2xl border-t border-line bg-canvas pb-[env(safe-area-inset-bottom)] shadow-xl outline-none after:pointer-events-none after:absolute after:inset-x-0 after:top-[calc(100%-1px)] after:h-1/2 after:bg-inherit data-[transitioning]:transition-transform data-[transitioning]:duration-350 data-[transitioning]:ease-[cubic-bezier(0.32,0.72,0,1)]"
+                class="fixed inset-x-0 bottom-0 z-40 flex h-[min(32rem,85dvh)] flex-col rounded-t-2xl border-t border-line bg-canvas pb-[env(safe-area-inset-bottom)] shadow-xl outline-none after:pointer-events-none after:absolute after:inset-x-0 after:top-[calc(100%-1px)] after:h-1/2 after:bg-inherit data-[transitioning]:transition-transform data-[transitioning]:duration-350 data-[transitioning]:ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:duration-0!"
             >
                 <div
                     class="flex h-10 shrink-0 touch-none items-center justify-center"

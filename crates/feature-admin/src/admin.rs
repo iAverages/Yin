@@ -28,8 +28,7 @@ pub async fn admin(ctx: Context<'_>) -> Result<(), Error> {
                 "Command Count",
                 ctx.framework().options().commands.len().to_string(),
                 true,
-            )
-            .field("Database", "Connected", true),
+            ),
     )
     .await
 }

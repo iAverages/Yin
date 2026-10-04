@@ -5,8 +5,8 @@ pub mod settings;
 
 use std::time::Duration;
 
+use sqlx::MySqlPool;
 use sqlx::mysql::MySqlPoolOptions;
-use sqlx::{MySql, MySqlPool};
 
 pub use config::DatabaseConfig;
 pub use error::DatabaseError;
@@ -48,8 +48,3 @@ pub async fn run_migrations(pool: &MySqlPool) -> Result<(), DatabaseError> {
         .await
         .map_err(DatabaseError::Migration)
 }
-
-pub type Query = sea_query::SelectStatement;
-pub type MysqlQueryBuilder = sea_query::MysqlQueryBuilder;
-pub type Executor<'a> = &'a MySqlPool;
-pub type Transaction<'a> = sqlx::Transaction<'a, MySql>;

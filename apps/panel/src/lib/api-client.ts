@@ -14,8 +14,6 @@ export type ManagedGuild = {
     id: string;
     name: string;
     icon: string | null;
-    permissions: string;
-    canManage: boolean;
     botInstalled: boolean;
 };
 

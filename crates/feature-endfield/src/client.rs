@@ -69,11 +69,7 @@ pub fn item_url(kind: CodexType, slug: &str) -> String {
     format!("{BASE_URL}/codex/{}/{slug}", kind.path())
 }
 
-pub fn asset_url(path: &str) -> String {
-    absolute_url(path)
-}
-
-fn absolute_url(path: &str) -> String {
+pub fn absolute_url(path: &str) -> String {
     if path.starts_with("http://") || path.starts_with("https://") {
         path.to_owned()
     } else {
