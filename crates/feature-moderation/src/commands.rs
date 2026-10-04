@@ -15,6 +15,7 @@ use crate::locks::{create_lock, is_public_channel, unlock_operation};
     rename = "mod",
     guild_only,
     default_member_permissions = "MODERATE_MEMBERS",
+    subcommand_required,
     subcommands(
         "warn",
         "revoke",
@@ -33,8 +34,8 @@ use crate::locks::{create_lock, is_public_channel, unlock_operation};
     install_context = "Guild",
     interaction_context = "Guild"
 )]
-pub async fn mod_command(ctx: Context<'_>) -> Result<(), Error> {
-    response::info(ctx, "Use one of the available moderation subcommands.").await
+pub async fn mod_command(_ctx: Context<'_>) -> Result<(), Error> {
+    Ok(())
 }
 
 #[poise::command(

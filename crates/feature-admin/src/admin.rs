@@ -73,10 +73,11 @@ fn component_payload(component: Value) -> Result<Vec<u8>, serde_json::Error> {
 #[poise::command(
     prefix_command,
     owners_only,
+    subcommand_required,
     subcommands("global", "user", "guild", "member")
 )]
-async fn flag(ctx: Context<'_>) -> Result<(), Error> {
-    response::info(ctx, "Use `global`, `user`, `guild`, or `member`.").await
+async fn flag(_ctx: Context<'_>) -> Result<(), Error> {
+    Ok(())
 }
 
 #[poise::command(prefix_command, owners_only)]

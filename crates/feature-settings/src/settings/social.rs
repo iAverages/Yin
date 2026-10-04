@@ -26,21 +26,13 @@ pub fn validate_social_platform(platform: &str) -> Option<&'static str> {
     prefix_command,
     slash_command,
     ephemeral,
+    subcommand_required,
     subcommands("view", "set"),
     install_context = "Guild",
     interaction_context = "Guild"
 )]
-pub async fn social(ctx: Context<'_>) -> Result<(), Error> {
-    response::send(
-        ctx,
-        Embed::new(EmbedKind::Info, "Social Embeds").description(
-            "Use `/settings social view` to see your preferences or `/settings social set` to change them. \
-             Add `scope:server` to manage server-wide settings (changes require Manage Server). \
-             Prefix commands: `!settings social view [user|server]` and \
-             `!settings social set <platform> <true|false> [user|server]`.",
-        ),
-    )
-    .await
+pub async fn social(_ctx: Context<'_>) -> Result<(), Error> {
+    Ok(())
 }
 
 /// View personal or server-wide social embed preferences.

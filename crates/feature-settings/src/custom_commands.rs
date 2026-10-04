@@ -9,17 +9,13 @@ use crate::DEFAULT_PREFIX;
 #[poise::command(
     slash_command,
     guild_only,
+    subcommand_required,
     subcommands("create", "list", "remove"),
     install_context = "Guild",
     interaction_context = "Guild"
 )]
-pub async fn cmd(ctx: Context<'_>) -> Result<(), Error> {
-    response::send(
-        ctx,
-        Embed::new(EmbedKind::Info, "Custom Commands")
-            .description("Use `/cmd create` to create or update a custom command."),
-    )
-    .await
+pub async fn cmd(_ctx: Context<'_>) -> Result<(), Error> {
+    Ok(())
 }
 
 #[poise::command(

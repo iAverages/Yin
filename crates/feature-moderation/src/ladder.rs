@@ -56,12 +56,13 @@ pub fn ladder_command() -> bot_core::Command {
     prefix_command,
     slash_command,
     guild_only,
+    subcommand_required,
     subcommands("list", "add", "remove"),
     install_context = "Guild",
     interaction_context = "Guild"
 )]
-async fn ladder(ctx: Context<'_>) -> Result<(), Error> {
-    response::info(ctx, "Use a ladder subcommand.").await
+async fn ladder(_ctx: Context<'_>) -> Result<(), Error> {
+    Ok(())
 }
 
 #[poise::command(

@@ -193,10 +193,20 @@ async fn on_error(error: FrameworkError<'_, BotState, Error>) {
         return;
     };
 
-    log_framework_error_with_context(&error, ctx).await;
+    if !matches!(error, FrameworkError::SubcommandRequired { .. }) {
+        log_framework_error_with_context(&error, ctx).await;
+    }
 
+    let subcommands = ctx
+        .command()
+        .subcommands
+        .iter()
+        .map(|command| format!("`{}`", command.name))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let choose_subcommand = format!("Choose a subcommand: {subcommands}.");
     let title = match &error {
-        FrameworkError::SubcommandRequired { .. } => "Choose an info subcommand.",
+        FrameworkError::SubcommandRequired { .. } => choose_subcommand.as_str(),
         FrameworkError::ArgumentParse { .. } => "I could not parse that command argument.",
         FrameworkError::CooldownHit { .. } => "That command is on cooldown.",
         FrameworkError::MissingBotPermissions { .. } => {

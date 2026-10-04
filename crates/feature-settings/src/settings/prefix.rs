@@ -9,32 +9,13 @@ pub const DEFAULT_PREFIX: &str = "!";
     prefix_command,
     slash_command,
     guild_only,
+    subcommand_required,
     subcommands("view", "set", "reset"),
     install_context = "Guild",
     interaction_context = "Guild"
 )]
-pub async fn prefix(ctx: Context<'_>) -> Result<(), Error> {
-    response::send(
-        ctx,
-        Embed::new(EmbedKind::Info, "Prefix Settings")
-            .description("Use one of the available prefix subcommands.")
-            .field(
-                "View",
-                "`!settings prefix view` or `/settings prefix view`",
-                false,
-            )
-            .field(
-                "Set",
-                "`!settings prefix set <prefix>` or `/settings prefix set`",
-                false,
-            )
-            .field(
-                "Reset",
-                "`!settings prefix reset` or `/settings prefix reset`",
-                false,
-            ),
-    )
-    .await
+pub async fn prefix(_ctx: Context<'_>) -> Result<(), Error> {
+    Ok(())
 }
 
 #[poise::command(
