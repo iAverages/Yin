@@ -70,7 +70,6 @@ fn cors_layer(origins: &[String]) -> Result<CorsLayer, Error> {
 
 fn app(state: AppState) -> Router {
     let protected = Router::new()
-        .route("/auth/user", get(auth::current_user))
         .route("/guilds", get(guilds::list_managed_guilds))
         .route(
             "/guilds/{guild_id}/settings",

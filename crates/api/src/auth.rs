@@ -6,7 +6,6 @@ use axum::http::StatusCode;
 use axum::http::header::{AUTHORIZATION, COOKIE, HeaderMap};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
-use axum::{Extension, Json};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 
@@ -119,8 +118,4 @@ pub async fn require_auth(
             (StatusCode::SERVICE_UNAVAILABLE, "auth service unavailable").into_response()
         }
     }
-}
-
-pub async fn current_user(Extension(session): Extension<AuthSession>) -> Json<AuthUser> {
-    Json(session.user)
 }
