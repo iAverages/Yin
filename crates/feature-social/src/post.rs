@@ -1,4 +1,4 @@
-use crate::source::Source;
+use crate::SocialPlatform;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
@@ -42,8 +42,8 @@ pub(crate) fn component(post: &Post, spoiler: bool) -> Value {
     json!({
         "type": 17,
         "spoiler": spoiler,
-        "accent_color": Source::from_provider(&post.provider)
-            .map_or(0x1d9bf0, |source| source.accent_color()),
+        "accent_color": SocialPlatform::from_provider(&post.provider)
+            .map_or(0x1d9bf0, SocialPlatform::accent_color),
         "components": components,
     })
 }
@@ -124,14 +124,14 @@ fn author_name(author: &Author) -> String {
 }
 
 fn provider_name(provider: &str) -> &str {
-    Source::from_provider(provider)
-        .map(|source| source.display_name())
+    SocialPlatform::from_provider(provider)
+        .map(SocialPlatform::display_name)
         .unwrap_or(provider)
 }
 
 fn media_url(post: &Post, media: &MediaItem) -> String {
-    Source::from_provider(&post.provider)
-        .and_then(|source| source.media_url(&post.url, &media.kind, &media.url))
+    SocialPlatform::from_provider(&post.provider)
+        .and_then(|platform| platform.media_url(&post.url, &media.kind, &media.url))
         .unwrap_or_else(|| media.url.clone())
 }
 

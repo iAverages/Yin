@@ -1,6 +1,5 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use bot_core::serenity::{self, audit_log};
+use bot_core::time::unix_now;
 use database::{Database, ModerationCase, ModerationRepository, NewExternalAuditCase};
 
 const MATCH_WINDOW_SECONDS: i64 = 120;
@@ -189,13 +188,6 @@ pub async fn process_audit_entry(
             .await?
             .case,
     ))
-}
-
-fn unix_now() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as i64
 }
 
 #[cfg(test)]

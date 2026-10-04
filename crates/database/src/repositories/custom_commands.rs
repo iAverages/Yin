@@ -29,15 +29,6 @@ impl<'a> CustomCommandRepository<'a> {
         .await?)
     }
 
-    pub async fn list(&self, guild_id: u64) -> Result<Vec<String>, DatabaseError> {
-        Ok(sqlx::query_scalar(
-            "SELECT name FROM custom_commands WHERE guild_id = ? ORDER BY name LIMIT 100",
-        )
-        .bind(guild_id)
-        .fetch_all(self.database.pool())
-        .await?)
-    }
-
     pub async fn list_entries(&self, guild_id: u64) -> Result<Vec<CustomCommand>, DatabaseError> {
         Ok(sqlx::query_as::<_, CustomCommand>(
             "SELECT guild_id, name, response FROM custom_commands WHERE guild_id = ? ORDER BY name LIMIT 100",

@@ -1,9 +1,8 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use bot_core::Error;
 use bot_core::serenity::{
     self, ChannelType, GuildChannel, PermissionOverwrite, PermissionOverwriteType, Permissions,
 };
+use bot_core::time::unix_now;
 use database::{
     ChannelLockOperation, ChannelLockTarget, Database, ModerationCase, ModerationRepository,
     NewChannelLockOperation, NewChannelLockTarget, NewModerationCase,
@@ -33,29 +32,13 @@ pub(crate) fn everyone_overwrite(
 }
 
 pub(crate) fn is_public_channel(channel: &GuildChannel, everyone: Permissions) -> bool {
-    is_public(
-        channel.kind,
-        channel.guild_id,
-        &channel.permission_overwrites,
-        everyone,
-    )
-}
-
-fn is_public(
-    kind: ChannelType,
-    guild_id: serenity::GuildId,
-    overwrites: &[PermissionOverwrite],
-    everyone: Permissions,
-) -> bool {
     if !matches!(
-        kind,
+        channel.kind,
         ChannelType::Text | ChannelType::News | ChannelType::Forum
     ) {
         return false;
     }
-    let overwrite = overwrites.iter().find(|overwrite| {
-        overwrite.kind == PermissionOverwriteType::Role(guild_id.everyone_role())
-    });
+    let overwrite = everyone_overwrite(channel, channel.guild_id);
     let allow = overwrite.map_or_else(Permissions::empty, |value| value.allow);
     let deny = overwrite.map_or_else(Permissions::empty, |value| value.deny);
     let effective = (everyone & !deny) | allow;
@@ -364,13 +347,6 @@ fn unlock_action(operation: &ChannelLockOperation) -> &'static str {
     }
 }
 
-fn unix_now() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as i64
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -383,31 +359,33 @@ mod tests {
         }
     }
 
+    fn channel(kind: ChannelType, overwrites: Vec<PermissionOverwrite>) -> GuildChannel {
+        let mut channel = GuildChannel::default();
+        channel.kind = kind;
+        channel.guild_id = serenity::GuildId::new(1);
+        channel.permission_overwrites = overwrites;
+        channel
+    }
+
     #[test]
     fn public_selection_applies_everyone_overwrite() {
-        let guild_id = serenity::GuildId::new(1);
-        let mut overwrites = vec![PermissionOverwrite {
+        let everyone = serenity::GuildId::new(1).everyone_role();
+        let mut overwrite = PermissionOverwrite {
             allow: Permissions::empty(),
             deny: Permissions::VIEW_CHANNEL,
-            kind: PermissionOverwriteType::Role(guild_id.everyone_role()),
-        }];
-        assert!(is_public(
-            ChannelType::Text,
-            guild_id,
-            &[],
+            kind: PermissionOverwriteType::Role(everyone),
+        };
+        assert!(is_public_channel(
+            &channel(ChannelType::Text, vec![]),
             Permissions::VIEW_CHANNEL
         ));
-        assert!(!is_public(
-            ChannelType::Text,
-            guild_id,
-            &overwrites,
+        assert!(!is_public_channel(
+            &channel(ChannelType::Text, vec![overwrite.clone()]),
             Permissions::VIEW_CHANNEL
         ));
-        overwrites[0].allow = Permissions::VIEW_CHANNEL;
-        assert!(is_public(
-            ChannelType::Text,
-            guild_id,
-            &overwrites,
+        overwrite.allow = Permissions::VIEW_CHANNEL;
+        assert!(is_public_channel(
+            &channel(ChannelType::Text, vec![overwrite]),
             Permissions::empty()
         ));
     }
@@ -419,10 +397,8 @@ mod tests {
             ChannelType::Voice,
             ChannelType::Category,
         ] {
-            assert!(!is_public(
-                kind,
-                serenity::GuildId::new(1),
-                &[],
+            assert!(!is_public_channel(
+                &channel(kind, vec![]),
                 Permissions::VIEW_CHANNEL
             ));
         }

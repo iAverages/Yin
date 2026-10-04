@@ -1,30 +1,11 @@
 use bot_core::Error;
+use tokio::signal::unix::{SignalKind, signal as unix_signal};
 
 pub async fn signal() -> Result<(), Error> {
-    let ctrl_c = async {
-        tokio::signal::ctrl_c().await?;
-        Ok::<(), std::io::Error>(())
-    };
-
-    #[cfg(unix)]
-    {
-        let terminate = async {
-            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?
-                .recv()
-                .await;
-            Ok::<(), std::io::Error>(())
-        };
-
-        tokio::select! {
-            result = ctrl_c => result?,
-            result = terminate => result?,
-        }
+    let mut terminate = unix_signal(SignalKind::terminate())?;
+    tokio::select! {
+        result = tokio::signal::ctrl_c() => result?,
+        _ = terminate.recv() => {},
     }
-
-    #[cfg(not(unix))]
-    {
-        ctrl_c.await?;
-    }
-
     Ok(())
 }

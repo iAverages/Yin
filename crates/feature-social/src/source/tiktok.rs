@@ -1,40 +1,19 @@
 use reqwest::Url;
 
-use super::{ABEMBED_API, EmbedSource, Request};
+use super::{ABEMBED_API, Request};
 
 const HOSTS: &[&str] = &["tiktok.com", "www.tiktok.com", "m.tiktok.com"];
 const SHORT_HOSTS: &[&str] = &["vt.tiktok.com", "vm.tiktok.com"];
 
-const DISPLAY_NAME: &str = "TikTok";
-const ACCENT_COLOR: u32 = 0x1d9bf0;
+pub(super) fn handles(url: &Url) -> bool {
+    route(url).is_some()
+}
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct TikTok;
-
-impl EmbedSource for TikTok {
-    fn handles(&self, url: &Url) -> bool {
-        route(url).is_some()
-    }
-
-    fn request(
-        &self,
-        url: &Url,
-        _twitter_options: &super::twitter::Options,
-        spoiler: bool,
-    ) -> Option<Request> {
-        Some(Request::AbEmbed {
-            url: format!("{ABEMBED_API}tiktok/{}", route(url)?),
-            spoiler,
-        })
-    }
-
-    fn display_name(&self) -> &'static str {
-        DISPLAY_NAME
-    }
-
-    fn accent_color(&self) -> u32 {
-        ACCENT_COLOR
-    }
+pub(super) fn request(url: &Url, spoiler: bool) -> Option<Request> {
+    Some(Request::AbEmbed {
+        url: format!("{ABEMBED_API}tiktok/{}", route(url)?),
+        spoiler,
+    })
 }
 
 fn route(url: &Url) -> Option<String> {
@@ -85,13 +64,15 @@ mod tests {
             ("https://vm.tiktok.com/ZN88Qw7ns/", "ZN88Qw7ns"),
         ] {
             assert_eq!(
-                TikTok.request(&Url::parse(url).unwrap(), &Default::default(), false,),
+                request(&Url::parse(url).unwrap(), false),
                 Some(Request::AbEmbed {
                     url: format!("https://abembed.com/api/tiktok/{route}"),
                     spoiler: false,
                 })
             );
         }
-        assert!(!TikTok.handles(&Url::parse("https://vt.tiktok.com.example/ZSVhvYhGN/").unwrap()));
+        assert!(!handles(
+            &Url::parse("https://vt.tiktok.com.example/ZSVhvYhGN/").unwrap()
+        ));
     }
 }

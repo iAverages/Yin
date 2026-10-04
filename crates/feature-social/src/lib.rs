@@ -15,7 +15,7 @@ use bot_core::{BotState, Error};
 use database::UserSocialEmbedsRepository;
 use reqwest::{Client, RequestBuilder, header::USER_AGENT};
 use serde_json::{Value, json};
-use source::{Request as EmbedRequest, Source};
+use source::Request as EmbedRequest;
 
 pub use source::SocialPlatform;
 pub use source::twitter::primary_translation_language;
@@ -190,7 +190,7 @@ async fn send_embeds(
     }
     let twitter = if links
         .iter()
-        .any(|link| matches!(link.source, Source::Twitter(_)))
+        .any(|link| link.platform == SocialPlatform::Twitter)
     {
         source::twitter::options(data, ctx, message).await?
     } else {
@@ -199,7 +199,7 @@ async fn send_embeds(
 
     let mut components = Vec::new();
     for link in links {
-        let source = link.source;
+        let platform = link.platform;
         let Some(request) = link.request(&twitter) else {
             continue;
         };
@@ -212,7 +212,7 @@ async fn send_embeds(
             }
             EmbedRequest::Component { url, spoiler } => {
                 let mut component = fetch_component(&url, spoiler).await?;
-                if matches!(source, Source::Twitter(_)) {
+                if platform == SocialPlatform::Twitter {
                     rewrite_abembed_gifs(&mut component);
                 }
                 component

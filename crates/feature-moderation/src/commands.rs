@@ -1,14 +1,13 @@
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
 use bot_core::response::{self, Embed, EmbedKind};
 use bot_core::serenity::{self, ChannelType, EditMember, GuildChannel, Mentionable, Permissions};
-use bot_core::time::{format_duration, parse_duration};
+use bot_core::time::{format_duration, parse_duration, unix_now};
 use bot_core::{Context, Error, poise};
 use database::{ModerationCase, ModerationRepository, NewModerationCase, NewWarn};
 
+use crate::ladder::MAX_TIMEOUT_SECONDS;
 use crate::locks::{create_lock, is_public_channel, unlock_operation};
-
-const MAX_TIMEOUT_SECONDS: u64 = 28 * 86_400;
 
 #[poise::command(
     prefix_command,
@@ -51,9 +50,7 @@ async fn warn(
     #[description = "Warning reason"]
     reason: String,
 ) -> Result<(), Error> {
-    let Some(guild_id) = ctx.guild_id() else {
-        return guild_only_error(ctx).await;
-    };
+    let guild_id = ctx.guild_id().ok_or("guild command missing guild")?;
     if !validate_target(ctx, &member).await? {
         return hierarchy_error(ctx).await;
     }
@@ -146,9 +143,7 @@ async fn revoke(
     #[description = "Revocation reason"]
     reason: Option<String>,
 ) -> Result<(), Error> {
-    let Some(guild_id) = ctx.guild_id() else {
-        return guild_only_error(ctx).await;
-    };
+    let guild_id = ctx.guild_id().ok_or("guild command missing guild")?;
     if !validate_target(ctx, &member).await? {
         return hierarchy_error(ctx).await;
     }
@@ -281,9 +276,7 @@ async fn unban(
     #[description = "Reason"]
     reason: Option<String>,
 ) -> Result<(), Error> {
-    let Some(guild_id) = ctx.guild_id() else {
-        return guild_only_error(ctx).await;
-    };
+    let guild_id = ctx.guild_id().ok_or("guild command missing guild")?;
     let case = create_pending_user_case(ctx, user_id, "unban", reason.as_deref(), None).await?;
     finish_user_action(ctx, guild_id, user_id, &case).await
 }
@@ -295,9 +288,7 @@ async fn moderate_member(
     reason: Option<String>,
     duration: Option<Duration>,
 ) -> Result<(), Error> {
-    let Some(guild_id) = ctx.guild_id() else {
-        return guild_only_error(ctx).await;
-    };
+    let guild_id = ctx.guild_id().ok_or("guild command missing guild")?;
     if !validate_target(ctx, &member).await? {
         return hierarchy_error(ctx).await;
     }
@@ -811,23 +802,12 @@ fn format_case_line(case: &ModerationCase) -> String {
     )
 }
 
-async fn guild_only_error(ctx: Context<'_>) -> Result<(), Error> {
-    response::error(ctx, "This command can only be used in a server.").await
-}
-
 async fn hierarchy_error(ctx: Context<'_>) -> Result<(), Error> {
     response::error(
         ctx,
         "You and the bot must both have a higher role than that member.",
     )
     .await
-}
-
-fn unix_now() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as i64
 }
 
 #[cfg(test)]

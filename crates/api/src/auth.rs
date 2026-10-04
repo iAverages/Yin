@@ -58,29 +58,18 @@ impl AuthClient {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum AuthClientError {
+    #[error("auth service request failed: {0}")]
     Request(reqwest::Error),
+    #[error("auth service response decode failed: {0}")]
     Decode(reqwest::Error),
+    #[error("auth service returned {status}: {body}")]
     Status {
         status: reqwest::StatusCode,
         body: String,
     },
 }
-
-impl std::fmt::Display for AuthClientError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Request(error) => write!(f, "auth service request failed: {error}"),
-            Self::Decode(error) => write!(f, "auth service response decode failed: {error}"),
-            Self::Status { status, body } => {
-                write!(f, "auth service returned {status}: {body}")
-            }
-        }
-    }
-}
-
-impl std::error::Error for AuthClientError {}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AuthSession {

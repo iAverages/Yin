@@ -45,9 +45,7 @@ pub async fn prefix(ctx: Context<'_>) -> Result<(), Error> {
     interaction_context = "Guild"
 )]
 pub async fn view(ctx: Context<'_>) -> Result<(), Error> {
-    let Some(guild_id) = ctx.guild_id() else {
-        return response::error(ctx, "This command can only be used in a server.").await;
-    };
+    let guild_id = ctx.guild_id().expect("guild-only command has a guild ID");
 
     let repository = GuildSettingsRepository::new(&ctx.data().database);
     let settings = repository.find_by_guild_id(guild_id.get()).await?;
@@ -72,9 +70,7 @@ pub async fn set(
     ctx: Context<'_>,
     #[description = "New command prefix"] prefix: String,
 ) -> Result<(), Error> {
-    let Some(guild_id) = ctx.guild_id() else {
-        return response::error(ctx, "This command can only be used in a server.").await;
-    };
+    let guild_id = ctx.guild_id().expect("guild-only command has a guild ID");
 
     let Some(prefix) = CommandPrefix::parse(&prefix) else {
         return response::send(
@@ -109,9 +105,7 @@ pub async fn set(
     interaction_context = "Guild"
 )]
 pub async fn reset(ctx: Context<'_>) -> Result<(), Error> {
-    let Some(guild_id) = ctx.guild_id() else {
-        return response::error(ctx, "This command can only be used in a server.").await;
-    };
+    let guild_id = ctx.guild_id().expect("guild-only command has a guild ID");
 
     let repository = GuildSettingsRepository::new(&ctx.data().database);
     repository.clear_prefix(guild_id.get()).await?;

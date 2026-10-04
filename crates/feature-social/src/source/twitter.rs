@@ -4,7 +4,7 @@ use database::settings::TranslationLanguage;
 use feature_flags::FlagValue;
 use reqwest::Url;
 
-use super::{EmbedSource, Request};
+use super::Request;
 
 const FXTWITTER_API: &str = "https://api.fxtwitter.com/2/status/";
 const ABEMBED_TWITTER: &str = "https://staging.abembed.com/twitter/";
@@ -17,12 +17,6 @@ const HOSTS: &[&str] = &[
     "www.twitter.com",
     "mobile.twitter.com",
 ];
-
-const DISPLAY_NAME: &str = "X / Twitter";
-const ACCENT_COLOR: u32 = 0x1d9bf0;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct Twitter;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 enum Backend {
@@ -57,52 +51,42 @@ pub(crate) async fn options(
     })
 }
 
-impl EmbedSource for Twitter {
-    fn handles(&self, url: &Url) -> bool {
-        post_parts(url).is_some()
+pub(super) fn handles(url: &Url) -> bool {
+    post_parts(url).is_some()
+}
+
+pub(super) fn request(url: &Url, options: &Options, spoiler: bool) -> Option<Request> {
+    let (username, id, language) = post_parts(url)?;
+    let language = language
+        .and_then(TranslationLanguage::parse)
+        .map(TranslationLanguage::into_string)
+        .unwrap_or_else(|| options.language.clone());
+
+    Some(match options.backend {
+        Backend::FxTwitter => Request::FxEmbed {
+            url: format!("{FXTWITTER_API}{id}?lang={language}"),
+            spoiler,
+        },
+        Backend::AbEmbed => Request::Component {
+            url: format!("{ABEMBED_TWITTER}{username}/status/{id}/{language}"),
+            spoiler,
+        },
+    })
+}
+
+pub(super) fn media_url(kind: &str, media_url: &str) -> Option<String> {
+    if kind != "gif" {
+        return None;
     }
 
-    fn request(&self, url: &Url, options: &Options, spoiler: bool) -> Option<Request> {
-        let (username, id, language) = post_parts(url)?;
-        let language = language
-            .and_then(TranslationLanguage::parse)
-            .map(TranslationLanguage::into_string)
-            .unwrap_or_else(|| options.language.clone());
-
-        Some(match options.backend {
-            Backend::FxTwitter => Request::FxEmbed {
-                url: format!("{FXTWITTER_API}{id}?lang={language}"),
-                spoiler,
-            },
-            Backend::AbEmbed => Request::Component {
-                url: format!("{ABEMBED_TWITTER}{username}/status/{id}/{language}"),
-                spoiler,
-            },
-        })
+    let mut url = Url::parse(media_url).ok()?;
+    if url.host_str() != Some("video.twimg.com") || !url.path().ends_with(".mp4") {
+        return None;
     }
-
-    fn display_name(&self) -> &'static str {
-        DISPLAY_NAME
-    }
-
-    fn accent_color(&self) -> u32 {
-        ACCENT_COLOR
-    }
-
-    fn media_url(&self, _post_url: &str, kind: &str, media_url: &str) -> Option<String> {
-        if kind != "gif" {
-            return None;
-        }
-
-        let mut url = Url::parse(media_url).ok()?;
-        if url.host_str() != Some("video.twimg.com") || !url.path().ends_with(".mp4") {
-            return None;
-        }
-        let path = url.path().trim_end_matches(".mp4").to_owned() + ".gif";
-        url.set_host(Some("gif.fxtwitter.com")).ok()?;
-        url.set_path(&path);
-        Some(url.into())
-    }
+    let path = url.path().trim_end_matches(".mp4").to_owned() + ".gif";
+    url.set_host(Some("gif.fxtwitter.com")).ok()?;
+    url.set_path(&path);
+    Some(url.into())
 }
 
 pub fn primary_translation_language(locale: &str) -> Option<String> {
@@ -188,7 +172,7 @@ mod tests {
         );
         let default_language_url = Url::parse("https://x.com/jack/status/20?s=20").unwrap();
         assert_eq!(
-            Twitter.request(
+            request(
                 &default_language_url,
                 &Options {
                     language: "fr".to_owned(),
@@ -203,7 +187,7 @@ mod tests {
         );
         let url = Url::parse("https://x.com/jack/status/20/jp?s=20").unwrap();
         assert_eq!(
-            Twitter.request(
+            request(
                 &url,
                 &Options {
                     language: "fr".to_owned(),
@@ -217,7 +201,7 @@ mod tests {
             })
         );
         assert_eq!(
-            Twitter.request(
+            request(
                 &url,
                 &Options {
                     language: "fr".to_owned(),
@@ -231,25 +215,17 @@ mod tests {
             })
         );
         assert_eq!(primary_translation_language("pt-BR").as_deref(), Some("pt"));
-        assert!(!Twitter.handles(&Url::parse("https://x.com.example/jack/status/20").unwrap()));
+        assert!(!handles(
+            &Url::parse("https://x.com.example/jack/status/20").unwrap()
+        ));
     }
 
     #[test]
     fn rewrites_only_fxtwitter_gif_media() {
         assert_eq!(
-            Twitter
-                .media_url(
-                    "",
-                    "gif",
-                    "https://video.twimg.com/tweet_video/animation.mp4"
-                )
-                .as_deref(),
+            media_url("gif", "https://video.twimg.com/tweet_video/animation.mp4").as_deref(),
             Some("https://gif.fxtwitter.com/tweet_video/animation.gif")
         );
-        assert!(
-            Twitter
-                .media_url("", "video", "https://video.twimg.com/video.mp4")
-                .is_none()
-        );
+        assert!(media_url("video", "https://video.twimg.com/video.mp4").is_none());
     }
 }

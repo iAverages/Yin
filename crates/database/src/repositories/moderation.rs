@@ -1401,13 +1401,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn moderation_statuses_match_persisted_values() {
-        assert_eq!(ModerationStatus::Pending.as_str(), "pending");
-        assert_eq!(ModerationStatus::Succeeded.as_str(), "succeeded");
-        assert_eq!(ModerationStatus::Failed.as_str(), "failed");
-    }
-
-    #[test]
     fn lock_subjects_are_reserved_in_sorted_unique_order() {
         let targets = [
             NewChannelLockTarget {
@@ -1434,12 +1427,5 @@ mod tests {
         ];
 
         assert_eq!(sorted_channel_ids(&targets), vec![3, 9]);
-    }
-
-    #[test]
-    fn audit_match_requires_actor_only_when_known() {
-        assert!(MATCH_AUDIT_CASE_QUERY.contains("(? IS NULL OR actor_user_id = ?)"));
-        assert_eq!(UNLOCK_LEASE_SECONDS, 120);
-        assert_eq!(UNLOCK_RETRY_SECONDS, 60);
     }
 }

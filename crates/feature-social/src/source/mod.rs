@@ -39,32 +39,80 @@ impl SocialPlatform {
     pub fn key(self) -> &'static str {
         poise::ChoiceParameter::name(&self)
     }
-}
 
-trait EmbedSource {
-    fn handles(&self, url: &Url) -> bool;
+    pub(crate) fn from_provider(provider: &str) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|platform| platform.key() == provider)
+    }
+
+    fn recognize(url: &Url) -> Option<Self> {
+        [
+            Self::Spotify,
+            Self::Twitter,
+            Self::Bluesky,
+            Self::Instagram,
+            Self::Facebook,
+            Self::TikTok,
+        ]
+        .into_iter()
+        .find(|platform| platform.handles(url))
+    }
+
+    fn handles(self, url: &Url) -> bool {
+        match self {
+            Self::Twitter => twitter::handles(url),
+            Self::Bluesky => bluesky::handles(url),
+            Self::Instagram => instagram::handles(url),
+            Self::Facebook => facebook::handles(url),
+            Self::TikTok => tiktok::handles(url),
+            Self::Spotify => spotify::handles(url),
+        }
+    }
+
     fn request(
-        &self,
+        self,
         url: &Url,
         twitter_options: &twitter::Options,
         spoiler: bool,
-    ) -> Option<Request>;
-    fn display_name(&self) -> &'static str;
-    fn accent_color(&self) -> u32;
-
-    fn media_url(&self, _post_url: &str, _kind: &str, _url: &str) -> Option<String> {
-        None
+    ) -> Option<Request> {
+        match self {
+            Self::Twitter => twitter::request(url, twitter_options, spoiler),
+            Self::Bluesky => bluesky::request(url, spoiler),
+            Self::Instagram => instagram::request(url, spoiler),
+            Self::Facebook => facebook::request(url, spoiler),
+            Self::TikTok => tiktok::request(url, spoiler),
+            Self::Spotify => spotify::request(url, spoiler),
+        }
     }
-}
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum Source {
-    Twitter(twitter::Twitter),
-    Bluesky(bluesky::Bluesky),
-    Instagram(instagram::Instagram),
-    Facebook(facebook::Facebook),
-    TikTok(tiktok::TikTok),
-    Spotify(spotify::Spotify),
+    pub(crate) fn display_name(self) -> &'static str {
+        match self {
+            Self::Twitter => "X / Twitter",
+            Self::Bluesky => "Bluesky",
+            Self::Instagram => "Instagram",
+            Self::Facebook => "Facebook",
+            Self::TikTok => "TikTok",
+            Self::Spotify => "Spotify",
+        }
+    }
+
+    pub(crate) fn accent_color(self) -> u32 {
+        match self {
+            Self::Bluesky => 0x1185fe,
+            Self::Instagram => 0xce0071,
+            Self::Facebook => 0x1877f2,
+            Self::Twitter | Self::TikTok | Self::Spotify => 0x1d9bf0,
+        }
+    }
+
+    pub(crate) fn media_url(self, post_url: &str, kind: &str, url: &str) -> Option<String> {
+        match self {
+            Self::Twitter => twitter::media_url(kind, url),
+            Self::Bluesky => bluesky::media_url(post_url, kind),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -76,76 +124,15 @@ pub(crate) enum Request {
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct Link {
-    pub(crate) source: Source,
+    pub(crate) platform: SocialPlatform,
     url: Url,
     spoiler: bool,
 }
 
 impl Link {
     pub(crate) fn request(self, twitter_options: &twitter::Options) -> Option<Request> {
-        self.source
-            .handler()
+        self.platform
             .request(&self.url, twitter_options, self.spoiler)
-    }
-}
-
-impl Source {
-    pub(crate) fn platform(self) -> SocialPlatform {
-        match self {
-            Self::Twitter(_) => SocialPlatform::Twitter,
-            Self::Bluesky(_) => SocialPlatform::Bluesky,
-            Self::Instagram(_) => SocialPlatform::Instagram,
-            Self::Facebook(_) => SocialPlatform::Facebook,
-            Self::TikTok(_) => SocialPlatform::TikTok,
-            Self::Spotify(_) => SocialPlatform::Spotify,
-        }
-    }
-
-    fn recognize(url: &Url) -> Option<Self> {
-        match () {
-            _ if spotify::Spotify.handles(url) => Some(Self::Spotify(spotify::Spotify)),
-            _ if twitter::Twitter.handles(url) => Some(Self::Twitter(twitter::Twitter)),
-            _ if bluesky::Bluesky.handles(url) => Some(Self::Bluesky(bluesky::Bluesky)),
-            _ if instagram::Instagram.handles(url) => Some(Self::Instagram(instagram::Instagram)),
-            _ if facebook::Facebook.handles(url) => Some(Self::Facebook(facebook::Facebook)),
-            _ if tiktok::TikTok.handles(url) => Some(Self::TikTok(tiktok::TikTok)),
-            _ => None,
-        }
-    }
-
-    fn handler(&self) -> &dyn EmbedSource {
-        match self {
-            Self::Twitter(source) => source,
-            Self::Bluesky(source) => source,
-            Self::Instagram(source) => source,
-            Self::Facebook(source) => source,
-            Self::TikTok(source) => source,
-            Self::Spotify(source) => source,
-        }
-    }
-
-    pub(crate) fn from_provider(provider: &str) -> Option<Self> {
-        match provider {
-            "twitter" => Some(Self::Twitter(twitter::Twitter)),
-            "bluesky" => Some(Self::Bluesky(bluesky::Bluesky)),
-            "instagram" => Some(Self::Instagram(instagram::Instagram)),
-            "facebook" => Some(Self::Facebook(facebook::Facebook)),
-            "tiktok" => Some(Self::TikTok(tiktok::TikTok)),
-            "spotify" => Some(Self::Spotify(spotify::Spotify)),
-            _ => None,
-        }
-    }
-
-    pub(crate) fn display_name(&self) -> &'static str {
-        self.handler().display_name()
-    }
-
-    pub(crate) fn accent_color(&self) -> u32 {
-        self.handler().accent_color()
-    }
-
-    pub(crate) fn media_url(&self, post_url: &str, kind: &str, url: &str) -> Option<String> {
-        self.handler().media_url(post_url, kind, url)
     }
 }
 
@@ -155,7 +142,7 @@ pub(crate) fn parse_links(content: &str) -> Vec<Link> {
         .filter_map(|word| {
             let (url, spoiler) = parse_url(word)?;
             Some(Link {
-                source: Source::recognize(&url)?,
+                platform: SocialPlatform::recognize(&url)?,
                 url,
                 spoiler,
             })
@@ -167,7 +154,7 @@ pub(crate) fn retain_enabled_links(links: &mut Vec<Link>, disabled_platforms: &[
     links.retain(|link| {
         !disabled_platforms
             .iter()
-            .any(|platform| platform == link.source.platform().key())
+            .any(|platform| platform == link.platform.key())
     });
 }
 
@@ -191,10 +178,12 @@ mod tests {
     #[test]
     fn every_supported_platform_has_an_independent_toggle() {
         for platform in SocialPlatform::ALL {
-            let source = Source::from_provider(platform.key()).unwrap();
-            assert_eq!(source.platform(), platform);
+            assert_eq!(
+                SocialPlatform::from_provider(platform.key()),
+                Some(platform)
+            );
             let mut links = vec![Link {
-                source,
+                platform,
                 url: Url::parse("https://example.com").unwrap(),
                 spoiler: false,
             }];
@@ -212,11 +201,11 @@ mod tests {
         ));
 
         assert_eq!(
-            links.iter().map(|link| link.source).collect::<Vec<_>>(),
+            links.iter().map(|link| link.platform).collect::<Vec<_>>(),
             [
-                Source::Twitter(twitter::Twitter),
-                Source::Spotify(spotify::Spotify),
-                Source::TikTok(tiktok::TikTok),
+                SocialPlatform::Twitter,
+                SocialPlatform::Spotify,
+                SocialPlatform::TikTok,
             ]
         );
         assert!(!links[0].spoiler);

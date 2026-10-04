@@ -71,6 +71,13 @@ pub fn parse_duration(input: &str) -> Result<std::time::Duration, ParseDurationE
     Ok(std::time::Duration::from_secs(total))
 }
 
+pub fn unix_now() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64
+}
+
 pub fn discord_timestamp(timestamp: serenity::Timestamp) -> String {
     let unix = timestamp.unix_timestamp();
     format!("<t:{unix}:F> (<t:{unix}:R>)")

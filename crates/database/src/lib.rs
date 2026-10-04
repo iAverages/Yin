@@ -29,9 +29,8 @@ pub struct Database {
 impl Database {
     pub async fn connect(config: DatabaseConfig) -> Result<Self, DatabaseError> {
         let pool = MySqlPoolOptions::new()
-            .max_connections(config.max_connections)
-            .min_connections(config.min_connections)
-            .acquire_timeout(Duration::from_secs(config.connect_timeout_seconds))
+            .max_connections(5)
+            .acquire_timeout(Duration::from_secs(10))
             .connect(&config.url)
             .await?;
 

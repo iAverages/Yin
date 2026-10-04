@@ -1,39 +1,18 @@
 use reqwest::Url;
 
-use super::{ABEMBED_API, EmbedSource, Request};
+use super::{ABEMBED_API, Request};
 
 const HOSTS: &[&str] = &["facebook.com", "www.facebook.com", "m.facebook.com"];
 
-const DISPLAY_NAME: &str = "Facebook";
-const ACCENT_COLOR: u32 = 0x1877f2;
+pub(super) fn handles(url: &Url) -> bool {
+    route(url).is_some()
+}
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct Facebook;
-
-impl EmbedSource for Facebook {
-    fn handles(&self, url: &Url) -> bool {
-        route(url).is_some()
-    }
-
-    fn request(
-        &self,
-        url: &Url,
-        _twitter_options: &super::twitter::Options,
-        spoiler: bool,
-    ) -> Option<Request> {
-        Some(Request::AbEmbed {
-            url: format!("{ABEMBED_API}facebook/{}", route(url)?),
-            spoiler,
-        })
-    }
-
-    fn display_name(&self) -> &'static str {
-        DISPLAY_NAME
-    }
-
-    fn accent_color(&self) -> u32 {
-        ACCENT_COLOR
-    }
+pub(super) fn request(url: &Url, spoiler: bool) -> Option<Request> {
+    Some(Request::AbEmbed {
+        url: format!("{ABEMBED_API}facebook/{}", route(url)?),
+        spoiler,
+    })
 }
 
 fn route(url: &Url) -> Option<String> {
@@ -91,7 +70,7 @@ mod tests {
             ),
         ] {
             assert_eq!(
-                Facebook.request(&Url::parse(url).unwrap(), &Default::default(), false,),
+                request(&Url::parse(url).unwrap(), false),
                 Some(Request::AbEmbed {
                     url: format!("https://abembed.com/api/facebook/{route}"),
                     spoiler: false,

@@ -19,9 +19,6 @@ fn runtime_liveness_does_not_misrepresent_stale_or_stopped_processes() {
 async fn database(pool: &MySqlPool) -> Database {
     Database::connect(DatabaseConfig {
         url: pool.connect_options().to_url_lossy().to_string(),
-        max_connections: 2,
-        min_connections: 0,
-        connect_timeout_seconds: 5,
     })
     .await
     .unwrap()

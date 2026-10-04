@@ -3,7 +3,7 @@ use bot_core::time::{format_duration, parse_duration};
 use bot_core::{Context, Error, poise};
 use database::{ModerationRepository, NewPunishmentLadderRule};
 
-const MAX_TIMEOUT_SECONDS: u64 = 28 * 86_400;
+pub(crate) const MAX_TIMEOUT_SECONDS: u64 = 28 * 86_400;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LadderRuleConfig {
@@ -71,9 +71,7 @@ async fn ladder(ctx: Context<'_>) -> Result<(), Error> {
     required_permissions = "MANAGE_GUILD"
 )]
 async fn list(ctx: Context<'_>) -> Result<(), Error> {
-    let Some(guild_id) = ctx.guild_id() else {
-        return response::error(ctx, "This command can only be used in a server.").await;
-    };
+    let guild_id = ctx.guild_id().ok_or("guild command missing guild")?;
     let rules = ModerationRepository::new(&ctx.data().database)
         .ladder_rules(guild_id.get())
         .await?;
@@ -121,9 +119,7 @@ async fn add(
     #[description = "timeout, kick, or ban"] action: String,
     #[description = "Required for timeout"] duration: Option<String>,
 ) -> Result<(), Error> {
-    let Some(guild_id) = ctx.guild_id() else {
-        return response::error(ctx, "This command can only be used in a server.").await;
-    };
+    let guild_id = ctx.guild_id().ok_or("guild command missing guild")?;
     let window = match parse_duration(&window) {
         Ok(value) => value,
         Err(error) => return response::error(ctx, format!("Invalid window: {error}.")).await,

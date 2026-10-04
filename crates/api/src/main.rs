@@ -122,26 +122,19 @@ async fn shutdown_signal() {
             tracing::error!(error = %error, "failed to install ctrl-c handler");
         }
     };
-
-    #[cfg(unix)]
-    {
-        let terminate = async {
-            match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
-                Ok(mut signal) => {
-                    signal.recv().await;
-                }
-                Err(error) => tracing::error!(error = %error, "failed to install sigterm handler"),
+    let terminate = async {
+        match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+            Ok(mut signal) => {
+                signal.recv().await;
             }
-        };
-
-        tokio::select! {
-            _ = ctrl_c => {},
-            _ = terminate => {},
+            Err(error) => tracing::error!(error = %error, "failed to install sigterm handler"),
         }
-    }
+    };
 
-    #[cfg(not(unix))]
-    ctrl_c.await;
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
 
     tracing::info!("shutdown signal received");
 }

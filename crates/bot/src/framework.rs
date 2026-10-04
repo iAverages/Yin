@@ -153,8 +153,7 @@ fn dynamic_prefix(
             Err(error) => {
                 tracing::error!(
                     guild_id = %guild_id,
-                    error = %error,
-                    error_chain = %format_error_chain(&error),
+                    error = %format_error_chain(&error),
                     "failed to load guild prefix"
                 );
                 Ok(Some(DEFAULT_PREFIX.to_owned()))
@@ -224,8 +223,7 @@ async fn on_error(error: FrameworkError<'_, BotState, Error>) {
 
     if let Err(error) = response::send(ctx, Embed::new(EmbedKind::Error, title)).await {
         tracing::error!(
-            error = %error,
-            error_chain = %format_error_chain(error.as_ref()),
+            error = %format_error_chain(error.as_ref()),
             "failed to send error embed"
         );
     }
@@ -236,111 +234,62 @@ async fn log_framework_error_with_context(
     ctx: bot_core::Context<'_>,
 ) {
     let trace = bot_core::trace::current(ctx).await;
-    let command = ctx.invocation_string();
-    let guild_id = ctx.guild_id().map(|id| id.get());
-    let channel_id = ctx.channel_id().get();
-    let user_id = ctx.author().id.get();
-
-    match error {
-        FrameworkError::Command { error, .. } => {
-            tracing::error!(
-                trace_id = %trace.trace_id,
-                command = %command,
-                guild_id,
-                channel_id,
-                user_id,
-                error = %error,
-                error_chain = %format_error_chain(error.as_ref()),
-                "command failed"
-            );
-        }
+    let (message, source, detail): (_, Option<&Error>, Option<&str>) = match error {
+        FrameworkError::Command { error, .. } => ("command failed", Some(error), None),
         FrameworkError::CommandCheckFailed {
             error: Some(error), ..
-        } => {
-            tracing::error!(
-                trace_id = %trace.trace_id,
-                command = %command,
-                guild_id,
-                channel_id,
-                user_id,
-                error = %error,
-                error_chain = %format_error_chain(error.as_ref()),
-                "command check failed"
-            );
-        }
-        FrameworkError::ArgumentParse { error, input, .. } => {
-            tracing::error!(
-                trace_id = %trace.trace_id,
-                command = %command,
-                guild_id,
-                channel_id,
-                user_id,
-                input,
-                error = %error,
-                error_chain = %format_error_chain(error.as_ref()),
-                "command argument parse failed"
-            );
-        }
+        } => ("command check failed", Some(error), None),
+        FrameworkError::ArgumentParse { error, input, .. } => (
+            "command argument parse failed",
+            Some(error),
+            input.as_deref(),
+        ),
         FrameworkError::CommandPanic { payload, .. } => {
-            tracing::error!(
-                trace_id = %trace.trace_id,
-                command = %command,
-                guild_id,
-                channel_id,
-                user_id,
-                payload,
-                "command panicked"
-            );
+            ("command panicked", None, payload.as_deref())
         }
-        _ => {
-            tracing::error!(
-                trace_id = %trace.trace_id,
-                command = %command,
-                guild_id,
-                channel_id,
-                user_id,
-                error = %error,
-                "framework error"
-            );
-        }
-    }
+        _ => ("framework error", None, None),
+    };
+    let error = source.map_or_else(
+        || error.to_string(),
+        |error| format_error_chain(error.as_ref()),
+    );
+    tracing::error!(
+        trace_id = %trace.trace_id,
+        command = %ctx.invocation_string(),
+        guild_id = ctx.guild_id().map(|id| id.get()),
+        channel_id = ctx.channel_id().get(),
+        user_id = ctx.author().id.get(),
+        detail,
+        error = %error,
+        "{message}"
+    );
 }
 
 fn log_framework_error_without_context(error: &FrameworkError<'_, BotState, Error>) {
-    match error {
-        FrameworkError::Setup { error, .. } => {
-            tracing::error!(
-                error = %error,
-                error_chain = %format_error_chain(error.as_ref()),
-                "framework setup failed"
-            );
-        }
+    let (message, source) = match error {
+        FrameworkError::Setup { error, .. } => ("framework setup failed", Some(error)),
         FrameworkError::EventHandler { error, event, .. } => {
             tracing::error!(
                 event = event.snake_case_name(),
-                error = %error,
-                error_chain = %format_error_chain(error.as_ref()),
+                error = %format_error_chain(error.as_ref()),
                 "event handler failed"
             );
+            return;
         }
-        FrameworkError::DynamicPrefix { error, .. } => {
-            tracing::error!(
-                error = %error,
-                error_chain = %format_error_chain(error.as_ref()),
-                "dynamic prefix failed"
-            );
-        }
+        FrameworkError::DynamicPrefix { error, .. } => ("dynamic prefix failed", Some(error)),
         FrameworkError::NonCommandMessage { error, .. } => {
-            tracing::error!(
-                error = %error,
-                error_chain = %format_error_chain(error.as_ref()),
-                "non-command message handler failed"
-            );
+            ("non-command message handler failed", Some(error))
         }
-        _ => {
-            tracing::error!(error = %error, "framework error without command context");
-        }
-    }
+        _ => ("framework error without command context", None),
+    };
+    let error = source.map_or_else(
+        || error.to_string(),
+        |error| format_error_chain(error.as_ref()),
+    );
+    tracing::error!(
+        error = %error,
+        "{message}"
+    );
 }
 
 fn format_error_chain(error: &(dyn std::error::Error + 'static)) -> String {

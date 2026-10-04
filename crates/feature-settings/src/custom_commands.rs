@@ -34,9 +34,7 @@ pub async fn create(
     #[description = "Command name"] name: String,
     #[description = "Text the bot will send"] text: String,
 ) -> Result<(), Error> {
-    let Some(guild_id) = ctx.guild_id() else {
-        return response::error(ctx, "This command can only be used in a server.").await;
-    };
+    let guild_id = ctx.guild_id().expect("guild-only command has a guild ID");
     let Some(name) = CustomCommandName::parse(&name) else {
         return response::error(
             ctx,
@@ -70,22 +68,20 @@ pub async fn create(
     interaction_context = "Guild"
 )]
 pub async fn list(ctx: Context<'_>) -> Result<(), Error> {
-    let Some(guild_id) = ctx.guild_id() else {
-        return response::error(ctx, "This command can only be used in a server.").await;
-    };
-    let names = CustomCommandRepository::new(&ctx.data().database)
-        .list(guild_id.get())
+    let guild_id = ctx.guild_id().expect("guild-only command has a guild ID");
+    let commands = CustomCommandRepository::new(&ctx.data().database)
+        .list_entries(guild_id.get())
         .await?;
-    if names.is_empty() {
+    if commands.is_empty() {
         return response::info(ctx, "No custom commands have been created.").await;
     }
 
     response::send(
         ctx,
         Embed::new(EmbedKind::Info, "Custom Commands").description(
-            names
+            commands
                 .into_iter()
-                .map(|name| format!("`{name}`"))
+                .map(|command| format!("`{}`", command.name))
                 .collect::<Vec<_>>()
                 .join("\n"),
         ),
@@ -104,9 +100,7 @@ pub async fn remove(
     ctx: Context<'_>,
     #[description = "Command name"] name: String,
 ) -> Result<(), Error> {
-    let Some(guild_id) = ctx.guild_id() else {
-        return response::error(ctx, "This command can only be used in a server.").await;
-    };
+    let guild_id = ctx.guild_id().expect("guild-only command has a guild ID");
     let Some(name) = CustomCommandName::parse(&name) else {
         return response::error(ctx, "Invalid command name.").await;
     };

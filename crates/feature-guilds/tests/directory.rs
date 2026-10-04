@@ -10,9 +10,6 @@ async fn database(pool: &MySqlPool) -> Database {
     let options = url.as_ref().clone();
     Database::connect(DatabaseConfig {
         url: options.to_url_lossy().to_string(),
-        max_connections: 2,
-        min_connections: 0,
-        connect_timeout_seconds: 5,
     })
     .await
     .unwrap()
