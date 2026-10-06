@@ -10,6 +10,7 @@ import {
 import { QueryError } from "../components/query-boundary";
 import { getAdminAccess } from "../lib/admin-queries";
 import { ApiRequestError } from "../lib/api-error";
+import { loginRedirect } from "../lib/auth.functions";
 import { SSR_DATA_BUDGET_MS } from "../lib/ssr-data";
 
 const AdminRouteError = (props: { error: Error }) => {
@@ -19,12 +20,13 @@ const AdminRouteError = (props: { error: Error }) => {
 
 export const Route = createFileRoute("/_dashboard/admin")({
     context: ({ context }) => ({ breadcrumbs: [...context.breadcrumbs, { label: "Admin" }] }),
-    beforeLoad: async () => {
+    beforeLoad: async ({ location }) => {
         try {
             if (!(await getAdminAccess())) throw notFound();
         } catch (error) {
             if (error instanceof ApiRequestError) {
-                if (error.status === 401) throw redirect({ to: "/login" });
+                if (error.status === 401)
+                    throw redirect({ to: "/login", search: loginRedirect(location.href) });
                 if (error.status === 403 || error.status === 404) throw notFound();
             }
             throw error;

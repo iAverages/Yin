@@ -14,7 +14,7 @@ import { DashboardSidebar } from "../components/dashboard-sidebar";
 import { Icon } from "../components/icon";
 import { MobileNavigation } from "../components/mobile-navigation";
 import { PanelToaster } from "../components/panel-toaster";
-import { getSession } from "../lib/auth.functions";
+import { getSession, loginRedirect } from "../lib/auth.functions";
 import { managedGuildsOptions } from "../lib/guild-queries";
 import { onSidebarShortcut } from "../lib/sidebar-shortcut";
 import { SSR_DATA_BUDGET_MS, waitForSsrData } from "../lib/ssr-data";
@@ -131,9 +131,9 @@ const DashboardLayout = () => {
 
 export const Route = createFileRoute("/_dashboard")({
     context: () => ({ breadcrumbs: [] as Breadcrumb[] }),
-    beforeLoad: async () => {
+    beforeLoad: async ({ location }) => {
         const session = await getSession();
-        if (!session) throw redirect({ to: "/login" });
+        if (!session) throw redirect({ to: "/login", search: loginRedirect(location.href) });
         // Start one shared data budget only after authentication has completed.
         return {
             session,

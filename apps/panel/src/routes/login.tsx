@@ -5,13 +5,15 @@ import { Show } from "solid-js";
 import { Button } from "../components/button";
 import { Icon } from "../components/icon";
 import { authClient } from "../lib/auth-client";
+import { loginSearch } from "../lib/auth.functions";
 
 const Login = () => {
+    const search = Route.useSearch();
     const signIn = createMutation(() => ({
         mutationFn: async () => {
             const { error } = await authClient.signIn.social({
                 provider: "discord",
-                callbackURL: new URL("/", window.location.origin).toString(),
+                callbackURL: new URL(search().redirect ?? "/", window.location.origin).toString(),
                 scopes: ["guilds"],
             });
 
@@ -55,6 +57,7 @@ const Login = () => {
 };
 
 export const Route = createFileRoute("/login")({
+    validateSearch: loginSearch,
     component: Login,
     head: () => ({
         meta: [

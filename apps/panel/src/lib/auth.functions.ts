@@ -1,7 +1,18 @@
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequestHeader, setResponseHeader } from "@tanstack/solid-start/server";
+import { z } from "zod";
 
 import { authClient } from "./auth-client";
+
+export const loginSearch = z.object({
+    redirect: z
+        .string()
+        .regex(/^\/(?![/\\])/)
+        .optional()
+        .catch(undefined),
+});
+
+export const loginRedirect = (href: string) => (href === "/" ? {} : { redirect: href });
 
 export const getSession = createIsomorphicFn()
     .server(async () => {

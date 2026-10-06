@@ -30,7 +30,7 @@ test("signed-out and non-owner requests cannot render diagnostics", async ({
     request,
 }) => {
     await page.goto("/admin");
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL("/login?redirect=%2Fadmin");
     await signIn(context, false);
     const response = await page.goto("/admin");
     expect(response?.status()).toBe(404);

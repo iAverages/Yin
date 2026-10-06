@@ -888,10 +888,35 @@ test("the layout protects direct dashboard URLs but is absent from sign-in", asy
     context,
 }) => {
     await context.clearCookies();
-    for (const path of ["/", "/guilds/103", "/guilds/103/moderation"]) {
+    for (const [path, login] of [
+        ["/", "/login"],
+        ["/guilds/103", "/login?redirect=%2Fguilds%2F103"],
+        ["/guilds/103/moderation", "/login?redirect=%2Fguilds%2F103%2Fmoderation"],
+    ]) {
         await page.goto(path, { waitUntil: "domcontentloaded" });
-        await expect(page).toHaveURL("/login");
+        await expect(page).toHaveURL(login);
         await expect(page.getByRole("heading", { name: "Sign in to Yin" })).toBeVisible();
         await expect(page.getByRole("button", { name: "Select server" })).toHaveCount(0);
+    }
+});
+
+test("sign-in returns to the requested page and never leaves the panel", async ({
+    page,
+    context,
+}) => {
+    await context.clearCookies();
+    let callbackURL = "";
+    await page.route("**/api/auth/sign-in/social", (route) => {
+        callbackURL = route.request().postDataJSON().callbackURL;
+        return route.fulfill({ status: 500, json: { message: "stop" } });
+    });
+    for (const [path, expected] of [
+        ["/guilds/103/moderation", "http://127.0.0.1:3010/guilds/103/moderation"],
+        ["/login?redirect=%2F%2Fevil.example", "http://127.0.0.1:3010/"],
+    ]) {
+        await page.goto(path);
+        await page.getByRole("button", { name: "Sign in with Discord" }).click();
+        await expect(page.getByRole("alert")).toBeVisible();
+        expect(callbackURL).toBe(expected);
     }
 });
