@@ -2,8 +2,8 @@
 
 Open **/admin** on the panel after signing in with Discord account
 **307952129958477824**. There is deliberately no entry in the sidebar, guild
-selector, or account menu. The page uses the existing dashboard shell and is
-read-only. Admin pages live beneath the guarded `_dashboard.admin` layout; any
+selector, or account menu. The page uses the existing dashboard shell. Each guild
+in the directory links to its regular `/guilds/{id}` settings page. Admin pages live beneath the guarded `_dashboard.admin` layout; any
 future admin page must stay under `/admin`.
 
 ## Authorization
@@ -20,6 +20,9 @@ internal ID to the allowlist nor possessing guild owner/Administrator permission
 grants access. A missing session returns 401; authenticated non-owners get 404.
 Authorization/service/database failures fail closed. The linked account is checked
 on every request; revocation does not wait for the session or guild cache to expire.
+
+The same linked-account check lets the owner read and edit settings (`/guilds/{id}/...`)
+of any guild the bot is currently in, without Manage Server permission there.
 
 The panel's parent guard calls `GET /admin/access` before loading any diagnostic
 data, during both SSR and client navigation. Non-owners see a not-found page.

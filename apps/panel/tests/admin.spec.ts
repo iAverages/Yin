@@ -89,6 +89,10 @@ test("guild search preserves snowflakes and supports empty matches", async ({ pa
     await search.clear();
     await expect(directory.getByRole("row")).toHaveCount(4);
     await expect(directory).toContainText("Metadata pending");
+    await expect(directory.getByRole("link", { name: "Elsewhere" })).toHaveAttribute(
+        "href",
+        "/guilds/9007199254740993",
+    );
     await page.getByRole("button", { name: "Account menu" }).click();
     await expect(page.getByRole("menuitem", { name: /admin/i })).toHaveCount(0);
 });

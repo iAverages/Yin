@@ -118,6 +118,43 @@ async fn every_admin_endpoint_checks_the_linked_discord_account(pool: MySqlPool)
         }
     }
 
+    // The owner can edit settings of guilds outside their own Discord guild list.
+    for (method, path, body) in [
+        ("GET", "/guilds/9007199254740993/settings", ""),
+        (
+            "PUT",
+            "/guilds/9007199254740993/settings/general",
+            r#"{"commandPrefix":"?","translationLanguage":null}"#,
+        ),
+    ] {
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(method)
+                    .uri(path)
+                    .header(header::COOKIE, "owner-internal-id")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK, "{method} {path}");
+    }
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/guilds/2/settings")
+                .header(header::COOKIE, "owner-internal-id")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
     // Revoking the account takes effect on the next request, not session expiry.
     sqlx::query("DELETE FROM account WHERE userId = 'owner-internal-id'")
         .execute(&pool)

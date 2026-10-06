@@ -1,5 +1,5 @@
 import { createQuery, noop } from "@tanstack/solid-query";
-import { createFileRoute } from "@tanstack/solid-router";
+import { Link, createFileRoute } from "@tanstack/solid-router";
 import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 
 import { Badge } from "../components/badge";
@@ -26,8 +26,8 @@ const AdminPage = () => {
                 <p class="mt-0 mb-2 font-mono text-xs text-muted">YIN / DIAGNOSTICS</p>
                 <h1 class="m-0 text-2xl font-semibold tracking-tight">Bot overview</h1>
                 <p class="mt-2 mb-0 text-sm text-muted">
-                    Read-only runtime and guild directory. Gateway snapshots update every 15
-                    seconds.
+                    Runtime and guild directory. Select a guild to edit its settings. Gateway
+                    snapshots update every 15 seconds.
                 </p>
             </header>
             <section aria-label="Gateway & runtime">
@@ -314,9 +314,13 @@ const GuildDirectory = () => {
                                 {(guild) => (
                                     <tr>
                                         <td>
-                                            <span class="font-medium text-foreground">
+                                            <Link
+                                                to="/guilds/$guildId"
+                                                params={{ guildId: guild.id }}
+                                                class="font-medium text-foreground"
+                                            >
                                                 {guild.name ?? "Metadata pending"}
-                                            </span>
+                                            </Link>
                                         </td>
                                         <td>
                                             <span class="font-mono">{guild.id}</span>

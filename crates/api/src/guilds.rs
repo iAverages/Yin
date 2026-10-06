@@ -2,6 +2,7 @@ use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use database::repositories::admin::AdminRepository;
 use database::settings::{
     CommandPrefix, CustomCommandName, CustomCommandText, TranslationLanguage,
 };
@@ -149,10 +150,13 @@ pub async fn get_guild_settings(
     axum::Extension(session): axum::Extension<AuthSession>,
     Path(guild_id): Path<u64>,
 ) -> Result<Json<GuildSettingsResponse>, ApiError> {
-    let guild = find_installed_guild(
-        load_managed_guilds(&state, &session, Freshness::Cached).await?,
-        guild_id,
-    )?;
+    let guild = match admin_guild(&state, &session, guild_id).await? {
+        Some(guild) => guild,
+        None => find_installed_guild(
+            load_managed_guilds(&state, &session, Freshness::Cached).await?,
+            guild_id,
+        )?,
+    };
     Ok(Json(load_guild_settings(&state, guild_id, guild).await?))
 }
 
@@ -408,6 +412,9 @@ async fn require_manage_guild(
     session: &AuthSession,
     guild_id: u64,
 ) -> Result<ManagedGuild, ApiError> {
+    if let Some(guild) = admin_guild(state, session, guild_id).await? {
+        return Ok(guild);
+    }
     let installed = GuildDirectoryRepository::new(&state.database)
         .installed_guild(guild_id)
         .await?
@@ -420,6 +427,32 @@ async fn require_manage_guild(
             "You need Manage Server or Administrator permission.",
         ))?;
     find_installed_guild(managed_guilds(vec![guild], vec![installed]), guild_id)
+}
+
+// Bot admins can edit any guild the bot is in, without Discord permissions there.
+async fn admin_guild(
+    state: &AppState,
+    session: &AuthSession,
+    guild_id: u64,
+) -> Result<Option<ManagedGuild>, ApiError> {
+    if !AdminRepository::new(&state.database)
+        .is_admin(&session.user.id)
+        .await?
+    {
+        return Ok(None);
+    }
+    let guild = GuildDirectoryRepository::new(&state.database)
+        .installed_guild(guild_id)
+        .await?
+        .ok_or(ApiError::Forbidden(
+            "Add Yin to this server before editing settings.",
+        ))?;
+    Ok(Some(ManagedGuild {
+        id: guild_id.to_string(),
+        name: guild.name.unwrap_or_else(|| guild_id.to_string()),
+        icon: guild.icon,
+        bot_installed: true,
+    }))
 }
 
 fn validate_optional_prefix(prefix: Option<&str>) -> Result<Option<CommandPrefix>, ApiError> {
