@@ -57,7 +57,7 @@
         src = source;
         inherit pnpm;
         fetcherVersion = 4;
-        hash = "sha256-6fAV4DdVYfVTpNJOc8UM3qDrK21Btyg3VSjn2TZB7a8=";
+        hash = "sha256-L5e9sGFuR+cd6K2L8eiryEdPxOpmWb7V/PqBl2ndJLQ=";
       };
 
       auth = pkgs.stdenvNoCC.mkDerivation {
