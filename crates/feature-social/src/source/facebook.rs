@@ -1,6 +1,6 @@
 use reqwest::Url;
 
-use super::{ABEMBED_API, Request};
+use super::Request;
 
 const HOSTS: &[&str] = &["facebook.com", "www.facebook.com", "m.facebook.com"];
 
@@ -8,9 +8,9 @@ pub(super) fn handles(url: &Url) -> bool {
     route(url).is_some()
 }
 
-pub(super) fn request(url: &Url, spoiler: bool) -> Option<Request> {
+pub(super) fn request(url: &Url, abembed: &str, spoiler: bool) -> Option<Request> {
     Some(Request::AbEmbed {
-        url: format!("{ABEMBED_API}facebook/{}", route(url)?),
+        url: format!("{abembed}api/facebook/{}", route(url)?),
         spoiler,
     })
 }
@@ -70,7 +70,7 @@ mod tests {
             ),
         ] {
             assert_eq!(
-                request(&Url::parse(url).unwrap(), false),
+                request(&Url::parse(url).unwrap(), "https://abembed.com/", false),
                 Some(Request::AbEmbed {
                     url: format!("https://abembed.com/api/facebook/{route}"),
                     spoiler: false,

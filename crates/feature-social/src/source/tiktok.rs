@@ -1,6 +1,6 @@
 use reqwest::Url;
 
-use super::{ABEMBED_API, Request};
+use super::Request;
 
 const HOSTS: &[&str] = &["tiktok.com", "www.tiktok.com", "m.tiktok.com"];
 const SHORT_HOSTS: &[&str] = &["vt.tiktok.com", "vm.tiktok.com"];
@@ -9,9 +9,9 @@ pub(super) fn handles(url: &Url) -> bool {
     route(url).is_some()
 }
 
-pub(super) fn request(url: &Url, spoiler: bool) -> Option<Request> {
+pub(super) fn request(url: &Url, abembed: &str, spoiler: bool) -> Option<Request> {
     Some(Request::AbEmbed {
-        url: format!("{ABEMBED_API}tiktok/{}", route(url)?),
+        url: format!("{abembed}api/tiktok/{}", route(url)?),
         spoiler,
     })
 }
@@ -64,7 +64,7 @@ mod tests {
             ("https://vm.tiktok.com/ZN88Qw7ns/", "ZN88Qw7ns"),
         ] {
             assert_eq!(
-                request(&Url::parse(url).unwrap(), false),
+                request(&Url::parse(url).unwrap(), "https://abembed.com/", false),
                 Some(Request::AbEmbed {
                     url: format!("https://abembed.com/api/tiktok/{route}"),
                     spoiler: false,

@@ -1,6 +1,6 @@
 use reqwest::Url;
 
-use super::{ABEMBED_API, Request};
+use super::Request;
 
 const HOSTS: &[&str] = &["instagram.com", "www.instagram.com"];
 
@@ -8,9 +8,9 @@ pub(super) fn handles(url: &Url) -> bool {
     shortcode(url).is_some()
 }
 
-pub(super) fn request(url: &Url, spoiler: bool) -> Option<Request> {
+pub(super) fn request(url: &Url, abembed: &str, spoiler: bool) -> Option<Request> {
     Some(Request::AbEmbed {
-        url: format!("{ABEMBED_API}instagram/p/{}", shortcode(url)?),
+        url: format!("{abembed}api/instagram/p/{}", shortcode(url)?),
         spoiler,
     })
 }
@@ -40,7 +40,7 @@ mod tests {
     fn recognizes_instagram_post_kinds_and_rejects_lookalikes() {
         let url = Url::parse("https://www.instagram.com/reels/DbCP6xzRzdo/").unwrap();
         assert_eq!(
-            request(&url, false),
+            request(&url, "https://abembed.com/", false),
             Some(Request::AbEmbed {
                 url: "https://abembed.com/api/instagram/p/DbCP6xzRzdo".to_owned(),
                 spoiler: false,

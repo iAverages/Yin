@@ -7,7 +7,6 @@ use reqwest::Url;
 use super::Request;
 
 const FXTWITTER_API: &str = "https://api.fxtwitter.com/2/status/";
-const ABEMBED_TWITTER: &str = "https://staging.abembed.com/twitter/";
 const BACKEND_FLAG: &str = "twitter-embed-backend";
 const ABEMBED_VARIANT: &str = "abembed";
 const HOSTS: &[&str] = &[
@@ -55,7 +54,12 @@ pub(super) fn handles(url: &Url) -> bool {
     post_parts(url).is_some()
 }
 
-pub(super) fn request(url: &Url, options: &Options, spoiler: bool) -> Option<Request> {
+pub(super) fn request(
+    url: &Url,
+    options: &Options,
+    abembed: &str,
+    spoiler: bool,
+) -> Option<Request> {
     let (username, id, language) = post_parts(url)?;
     let language = language
         .and_then(TranslationLanguage::parse)
@@ -68,7 +72,7 @@ pub(super) fn request(url: &Url, options: &Options, spoiler: bool) -> Option<Req
             spoiler,
         },
         Backend::AbEmbed => Request::Component {
-            url: format!("{ABEMBED_TWITTER}{username}/status/{id}/{language}"),
+            url: format!("{abembed}twitter/{username}/status/{id}/{language}"),
             spoiler,
         },
     })
@@ -178,6 +182,7 @@ mod tests {
                     language: "fr".to_owned(),
                     backend: Backend::FxTwitter,
                 },
+                "https://abembed.com/",
                 false,
             ),
             Some(Request::FxEmbed {
@@ -193,6 +198,7 @@ mod tests {
                     language: "fr".to_owned(),
                     backend: Backend::FxTwitter,
                 },
+                "https://abembed.com/",
                 false,
             ),
             Some(Request::FxEmbed {
@@ -207,6 +213,22 @@ mod tests {
                     language: "fr".to_owned(),
                     backend: Backend::AbEmbed,
                 },
+                "https://abembed.com/",
+                true,
+            ),
+            Some(Request::Component {
+                url: "https://abembed.com/twitter/jack/status/20/ja".to_owned(),
+                spoiler: true,
+            })
+        );
+        assert_eq!(
+            request(
+                &url,
+                &Options {
+                    language: "fr".to_owned(),
+                    backend: Backend::AbEmbed,
+                },
+                "https://staging.abembed.com/",
                 true,
             ),
             Some(Request::Component {

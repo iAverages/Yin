@@ -200,7 +200,8 @@ async fn send_embeds(
     let mut components = Vec::new();
     for link in links {
         let platform = link.platform;
-        let Some(request) = link.request(&twitter) else {
+        let abembed = source::abembed_url(data, message, platform).await;
+        let Some(request) = link.request(&twitter, abembed) else {
             continue;
         };
         let component = match request {
@@ -376,7 +377,7 @@ mod tests {
             "and https://vm.tiktok.com/ZN88Qw7ns/"
         ))
         .into_iter()
-        .filter_map(|link| link.request(&twitter))
+        .filter_map(|link| link.request(&twitter, "https://abembed.com/"))
         .collect::<Vec<_>>();
 
         assert_eq!(
