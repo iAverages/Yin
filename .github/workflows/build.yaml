@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
   packages: write
 
 jobs:
@@ -16,18 +17,12 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - uses: tailscale/github-action@v3
-        with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
       - uses: DeterminateSystems/nix-installer-action@v16
-      - uses: ryanccn/attic-action@v0
+      - uses: Mic92/niks3-action@v1
         continue-on-error: true
         with:
-          endpoint: ${{ secrets.ATTIC_ENDPOINT }}
-          cache: yin
-          token: ${{ secrets.ATTIC_TOKEN }}
+          server-url: https://cache.kirsi.dev
+          skip-push: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Check flake
         run: nix flake check --print-build-logs --fallback --keep-going --keep-failed
