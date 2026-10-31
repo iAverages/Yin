@@ -21,7 +21,7 @@ jobs:
       - uses: Mic92/niks3-action@v1
         continue-on-error: true
         with:
-          server-url: https://cache.kirsi.dev
+          server-url: https://niks3.kirsi.dev
           skip-push: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Check flake
