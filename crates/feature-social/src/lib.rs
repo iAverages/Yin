@@ -3,7 +3,7 @@ mod source;
 
 use std::collections::VecDeque;
 use std::sync::{LazyLock, Mutex};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use bot_core::response::{self, Embed, EmbedKind};
 use bot_core::serenity::{
@@ -15,7 +15,7 @@ use bot_core::serenity::{ChannelId, GuildId, MessageId, UserId};
 use bot_core::{BotState, Command, Error, poise};
 use database::UserSocialEmbedsRepository;
 use database::settings::TranslationLanguage;
-use reqwest::{Client, RequestBuilder, header::USER_AGENT};
+use reqwest::{Client, RequestBuilder, Url, header::USER_AGENT};
 use serde_json::{Value, json};
 use source::Request as EmbedRequest;
 
@@ -27,10 +27,12 @@ const EMBED_API_RETRIES: u32 = 3;
 const EMBED_API_RETRY_DELAY: Duration = Duration::from_secs(1);
 const EMBEDDED_MESSAGE_CACHE_LIMIT: usize = 100;
 const EMBEDDED_MESSAGE_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
+const FOLLOWUP_TOKEN_TTL: Duration = Duration::from_secs(15 * 60);
 const APP_USER_AGENT: &str = concat!("yin/", env!("CARGO_PKG_VERSION"));
 const DISCORD_USER_AGENT: &str = "Discordbot/2.0";
 static EMBEDDED_MESSAGES: LazyLock<Mutex<VecDeque<EmbeddedMessage>>> =
     LazyLock::new(|| Mutex::new(VecDeque::new()));
+static FOLLOWUP_TOKENS: Mutex<Vec<FollowupToken>> = Mutex::new(Vec::new());
 static HTTP: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
         .timeout(Duration::from_secs(10))
@@ -39,7 +41,7 @@ static HTTP: LazyLock<Client> = LazyLock::new(|| {
 });
 
 pub fn commands() -> Vec<Command> {
-    vec![embed()]
+    vec![embed(), refresh_media()]
 }
 
 /// Send the social embed for a link
@@ -99,6 +101,7 @@ async fn embed(
         ctx.interaction.user.id,
         ctx.interaction.guild_id,
         Some(language),
+        true,
     )
     .await
     {
@@ -128,12 +131,64 @@ async fn embed(
         .await?;
 
     for components in component_batches(components)? {
-        ctx.serenity_context
+        let followup = ctx
+            .serenity_context
             .http
             .create_followup_message(&ctx.interaction.token, &create_payload(components), vec![])
             .await?;
+        remember_followup_token(followup.id, &ctx.interaction.token, Instant::now());
     }
     Ok(())
+}
+
+/// Reload the media in a social embed
+#[poise::command(
+    context_menu_command = "Refresh Media",
+    ephemeral,
+    install_context = "Guild|User",
+    interaction_context = "Guild|BotDm|PrivateChannel"
+)]
+async fn refresh_media(
+    ctx: poise::ApplicationContext<'_, BotState, Error>,
+    message: serenity::Message,
+) -> Result<(), Error> {
+    if message.author.id != ctx.framework.bot_id {
+        return response::error(ctx.into(), "Only social embeds can be refreshed.").await;
+    }
+    let http = &ctx.serenity_context.http;
+    let token = followup_token(message.id, Instant::now());
+    let route = match &token {
+        Some(token) => Route::WebhookFollowupMessage {
+            application_id: ctx.interaction.application_id,
+            token,
+            message_id: message.id,
+        },
+        None => Route::ChannelMessage {
+            channel_id: message.channel_id,
+            message_id: message.id,
+        },
+    };
+    let mut raw = match http
+        .fire::<Value>(DiscordRequest::new(route, LightMethod::Get))
+        .await
+    {
+        Ok(raw) => raw,
+        Err(error) => {
+            tracing::warn!(error = %error, "failed to fetch social embed for refresh");
+            return response::error(ctx.into(), "I can't edit that message anymore.").await;
+        }
+    };
+
+    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+    if !refresh_media_urls(&mut raw["components"], timestamp) {
+        return response::error(ctx.into(), "That message has no media to refresh.").await;
+    }
+
+    let body = serde_json::to_vec(&json!({"components": raw["components"]}))?;
+    http.fire::<serenity::Message>(DiscordRequest::new(route, LightMethod::Patch).body(Some(body)))
+        .await?;
+
+    response::info(ctx.into(), "Refreshed the media.").await
 }
 
 pub async fn handle_message(
@@ -295,6 +350,34 @@ fn remove_expired_messages(messages: &mut VecDeque<EmbeddedMessage>, now: Instan
     }
 }
 
+struct FollowupToken {
+    created_at: Instant,
+    message_id: MessageId,
+    token: String,
+}
+
+fn remember_followup_token(message_id: MessageId, token: &str, now: Instant) {
+    let mut tokens = FOLLOWUP_TOKENS.lock().unwrap();
+    tokens.retain(|token| now.saturating_duration_since(token.created_at) < FOLLOWUP_TOKEN_TTL);
+    tokens.push(FollowupToken {
+        created_at: now,
+        message_id,
+        token: token.to_owned(),
+    });
+}
+
+fn followup_token(message_id: MessageId, now: Instant) -> Option<String> {
+    FOLLOWUP_TOKENS
+        .lock()
+        .unwrap()
+        .iter()
+        .find(|token| {
+            token.message_id == message_id
+                && now.saturating_duration_since(token.created_at) < FOLLOWUP_TOKEN_TTL
+        })
+        .map(|token| token.token.clone())
+}
+
 fn suppression_changed(flags: serenity::MessageFlags, suppress: bool) -> bool {
     flags.contains(serenity::MessageFlags::SUPPRESS_EMBEDS) != suppress
 }
@@ -320,8 +403,16 @@ async fn send_embeds(
         &mut links,
         &repository.displays(message.author.id.get()).await?,
     );
-    let components =
-        embed_components(data, ctx, links, message.author.id, message.guild_id, None).await?;
+    let components = embed_components(
+        data,
+        ctx,
+        links,
+        message.author.id,
+        message.guild_id,
+        None,
+        false,
+    )
+    .await?;
 
     let mut response_ids = Vec::new();
     for components in component_batches(components)? {
@@ -337,6 +428,7 @@ async fn embed_components(
     user_id: UserId,
     guild_id: Option<GuildId>,
     language: Option<String>,
+    view_link: bool,
 ) -> Result<Vec<Value>, Error> {
     let twitter = if links
         .iter()
@@ -351,6 +443,18 @@ async fn embed_components(
     for link in links {
         let platform = link.platform;
         let display = link.display;
+        let view_link = view_link.then(|| {
+            json!({
+                "type": 1,
+                "components": [{
+                    "type": 2,
+                    "style": 5,
+                    "label": format!("View on {}", platform.display_name()),
+                    "emoji": {"name": "🔗"},
+                    "url": link.url.as_str(),
+                }],
+            })
+        });
         let abembed = source::abembed_url(data, user_id, guild_id, platform).await;
         let Some(request) = link.request(&twitter, abembed) else {
             continue;
@@ -370,10 +474,11 @@ async fn embed_components(
                 component
             }
         };
-        if display == SocialDisplay::MediaOnly {
-            keep_only_media(&mut component);
-        }
+        let media_only = display == SocialDisplay::MediaOnly && keep_only_media(&mut component);
         components.push(component);
+        if media_only {
+            components.extend(view_link);
+        }
     }
     Ok(components)
 }
@@ -502,17 +607,61 @@ fn rewrite_abembed_gifs(value: &mut Value) {
     }
 }
 
-fn keep_only_media(component: &mut Value) {
+fn refresh_media_urls(value: &mut Value, timestamp: u64) -> bool {
+    let mut refreshed = false;
+    match value {
+        Value::Array(values) => {
+            for value in values {
+                refreshed |= refresh_media_urls(value, timestamp);
+            }
+        }
+        Value::Object(values) => {
+            let url = values
+                .get("media")
+                .and_then(|media| media["url"].as_str())
+                .map(|url| cache_busted(url, timestamp));
+            if let Some(url) = url {
+                values.insert("media".to_owned(), json!({"url": url}));
+                refreshed = true;
+            }
+            for value in values.values_mut() {
+                refreshed |= refresh_media_urls(value, timestamp);
+            }
+        }
+        _ => {}
+    }
+    refreshed
+}
+
+fn cache_busted(url: &str, timestamp: u64) -> String {
+    let Ok(mut url) = Url::parse(url) else {
+        return url.to_owned();
+    };
+    let query = url
+        .query_pairs()
+        .filter(|(key, _)| key != "t")
+        .map(|(key, value)| (key.into_owned(), value.into_owned()))
+        .collect::<Vec<_>>();
+    url.query_pairs_mut()
+        .clear()
+        .extend_pairs(query)
+        .append_pair("t", &timestamp.to_string());
+    url.into()
+}
+
+fn keep_only_media(component: &mut Value) -> bool {
     let Some(children) = component
         .get_mut("components")
         .and_then(Value::as_array_mut)
     else {
-        return;
+        return false;
     };
     let is_media = |child: &Value| child["type"] == 12;
-    if children.iter().any(is_media) {
-        children.retain(is_media);
+    if !children.iter().any(is_media) {
+        return false;
     }
+    children.retain(is_media);
+    true
 }
 
 fn create_payload(components: Vec<Value>) -> Value {
@@ -643,8 +792,8 @@ mod tests {
         let text_only = json!({"type": 17, "components": [{"type": 10, "content": "text"}]});
         let mut without_media = text_only.clone();
 
-        keep_only_media(&mut with_media);
-        keep_only_media(&mut without_media);
+        assert!(keep_only_media(&mut with_media));
+        assert!(!keep_only_media(&mut without_media));
 
         assert_eq!(with_media["spoiler"], true);
         assert_eq!(
@@ -657,6 +806,48 @@ mod tests {
             [12, 12]
         );
         assert_eq!(without_media, text_only);
+    }
+
+    #[test]
+    fn remembers_followup_tokens_until_discord_expires_them() {
+        let now = Instant::now();
+        remember_followup_token(MessageId::new(500), "token", now);
+
+        assert_eq!(
+            followup_token(MessageId::new(500), now).as_deref(),
+            Some("token")
+        );
+        assert_eq!(followup_token(MessageId::new(501), now), None);
+        assert_eq!(
+            followup_token(MessageId::new(500), now + FOLLOWUP_TOKEN_TTL),
+            None
+        );
+    }
+
+    #[test]
+    fn refreshes_every_media_url_with_the_timestamp() {
+        let mut components = json!([{
+            "type": 17,
+            "components": [
+                {"type": 10, "content": "https://example.com/text.jpg"},
+                {"type": 9, "accessory": {"type": 11, "media": {"url": "https://example.com/a.jpg", "proxy_url": "https://media.discordapp.net/a.jpg"}}},
+                {"type": 12, "items": [{"media": {"url": "https://example.com/b.mp4?tag=1&t=5"}, "spoiler": true}]},
+            ],
+        }]);
+        let mut text_only = json!([{"type": 17, "components": [{"type": 10, "content": "text"}]}]);
+
+        assert!(refresh_media_urls(&mut components, 9));
+        assert!(!refresh_media_urls(&mut text_only, 9));
+        let children = &components[0]["components"];
+        assert_eq!(children[0]["content"], "https://example.com/text.jpg");
+        assert_eq!(
+            children[1]["accessory"]["media"],
+            json!({"url": "https://example.com/a.jpg?t=9"})
+        );
+        assert_eq!(
+            children[2]["items"][0],
+            json!({"media": {"url": "https://example.com/b.mp4?tag=1&t=9"}, "spoiler": true})
+        );
     }
 
     #[test]

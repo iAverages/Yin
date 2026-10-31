@@ -147,7 +147,7 @@ pub(crate) enum Request {
 #[derive(Debug, PartialEq)]
 pub(crate) struct Link {
     pub(crate) platform: SocialPlatform,
-    url: Url,
+    pub(crate) url: Url,
     pub(crate) spoiler: bool,
     pub(crate) display: SocialDisplay,
 }

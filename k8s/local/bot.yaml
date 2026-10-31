@@ -26,23 +26,11 @@ spec:
             - --watch
             - Cargo.lock
             - --watch
-            - crates/bot
-            - --watch
-            - crates/bot-core
-            - --watch
-            - crates/database
-            - --watch
-            - crates/feature-guilds
-            - --watch
-            - crates/feature-admin
-            - --watch
-            - crates/feature-endfield
-            - --watch
-            - crates/feature-info
-            - --watch
-            - crates/feature-moderation
-            - --watch
-            - crates/feature-settings
+            - crates
+            - --ignore
+            - crates/api
+            - --ignore
+            - crates/migrate
             - --exec
             - run -p bot
           envFrom:
