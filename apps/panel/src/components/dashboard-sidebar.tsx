@@ -145,6 +145,9 @@ export const DashboardSidebar = (props: {
                                 </div>
                             </div>
                             <DropdownMenu.Separator class="my-1 border-line" />
+                            <DropdownMenu.Item as={Link} to="/settings" class={menuItemClass}>
+                                <Icon name="user" size={16} /> Settings
+                            </DropdownMenu.Item>
                             <DropdownMenu.Item
                                 class={menuItemClass}
                                 disabled={signOut.isPending}

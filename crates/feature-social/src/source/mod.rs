@@ -131,6 +131,10 @@ impl SocialDisplay {
     pub fn key(self) -> &'static str {
         poise::ChoiceParameter::name(&self)
     }
+
+    pub fn from_key(key: &str) -> Option<Self> {
+        poise::ChoiceParameter::from_name(key)
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -206,7 +210,7 @@ pub(crate) fn apply_displays(links: &mut [Link], displays: &[(String, String)]) 
         link.display = displays
             .iter()
             .find(|(platform, _)| platform == link.platform.key())
-            .and_then(|(_, display)| poise::ChoiceParameter::from_name(display))
+            .and_then(|(_, display)| SocialDisplay::from_key(display))
             .unwrap_or_default();
     }
 }

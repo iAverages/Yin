@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import type { GuildSettings, ManagedGuild } from "../src/lib/api-client";
+import type { UserSettings } from "../src/lib/user-queries";
 
 const guilds: ManagedGuild[] = [
     {
@@ -44,10 +45,18 @@ const settings = (guildId: string): GuildSettings => {
     };
 };
 
+const userSettings: UserSettings = {
+    socialEmbeds: [
+        { platform: "twitter", enabled: true, display: "full" },
+        { platform: "tiktok", enabled: true, display: "full" },
+    ],
+};
+
 const mockGuilds = async (page: Page) => {
     await page.route("http://127.0.0.1:33011/**", (route) => {
         const path = new URL(route.request().url()).pathname;
         if (path === "/guilds") return route.fulfill({ json: guilds });
+        if (path === "/me/settings") return route.fulfill({ json: userSettings });
         const match = path.match(/^\/guilds\/(\d+)\/settings$/);
         if (match) return route.fulfill({ json: settings(match[1]) });
         return route.fulfill({ status: 404, body: "Unexpected test request" });
@@ -97,6 +106,9 @@ test("the server renders actual dashboard content with JavaScript disabled", asy
         await expect(page.getByRole("region", { name: "Punishment ladder" })).toContainText(
             "3 warnings in 30 days",
         );
+        await expect(page.getByRole("status")).toHaveCount(0);
+        await page.goto("/settings", { waitUntil: "domcontentloaded" });
+        await expect(page.getByRole("combobox", { name: "Twitter / X" })).toHaveValue("media-only");
         await expect(page.getByRole("status")).toHaveCount(0);
     } finally {
         await context.close();
@@ -842,6 +854,33 @@ test("all settings actions report success in toasts", async ({ page }) => {
         await notice.getByRole("button", { name: "Dismiss notification" }).click();
         await expect(notice).toHaveCount(0);
     }
+});
+
+test("settings save embed preferences for every platform", async ({ page }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: "Account menu" }).click();
+    await page.getByRole("menuitem", { name: "Settings", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+    await expect(page.getByRole("menu", { name: "Account menu", exact: true })).toBeHidden();
+    const embeds = page.getByRole("region", { name: "Social embeds", exact: true });
+    await embeds.getByRole("combobox", { name: "TikTok" }).selectOption("off");
+    await embeds.getByRole("combobox", { name: "Twitter / X" }).selectOption("media-only");
+    let saved: unknown;
+    await page.route("**/me/settings/social", (route) => {
+        expect(route.request().method()).toBe("PUT");
+        saved = route.request().postDataJSON();
+        return route.fulfill({ json: { socialEmbeds: (saved as UserSettings).socialEmbeds } });
+    });
+    await page.getByRole("button", { name: "Save settings", exact: true }).click();
+    await expect(page.getByRole("region", { name: /^Notifications/ })).toContainText(
+        "Settings saved.",
+    );
+    expect(saved).toEqual({
+        socialEmbeds: [
+            { platform: "twitter", enabled: true, display: "media-only" },
+            { platform: "tiktok", enabled: false, display: "full" },
+        ],
+    });
 });
 
 test("a save finishing after a guild switch updates only its original guild", async ({ page }) => {

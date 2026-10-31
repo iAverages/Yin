@@ -86,6 +86,16 @@ http.createServer(async (request, response) => {
             JSON.stringify(cookies.includes("fixture-guilds=empty") ? [guilds[2]] : guilds),
         );
     }
+    if (request.url === "/me/settings") {
+        return response.end(
+            JSON.stringify({
+                socialEmbeds: [
+                    { platform: "twitter", enabled: true, display: "media-only" },
+                    { platform: "tiktok", enabled: true, display: "full" },
+                ],
+            }),
+        );
+    }
     const match = request.url?.match(/^\/guilds\/(\d+)\/settings$/);
     const guild = guilds.find((guild) => guild.id === match?.[1]);
     if (!guild) {

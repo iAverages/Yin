@@ -16,7 +16,7 @@ fn runtime_liveness_does_not_misrepresent_stale_or_stopped_processes() {
     assert_eq!(runtime_status(true, 3600), "stopped");
 }
 
-async fn database(pool: &MySqlPool) -> Database {
+pub(crate) async fn database(pool: &MySqlPool) -> Database {
     Database::connect(DatabaseConfig {
         url: pool.connect_options().to_url_lossy().to_string(),
     })
@@ -24,7 +24,7 @@ async fn database(pool: &MySqlPool) -> Database {
     .unwrap()
 }
 
-async fn insert_account(pool: &MySqlPool, user: &str, provider: &str, account: &str) {
+pub(crate) async fn insert_account(pool: &MySqlPool, user: &str, provider: &str, account: &str) {
     sqlx::query("INSERT INTO `user` (id, name, email, emailVerified, updatedAt) VALUES (?, 'Fixture', ?, TRUE, CURRENT_TIMESTAMP(3))")
         .bind(user).bind(format!("{user}@example.com")).execute(pool).await.unwrap();
     sqlx::query("INSERT INTO account (id, userId, providerId, accountId, updatedAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(3))")
@@ -43,27 +43,8 @@ async fn session(headers: axum::http::HeaderMap) -> Json<Option<AuthSession>> {
     })).unwrap()))
 }
 
-#[sqlx::test(migrations = "../database/migrations")]
-#[ignore = "requires DATABASE_URL with CREATE DATABASE permission"]
-async fn every_admin_endpoint_checks_the_linked_discord_account(pool: MySqlPool) {
-    let owner = "307952129958477824";
-    insert_account(&pool, "owner-internal-id", "discord", owner).await;
-    insert_account(&pool, "ordinary-user", "discord", "123").await;
-    insert_account(&pool, owner, "discord", "456").await;
-    insert_account(&pool, "wrong-provider", "github", owner).await;
-
-    let db = Arc::new(database(&pool).await);
-    let directory = GuildDirectoryRepository::new(&db);
-    directory
-        .upsert_bot_guild(9007199254740993, "Not in owner's guilds", None, 2)
-        .await
-        .unwrap();
-    directory
-        .upsert_bot_guild(2, "Departed", None, 0)
-        .await
-        .unwrap();
-    directory.mark_left(2).await.unwrap();
-
+/// The fake auth service treats the request cookie as the signed-in user ID.
+pub(crate) async fn test_app(database: Arc<Database>) -> (Router, tokio::task::JoinHandle<()>) {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();
     let auth_server = tokio::spawn(async move {
@@ -75,10 +56,34 @@ async fn every_admin_endpoint_checks_the_linked_discord_account(pool: MySqlPool)
         .unwrap();
     });
     let app = crate::app(AppState {
-        database: db,
+        database,
         auth: auth::AuthClient::new(&format!("http://{address}")).unwrap(),
         http: reqwest::Client::new(),
     });
+    (app, auth_server)
+}
+
+#[sqlx::test(migrations = "../database/migrations")]
+#[ignore = "requires DATABASE_URL with CREATE DATABASE permission"]
+async fn every_admin_endpoint_checks_the_linked_discord_account(pool: MySqlPool) {
+    let owner = "307952129958477824";
+    insert_account(&pool, "owner-internal-id", "discord", owner).await;
+    insert_account(&pool, "ordinary-user", "discord", "123").await;
+    insert_account(&pool, owner, "discord", "456").await;
+    insert_account(&pool, "wrong-provider", "github", owner).await;
+
+    let db = Arc::new(database(&pool).await);
+    let (app, auth_server) = test_app(db.clone()).await;
+    let directory = GuildDirectoryRepository::new(&db);
+    directory
+        .upsert_bot_guild(9007199254740993, "Not in owner's guilds", None, 2)
+        .await
+        .unwrap();
+    directory
+        .upsert_bot_guild(2, "Departed", None, 0)
+        .await
+        .unwrap();
+    directory.mark_left(2).await.unwrap();
     for path in ["/admin/access", "/admin/guilds", "/admin/state"] {
         for (user, expected) in [
             (None, StatusCode::UNAUTHORIZED),

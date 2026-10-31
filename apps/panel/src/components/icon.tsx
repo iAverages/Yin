@@ -11,6 +11,7 @@ import searchIcon from "../assets/icons/search.svg";
 import gearIcon from "../assets/icons/settings.svg";
 import moderationIcon from "../assets/icons/shield-check.svg";
 import closeIcon from "../assets/icons/x.svg";
+import userIcon from "../assets/icons/user.svg";
 
 export type IconName =
     | "arrow-right"
@@ -25,7 +26,8 @@ export type IconName =
     | "gear"
     | "moderation"
     | "overview"
-    | "search";
+    | "search"
+    | "user";
 
 const icons: Record<IconName, string> = {
     "arrow-right": arrowRightIcon,
@@ -41,6 +43,7 @@ const icons: Record<IconName, string> = {
     moderation: moderationIcon,
     overview: overviewIcon,
     search: searchIcon,
+    user: userIcon,
 };
 
 export const Icon = (props: { name: IconName; size?: number }) => {

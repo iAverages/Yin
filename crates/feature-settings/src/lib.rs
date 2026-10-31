@@ -8,4 +8,4 @@ pub fn commands() -> Vec<Command> {
 }
 
 pub use custom_commands::handle_message;
-pub use settings::{DEFAULT_PREFIX, social_platform_keys, validate_social_platform};
+pub use settings::{DEFAULT_PREFIX, SocialDisplay, social_platform_keys, validate_social_platform};

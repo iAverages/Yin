@@ -18,3 +18,15 @@ export const formatDuration = (totalSeconds: number, style: "long" | "narrow" = 
         secondsDisplay: totalSeconds === 0 ? "always" : "auto",
     }).format(duration);
 };
+
+export const platformLabel = (platform: string) => {
+    const labels: Record<string, string> = {
+        twitter: "Twitter / X",
+        bluesky: "Bluesky",
+        instagram: "Instagram",
+        facebook: "Facebook",
+        tiktok: "TikTok",
+        spotify: "Spotify",
+    };
+    return labels[platform] ?? platform;
+};

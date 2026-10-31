@@ -19,6 +19,7 @@ import {
     type SocialEmbedsInput,
 } from "../lib/api-client";
 import { createSettingsMutation, saveSettings } from "../lib/settings-feedback";
+import { platformLabel } from "../lib/format";
 import { loadGuildSettings } from "../lib/guild-queries";
 
 const GuildSettingsPage = () => {
@@ -313,18 +314,6 @@ const socialValues = (settings: GuildSettings) => ({
 const blankToNull = (value: string) => {
     const trimmed = value.trim();
     return trimmed.length === 0 ? null : trimmed;
-};
-
-const platformLabel = (platform: string) => {
-    const labels: Record<string, string> = {
-        twitter: "Twitter / X",
-        bluesky: "Bluesky",
-        instagram: "Instagram",
-        facebook: "Facebook",
-        tiktok: "TikTok",
-        spotify: "Spotify",
-    };
-    return labels[platform] ?? platform;
 };
 
 export const Route = createFileRoute("/_dashboard/guilds/$guildId")({

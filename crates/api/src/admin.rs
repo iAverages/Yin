@@ -95,4 +95,4 @@ async fn bot_state(State(state): State<AppState>) -> Result<impl IntoResponse, A
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

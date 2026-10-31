@@ -34,6 +34,7 @@ pub async fn guild(_ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+pub use feature_social::SocialDisplay;
 pub use language::language;
 pub use prefix::{DEFAULT_PREFIX, prefix};
 pub use social::{server_social, social, social_platform_keys, validate_social_platform};

@@ -124,4 +124,10 @@ impl<'a> GuildDirectoryRepository<'a> {
             .bind(user_id).fetch_optional(self.database.pool()).await?;
         Ok(token.flatten().filter(|token| !token.is_empty()))
     }
+
+    pub async fn discord_user_id(&self, user_id: &str) -> Result<Option<u64>, DatabaseError> {
+        let account_id: Option<String> = sqlx::query_scalar("SELECT accountId FROM account WHERE userId = ? AND providerId = 'discord' ORDER BY createdAt DESC LIMIT 1")
+            .bind(user_id).fetch_optional(self.database.pool()).await?;
+        Ok(account_id.and_then(|id| id.parse().ok()))
+    }
 }

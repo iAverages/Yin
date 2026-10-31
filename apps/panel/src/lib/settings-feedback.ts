@@ -25,7 +25,7 @@ export const createSettingsMutation = (guildId: string, guildName: string) => {
 };
 
 // Failures are already reported by the mutation's onError toast.
-export const saveSettings = <TInput>(
-    mutation: { mutateAsync: (input: TInput) => Promise<GuildSettings> },
+export const saveSettings = <TInput, TResult>(
+    mutation: { mutateAsync: (input: TInput) => Promise<TResult> },
     input: TInput,
 ) => mutation.mutateAsync(input).catch(() => undefined);

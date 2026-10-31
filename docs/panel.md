@@ -2,7 +2,10 @@
 
 `apps/panel/src/routes/_dashboard.tsx` is the authenticated, pathless layout for
 all dashboard routes: `/`, `/guilds/$guildId` (general settings, social embeds and
-custom commands), and `/guilds/$guildId/moderation` (punishment ladder). The trailing
+custom commands), `/guilds/$guildId/moderation` (punishment ladder), and `/settings`
+(the signed-in user's own `/settings social` preferences: per-platform embeds and
+display). Personal settings are read and written through `/me/settings`, which the API
+keys by the linked Discord account ID, never the better-auth user ID. The trailing
 underscore in `_dashboard.guilds.$guildId_.moderation.tsx` makes moderation a sibling
 of the settings page rather than nesting one editor inside the other. Switching
 guilds from moderation stays on moderation; both pages share the settings cache. Add new dashboard routes beneath `_dashboard`; do not add
@@ -14,7 +17,7 @@ API authorization is independent of the route guard.
 
 The layout owns the inset content area, breadcrumb, desktop sidebar toggle and
 mobile bottom sheet. `DashboardSidebar` contains the guild selector, navigation, bottom
-"Add a server" link and account dropdown with sign-out. Kobalte supplies menu
+"Add a server" link and account dropdown with "Settings" and sign-out. Kobalte supplies menu
 keyboard navigation and dismissal. Corvu Drawer supplies the Solid-native bottom
 sheet with drag-to-dismiss, an animated backdrop, focus trapping and restoration.
 The sheet respects reduced motion and safe-area insets, and closes on desktop

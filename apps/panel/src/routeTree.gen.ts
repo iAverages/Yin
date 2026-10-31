@@ -13,6 +13,7 @@ import { Route as DashboardRouteImport } from './routes/_dashboard'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardIndexRouteImport } from './routes/_dashboard.index'
 import { Route as DashboardAdminRouteImport } from './routes/_dashboard.admin'
+import { Route as DashboardSettingsRouteImport } from './routes/_dashboard.settings'
 import { Route as InstallIndexRouteImport } from './routes/install.index'
 import { Route as InstallGuildRouteImport } from './routes/install.guild'
 import { Route as InstallUserRouteImport } from './routes/install.user'
@@ -39,6 +40,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
 const DashboardAdminRoute = DashboardAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => DashboardRoute,
 } as any)
 const InstallIndexRoute = InstallIndexRouteImport.update({
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/': typeof DashboardIndexRoute
   '/login': typeof LoginRoute
   '/admin': typeof DashboardAdminRouteWithChildren
+  '/settings': typeof DashboardSettingsRoute
   '/install/guild': typeof InstallGuildRoute
   '/install/user': typeof InstallUserRoute
   '/install/': typeof InstallIndexRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/settings': typeof DashboardSettingsRoute
   '/install/guild': typeof InstallGuildRoute
   '/install/user': typeof InstallUserRoute
   '/': typeof DashboardIndexRoute
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/_dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
   '/_dashboard/admin': typeof DashboardAdminRouteWithChildren
+  '/_dashboard/settings': typeof DashboardSettingsRoute
   '/install/guild': typeof InstallGuildRoute
   '/install/user': typeof InstallUserRoute
   '/_dashboard/': typeof DashboardIndexRoute
@@ -129,6 +138,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/admin'
+    | '/settings'
     | '/install/guild'
     | '/install/user'
     | '/install/'
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/settings'
     | '/install/guild'
     | '/install/user'
     | '/'
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/_dashboard'
     | '/login'
     | '/_dashboard/admin'
+    | '/_dashboard/settings'
     | '/install/guild'
     | '/install/user'
     | '/_dashboard/'
@@ -203,6 +215,13 @@ declare module '@tanstack/solid-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof DashboardAdminRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/settings': {
+      id: '/_dashboard/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof DashboardSettingsRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/install/': {
@@ -278,6 +297,7 @@ const DashboardAdminRouteWithChildren = DashboardAdminRoute._addFileChildren(
 
 interface DashboardRouteChildren {
   DashboardAdminRoute: typeof DashboardAdminRouteWithChildren
+  DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardGuildsGuildIdRoute: typeof DashboardGuildsGuildIdRoute
   DashboardGuildsGuildIdModerationRoute: typeof DashboardGuildsGuildIdModerationRoute
@@ -285,6 +305,7 @@ interface DashboardRouteChildren {
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAdminRoute: DashboardAdminRouteWithChildren,
+  DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardGuildsGuildIdRoute: DashboardGuildsGuildIdRoute,
   DashboardGuildsGuildIdModerationRoute: DashboardGuildsGuildIdModerationRoute,

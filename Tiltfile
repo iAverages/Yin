@@ -71,10 +71,14 @@ local_resource(
     "kubectl apply -f k8s/local/namespace.yaml",
 )
 
+# The panel runs on the host so it cannot read yin-secrets.
+secrets = read_yaml("k8s/local/secret.yaml")["stringData"]
+
 local_resource(
     "panel",
     cmd="pnpm install --frozen-lockfile",
     serve_cmd="pnpm --dir apps/panel exec vite dev --host 0.0.0.0 --port 3000 --strictPort",
+    serve_env={"VITE_DISCORD_CLIENT_ID": secrets["DISCORD_CLIENT_ID"]},
     deps=[
         "package.json",
         "pnpm-lock.yaml",

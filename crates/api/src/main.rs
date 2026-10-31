@@ -2,6 +2,7 @@ mod admin;
 mod auth;
 mod config;
 mod guilds;
+mod users;
 
 use std::sync::Arc;
 
@@ -71,6 +72,8 @@ fn cors_layer(origins: &[String]) -> Result<CorsLayer, Error> {
 fn app(state: AppState) -> Router {
     let protected = Router::new()
         .route("/guilds", get(guilds::list_managed_guilds))
+        .route("/me/settings", get(users::get_user_settings))
+        .route("/me/settings/social", put(users::update_user_social_embeds))
         .route(
             "/guilds/{guild_id}/settings",
             get(guilds::get_guild_settings),
