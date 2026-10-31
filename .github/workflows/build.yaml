@@ -31,12 +31,9 @@ jobs:
         if: failure()
         run: |
           mkdir -p test-artifacts
-          for build_dir in /tmp/nix-build-yin-panel-e2e-*; do
-            [ -d "$build_dir" ] || continue
-            sudo find "$build_dir" -type d \
-              \( -path '*/apps/panel/test-results' -o -path '*/apps/panel/playwright-report' \) \
-              -exec cp -R {} "$PWD/test-artifacts/" \;
-          done
+          sudo find /nix/var/nix/builds -type d \
+            \( -path '*/apps/panel/test-results' -o -path '*/apps/panel/playwright-report' \) \
+            -exec cp -R {} "$PWD/test-artifacts/" \; || true
           sudo chown -R "$(id -u):$(id -g)" test-artifacts
 
       - uses: actions/upload-artifact@v4
