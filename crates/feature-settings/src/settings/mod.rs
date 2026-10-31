@@ -12,9 +12,8 @@ const ACCENT_COLOR: u32 = 0x805ad5;
 /// Manage your personal settings.
 #[poise::command(
     slash_command,
-    guild_only,
-    install_context = "Guild",
-    interaction_context = "Guild"
+    install_context = "Guild|User",
+    interaction_context = "Guild|BotDm|PrivateChannel"
 )]
 pub async fn settings(ctx: poise::ApplicationContext<'_, BotState, Error>) -> Result<(), Error> {
     ctx.serenity_context
