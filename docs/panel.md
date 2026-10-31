@@ -3,7 +3,7 @@
 `apps/panel/src/routes/_dashboard.tsx` is the authenticated, pathless layout for
 all dashboard routes: `/`, `/guilds/$guildId` (general settings, social embeds and
 custom commands), `/guilds/$guildId/moderation` (punishment ladder), and `/settings`
-(the signed-in user's own `/settings social` preferences: per-platform embeds and
+(the signed-in user's own `/settings` preferences: per-platform embeds and
 display). Personal settings are read and written through `/me/settings`, which the API
 keys by the linked Discord account ID, never the better-auth user ID. The trailing
 underscore in `_dashboard.guilds.$guildId_.moderation.tsx` makes moderation a sibling

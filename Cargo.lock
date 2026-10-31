@@ -862,6 +862,7 @@ dependencies = [
  "feature-moderation",
  "feature-social",
  "poise",
+ "serde_json",
 ]
 
 [[package]]

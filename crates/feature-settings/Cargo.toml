@@ -9,3 +9,4 @@ database.workspace = true
 feature-moderation.workspace = true
 feature-social.workspace = true
 poise.workspace = true
+serde_json = "1"

@@ -11,6 +11,7 @@ use feature_settings::DEFAULT_PREFIX;
 pub fn build(
     environment: Environment,
     dev_guild_id: Option<serenity::GuildId>,
+    panel_url: Option<String>,
     database: Arc<database::Database>,
     feature_flags: feature_flags::FeatureFlags,
 ) -> poise::Framework<BotState, Error> {
@@ -54,6 +55,7 @@ pub fn build(
                 let state = BotState {
                     started_at: Instant::now(),
                     environment,
+                    panel_url,
                     database,
                     feature_flags,
                 };
@@ -87,6 +89,12 @@ async fn event_handler(
     if let serenity::FullEvent::Message { new_message } = event {
         feature_settings::handle_message(data, ctx, new_message).await?;
         feature_social::handle_message(data, ctx, new_message).await?;
+    }
+    if let serenity::FullEvent::InteractionCreate {
+        interaction: serenity::Interaction::Component(interaction),
+    } = event
+    {
+        feature_settings::handle_interaction(data, ctx, interaction).await?;
     }
     if let serenity::FullEvent::MessageUpdate { event, .. } = event {
         feature_social::handle_message_update(data, ctx, event).await?;

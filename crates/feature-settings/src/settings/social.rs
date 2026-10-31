@@ -1,12 +1,17 @@
 use bot_core::response::{self, Embed, EmbedKind};
-use bot_core::{Context, Error, poise};
-use database::{GuildSettingsRepository, UserSocialEmbedsRepository};
+use bot_core::serenity::{ComponentInteraction, ComponentInteractionDataKind};
+use bot_core::{BotState, Context, Error, poise};
+use database::{Database, GuildSettingsRepository, UserSocialEmbedsRepository};
 use feature_social::{SocialDisplay, SocialPlatform};
+use serde_json::{Value, json};
 
-enum SocialScope {
-    User,
-    Server,
-}
+pub(super) const PAGE_ID: &str = "settings:social";
+const CUSTOM_ID_PREFIX: &str = "settings:social:";
+const MODES: [(&str, &str); 3] = [
+    ("off", "Off"),
+    ("full", "Full"),
+    ("media-only", "Media only"),
+];
 
 pub fn social_platform_keys() -> impl Iterator<Item = &'static str> {
     SocialPlatform::ALL.into_iter().map(SocialPlatform::key)
@@ -17,203 +22,105 @@ pub fn validate_social_platform(platform: &str) -> Option<&'static str> {
     social_platform_keys().find(|key| *key == platform)
 }
 
-/// Manage your social embed preferences across all servers.
-#[poise::command(
-    prefix_command,
-    slash_command,
-    guild_only,
-    ephemeral,
-    subcommand_required,
-    subcommands("view", "set", "reset", "display"),
-    install_context = "Guild",
-    interaction_context = "Guild"
-)]
-pub async fn social(_ctx: Context<'_>) -> Result<(), Error> {
-    Ok(())
+pub(super) async fn user_components(
+    database: &Database,
+    user_id: u64,
+) -> Result<Vec<Value>, Error> {
+    let repository = UserSocialEmbedsRepository::new(database);
+    Ok(social_components(
+        &repository.disabled_platforms(user_id).await?,
+        &repository.displays(user_id).await?,
+    ))
 }
 
-/// View your social embed preferences.
-#[poise::command(prefix_command, slash_command, guild_only, ephemeral)]
-async fn view(ctx: Context<'_>) -> Result<(), Error> {
-    view_settings(ctx, SocialScope::User).await
-}
-
-/// Set your social embed preference for a platform.
-#[poise::command(prefix_command, slash_command, guild_only, ephemeral)]
-async fn set(
-    ctx: Context<'_>,
-    #[description = "Social platform to configure"] platform: SocialPlatform,
-    #[description = "Whether the bot should embed your links from this platform"] enabled: bool,
-) -> Result<(), Error> {
-    set_settings(ctx, platform, enabled, SocialScope::User).await
-}
-
-/// Set how your embeds from a platform are displayed.
-#[poise::command(prefix_command, slash_command, guild_only, ephemeral)]
-async fn display(
-    ctx: Context<'_>,
-    #[description = "Social platform to configure"] platform: SocialPlatform,
-    #[description = "How the bot should display your links from this platform"]
-    display: SocialDisplay,
-) -> Result<(), Error> {
-    UserSocialEmbedsRepository::new(&ctx.data().database)
-        .set_display(
-            ctx.author().id.get(),
-            platform.key(),
-            (display != SocialDisplay::Full).then(|| display.key()),
-        )
-        .await?;
-    response::send(
-        ctx,
-        Embed::new(EmbedKind::Success, "Your Social Embeds Updated")
-            .description("Applies to your links and `/embed` across all servers.")
-            .field(platform.key(), display.key(), true),
-    )
-    .await
-}
-
-/// Reset your social embed preferences to enabled by default.
-#[poise::command(prefix_command, slash_command, guild_only, ephemeral)]
-async fn reset(
-    ctx: Context<'_>,
-    #[description = "Platform to reset; omit to reset all platforms"] platform: Option<
-        SocialPlatform,
-    >,
-) -> Result<(), Error> {
-    reset_settings(ctx, platform, SocialScope::User).await
-}
-
-async fn view_settings(ctx: Context<'_>, scope: SocialScope) -> Result<(), Error> {
-    let (disabled, displays, title, description) = match scope {
-        SocialScope::User => {
-            let repository = UserSocialEmbedsRepository::new(&ctx.data().database);
-            (
-                repository.disabled_platforms(ctx.author().id.get()).await?,
-                repository.displays(ctx.author().id.get()).await?,
-                "Your Social Embeds",
-                "Applies to your links across all servers. Server settings may also disable embeds.",
-            )
-        }
-        SocialScope::Server => (
-            GuildSettingsRepository::new(&ctx.data().database)
-                .disabled_social_platforms(
-                    ctx.guild_id()
-                        .expect("guild-only command has a guild ID")
-                        .get(),
-                )
-                .await?,
-            Vec::new(),
-            "Server Social Embeds",
-            "Applies to everyone's links in this server. Personal opt-outs still apply.",
-        ),
-    };
-    let mut embed = Embed::new(EmbedKind::Info, title).description(description);
+fn social_components(disabled: &[String], displays: &[(String, String)]) -> Vec<Value> {
+    let mut components = vec![json!({
+        "type": 10,
+        "content": "## Social embeds\nHow Yin embeds your links in every server. \
+            Media only sends just the images and videos.",
+    })];
     for platform in SocialPlatform::ALL {
-        let enabled = !disabled.iter().any(|disabled| disabled == platform.key());
-        let display = displays
-            .iter()
-            .find(|(display_platform, _)| display_platform == platform.key())
-            .map(|(_, display)| display);
-        embed = embed.field(
-            platform.key(),
-            match (enabled, display) {
-                (false, _) => "Disabled".to_owned(),
-                (true, Some(display)) => format!("Enabled ({display})"),
-                (true, None) => "Enabled".to_owned(),
-            },
-            true,
-        );
+        let key = platform.key();
+        let current = if disabled.iter().any(|disabled| disabled == key) {
+            "off"
+        } else {
+            displays
+                .iter()
+                .find(|(display_platform, _)| display_platform == key)
+                .map_or(SocialDisplay::Full.key(), |(_, display)| display)
+        };
+        components.push(json!({"type": 10, "content": format!("**{}**", label(platform))}));
+        components.push(json!({
+            "type": 1,
+            "components": [{
+                "type": 3,
+                "custom_id": format!("{CUSTOM_ID_PREFIX}{key}"),
+                "options": MODES.map(|(value, label)| json!({
+                    "label": label,
+                    "value": value,
+                    "default": value == current,
+                })),
+            }],
+        }));
     }
-    response::send(ctx, embed).await
+    components.push(json!({
+        "type": 1,
+        "components": [{"type": 2, "style": 2, "label": "Back", "custom_id": super::HOME_ID}],
+    }));
+    vec![json!({"type": 17, "accent_color": super::ACCENT_COLOR, "components": components})]
 }
 
-async fn set_settings(
-    ctx: Context<'_>,
-    platform: SocialPlatform,
-    enabled: bool,
-    scope: SocialScope,
-) -> Result<(), Error> {
-    let (title, description) = match scope {
-        SocialScope::User => {
-            UserSocialEmbedsRepository::new(&ctx.data().database)
-                .set_enabled(ctx.author().id.get(), platform.key(), enabled)
-                .await?;
-            (
-                "Your Social Embeds Updated",
-                "Applies to your links across all servers. Server settings may also disable embeds.",
-            )
-        }
-        SocialScope::Server => {
-            GuildSettingsRepository::new(&ctx.data().database)
-                .set_social_embed_enabled(
-                    ctx.guild_id()
-                        .expect("guild-only command has a guild ID")
-                        .get(),
-                    platform.key(),
-                    enabled,
-                )
-                .await?;
-            (
-                "Server Social Embeds Updated",
-                "Applies to everyone's links in this server. Personal opt-outs still apply.",
-            )
-        }
+fn label(platform: SocialPlatform) -> &'static str {
+    match platform {
+        SocialPlatform::Twitter => "Twitter / X",
+        SocialPlatform::Bluesky => "Bluesky",
+        SocialPlatform::Instagram => "Instagram",
+        SocialPlatform::Facebook => "Facebook",
+        SocialPlatform::TikTok => "TikTok",
+        SocialPlatform::Spotify => "Spotify",
+    }
+}
+
+/// Returns the page to show, or `None` if the interaction is not for this page.
+pub(super) async fn handle_interaction(
+    data: &BotState,
+    interaction: &ComponentInteraction,
+) -> Result<Option<Vec<Value>>, Error> {
+    let user_id = interaction.user.id.get();
+    if interaction.data.custom_id == PAGE_ID {
+        return Ok(Some(user_components(&data.database, user_id).await?));
+    }
+    let Some(platform) = interaction
+        .data
+        .custom_id
+        .strip_prefix(CUSTOM_ID_PREFIX)
+        .and_then(validate_social_platform)
+    else {
+        return Ok(None);
     };
-    response::send(
-        ctx,
-        Embed::new(EmbedKind::Success, title)
-            .description(description)
-            .field(
-                platform.key(),
-                if enabled { "Enabled" } else { "Disabled" },
-                true,
-            ),
-    )
-    .await
-}
-
-async fn reset_settings(
-    ctx: Context<'_>,
-    platform: Option<SocialPlatform>,
-    scope: SocialScope,
-) -> Result<(), Error> {
-    let platform = platform.map(SocialPlatform::key);
-    let (title, description) = match scope {
-        SocialScope::User => {
-            UserSocialEmbedsRepository::new(&ctx.data().database)
-                .reset(ctx.author().id.get(), platform)
-                .await?;
-            (
-                "Your Social Embeds Reset",
-                "Server settings may still disable embeds for your links.",
-            )
-        }
-        SocialScope::Server => {
-            GuildSettingsRepository::new(&ctx.data().database)
-                .reset_social_embeds(
-                    ctx.guild_id()
-                        .expect("guild-only command has a guild ID")
-                        .get(),
+    let ComponentInteractionDataKind::StringSelect { values } = &interaction.data.kind else {
+        return Ok(None);
+    };
+    let repository = UserSocialEmbedsRepository::new(&data.database);
+    match values.first().map(String::as_str) {
+        // Off keeps the saved display so turning a platform back on restores it.
+        Some("off") => repository.set_enabled(user_id, platform, false).await?,
+        Some(display) => {
+            let Some(display) = SocialDisplay::from_key(display) else {
+                return Ok(None);
+            };
+            repository.set_enabled(user_id, platform, true).await?;
+            repository
+                .set_display(
+                    user_id,
                     platform,
+                    (display != SocialDisplay::Full).then(|| display.key()),
                 )
                 .await?;
-            (
-                "Server Social Embeds Reset",
-                "Personal opt-outs still apply to links in this server.",
-            )
         }
-    };
-    response::send(
-        ctx,
-        Embed::new(EmbedKind::Success, title)
-            .description(description)
-            .field(
-                platform.unwrap_or("All platforms"),
-                "Enabled (default)",
-                true,
-            ),
-    )
-    .await
+        None => return Ok(None),
+    }
+    Ok(Some(user_components(&data.database, user_id).await?))
 }
 
 /// Manage server-wide social embed settings.
@@ -235,7 +142,20 @@ pub async fn server_social(_ctx: Context<'_>) -> Result<(), Error> {
 /// View this server's social embed settings.
 #[poise::command(prefix_command, slash_command, rename = "view", guild_only, ephemeral)]
 async fn server_view(ctx: Context<'_>) -> Result<(), Error> {
-    view_settings(ctx, SocialScope::Server).await
+    let disabled = GuildSettingsRepository::new(&ctx.data().database)
+        .disabled_social_platforms(guild_id(ctx))
+        .await?;
+    let mut embed = Embed::new(EmbedKind::Info, "Server Social Embeds")
+        .description("Applies to everyone's links in this server. Personal opt-outs still apply.");
+    for platform in SocialPlatform::ALL {
+        let enabled = !disabled.iter().any(|disabled| disabled == platform.key());
+        embed = embed.field(
+            platform.key(),
+            if enabled { "Enabled" } else { "Disabled" },
+            true,
+        );
+    }
+    response::send(ctx, embed).await
 }
 
 /// Set this server's social embed preference for a platform.
@@ -245,7 +165,22 @@ async fn server_set(
     #[description = "Social platform to configure"] platform: SocialPlatform,
     #[description = "Whether the bot should embed links from this platform"] enabled: bool,
 ) -> Result<(), Error> {
-    set_settings(ctx, platform, enabled, SocialScope::Server).await
+    GuildSettingsRepository::new(&ctx.data().database)
+        .set_social_embed_enabled(guild_id(ctx), platform.key(), enabled)
+        .await?;
+    response::send(
+        ctx,
+        Embed::new(EmbedKind::Success, "Server Social Embeds Updated")
+            .description(
+                "Applies to everyone's links in this server. Personal opt-outs still apply.",
+            )
+            .field(
+                platform.key(),
+                if enabled { "Enabled" } else { "Disabled" },
+                true,
+            ),
+    )
+    .await
 }
 
 /// Reset this server's social embed preferences to enabled by default.
@@ -256,5 +191,61 @@ async fn server_reset(
         SocialPlatform,
     >,
 ) -> Result<(), Error> {
-    reset_settings(ctx, platform, SocialScope::Server).await
+    let platform = platform.map(SocialPlatform::key);
+    GuildSettingsRepository::new(&ctx.data().database)
+        .reset_social_embeds(guild_id(ctx), platform)
+        .await?;
+    response::send(
+        ctx,
+        Embed::new(EmbedKind::Success, "Server Social Embeds Reset")
+            .description("Personal opt-outs still apply to links in this server.")
+            .field(
+                platform.unwrap_or("All platforms"),
+                "Enabled (default)",
+                true,
+            ),
+    )
+    .await
+}
+
+fn guild_id(ctx: Context<'_>) -> u64 {
+    ctx.guild_id()
+        .expect("guild-only command has a guild ID")
+        .get()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn social_components_select_the_saved_mode_per_platform() {
+        let components = social_components(
+            &["tiktok".to_owned()],
+            &[("twitter".to_owned(), "media-only".to_owned())],
+        );
+        let selected = |key: &str| {
+            components[0]["components"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find_map(|child| {
+                    let select = &child["components"][0];
+                    (select["custom_id"] == format!("{CUSTOM_ID_PREFIX}{key}")).then(|| {
+                        select["options"]
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .find(|option| option["default"] == true)
+                            .unwrap()["value"]
+                            .clone()
+                    })
+                })
+                .unwrap()
+        };
+
+        assert_eq!(selected("twitter"), "media-only");
+        assert_eq!(selected("tiktok"), "off");
+        assert_eq!(selected("spotify"), "full");
+    }
 }

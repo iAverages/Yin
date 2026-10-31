@@ -27,6 +27,7 @@ async fn main() -> Result<(), Error> {
     let framework = framework::build(
         config.environment,
         config.dev_guild_id,
+        config.panel_url,
         database.clone(),
         feature_flags,
     );

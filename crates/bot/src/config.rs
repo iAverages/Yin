@@ -8,6 +8,7 @@ pub struct BotConfig {
     pub discord_token: String,
     pub environment: Environment,
     pub dev_guild_id: Option<serenity::GuildId>,
+    pub panel_url: Option<String>,
     pub database: database::DatabaseConfig,
 }
 
@@ -34,12 +35,19 @@ impl BotConfig {
             return Err("DISCORD_DEV_GUILD_ID is required when APP_ENV is development".into());
         }
 
+        let panel_url = match env::var("PANEL_URL") {
+            Ok(value) => Some(value.trim_end_matches('/').to_owned()),
+            Err(env::VarError::NotPresent) => None,
+            Err(error) => return Err(Box::new(error)),
+        };
+
         let database = database::DatabaseConfig::from_env()?;
 
         Ok(Self {
             discord_token,
             environment,
             dev_guild_id,
+            panel_url,
             database,
         })
     }
