@@ -35,7 +35,7 @@ pub fn build(
                     let trace = bot_core::trace::current(ctx).await;
                     tracing::info!(
                         trace_id = %trace.trace_id,
-                        command = %ctx.invocation_string(),
+                        command = %ctx.command().qualified_name,
                         "command finished"
                     );
                 })
@@ -250,11 +250,9 @@ async fn log_framework_error_with_context(
         FrameworkError::CommandCheckFailed {
             error: Some(error), ..
         } => ("command check failed", Some(error), None),
-        FrameworkError::ArgumentParse { error, input, .. } => (
-            "command argument parse failed",
-            Some(error),
-            input.as_deref(),
-        ),
+        FrameworkError::ArgumentParse { error, .. } => {
+            ("command argument parse failed", Some(error), None)
+        }
         FrameworkError::CommandPanic { payload, .. } => {
             ("command panicked", None, payload.as_deref())
         }
@@ -266,7 +264,7 @@ async fn log_framework_error_with_context(
     );
     tracing::error!(
         trace_id = %trace.trace_id,
-        command = %ctx.invocation_string(),
+        command = %ctx.command().qualified_name,
         guild_id = ctx.guild_id().map(|id| id.get()),
         channel_id = ctx.channel_id().get(),
         user_id = ctx.author().id.get(),

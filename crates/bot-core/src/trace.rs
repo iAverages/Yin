@@ -18,7 +18,7 @@ impl CommandTrace {
 pub async fn initialize(ctx: Context<'_>) -> CommandTrace {
     let trace = CommandTrace::new();
     ctx.set_invocation_data(trace).await;
-    tracing::info!(trace_id = %trace.trace_id, command = %ctx.invocation_string(), "command started");
+    tracing::info!(trace_id = %trace.trace_id, command = %ctx.command().qualified_name, "command started");
     trace
 }
 
