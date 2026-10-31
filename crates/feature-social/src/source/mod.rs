@@ -129,7 +129,7 @@ pub(crate) enum Request {
 pub(crate) struct Link {
     pub(crate) platform: SocialPlatform,
     url: Url,
-    spoiler: bool,
+    pub(crate) spoiler: bool,
 }
 
 impl Link {

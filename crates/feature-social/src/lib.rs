@@ -55,6 +55,7 @@ async fn embed(
     #[description = "Translation language, such as en, ja, pt-BR, or zh-Hant"] language: Option<
         String,
     >,
+    #[description = "Hide the embed behind a spoiler"] spoiler: Option<bool>,
 ) -> Result<(), Error> {
     ctx.defer_ephemeral().await?;
     let language = match language {
@@ -72,10 +73,14 @@ async fn embed(
             primary_translation_language(&ctx.interaction.locale).unwrap_or_else(|| "en".to_owned())
         }
     };
+    let mut links = source::parse_links(&link);
+    if spoiler == Some(true) {
+        links.iter_mut().for_each(|link| link.spoiler = true);
+    }
     let components = match embed_components(
         ctx.data,
         ctx.serenity_context,
-        source::parse_links(&link),
+        links,
         ctx.interaction.user.id,
         ctx.interaction.guild_id,
         Some(language),
