@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use bot_core::response::{self, Embed, EmbedKind};
 use bot_core::serenity::{
     self,
-    builder::EditMessage,
+    builder::{CreateMessage, EditMessage},
     http::{LightMethod, Request as DiscordRequest, Route},
 };
 use bot_core::serenity::{ChannelId, GuildId, MessageId, UserId};
@@ -44,6 +44,7 @@ pub fn commands() -> Vec<Command> {
 /// Send the social embed for a link
 #[poise::command(
     slash_command,
+    ephemeral,
     install_context = "Guild|User",
     interaction_context = "Guild|BotDm|PrivateChannel"
 )]
@@ -51,15 +52,25 @@ async fn embed(
     ctx: poise::ApplicationContext<'_, BotState, Error>,
     #[description = "Link to embed"] link: String,
 ) -> Result<(), Error> {
-    ctx.defer().await?;
-    let components = embed_components(
+    ctx.defer_ephemeral().await?;
+    let components = match embed_components(
         ctx.data,
         ctx.serenity_context,
         source::parse_links(&link),
         ctx.interaction.user.id,
         ctx.interaction.guild_id,
     )
-    .await?;
+    .await
+    {
+        Ok(components) => components,
+        Err(error) => {
+            let Some(unavailable) = error.downcast_ref::<PostUnavailable>() else {
+                return Err(error);
+            };
+            tracing::warn!(error = %unavailable, "social post unavailable");
+            return response::send(ctx.into(), unavailable_embed(unavailable)).await;
+        }
+    };
     if components.is_empty() {
         return response::send(
             ctx.into(),
@@ -67,6 +78,11 @@ async fn embed(
         )
         .await;
     }
+
+    ctx.serenity_context
+        .http
+        .delete_original_interaction_response(&ctx.interaction.token)
+        .await?;
 
     for components in component_batches(components)? {
         ctx.serenity_context
@@ -90,7 +106,7 @@ pub async fn handle_message(
         Ok(response_ids) if response_ids.is_empty() => return Ok(()),
         Ok(response_ids) => response_ids,
         Err(error) => {
-            let _ = message.react(ctx, '❌').await;
+            report_failure(ctx, message, &error).await;
             return Err(error);
         }
     };
@@ -130,7 +146,7 @@ pub async fn handle_message_update(
     let response_ids = match send_embeds(data, ctx, &message).await {
         Ok(response_ids) => response_ids,
         Err(error) => {
-            let _ = message.react(ctx, '❌').await;
+            report_failure(ctx, &message, &error).await;
             return Err(error);
         }
     };
@@ -152,6 +168,33 @@ pub async fn handle_message_update(
             .await?;
     }
     Ok(())
+}
+
+async fn report_failure(ctx: &serenity::Context, message: &serenity::Message, error: &Error) {
+    let _ = message.react(ctx, '❌').await;
+    let embed = match error.downcast_ref::<PostUnavailable>() {
+        Some(unavailable) => unavailable_embed(unavailable),
+        None => Embed::new(
+            EmbedKind::Error,
+            "Something went wrong while embedding that post.",
+        ),
+    }
+    .field("Message", message.link(), false);
+    if let Err(error) = message
+        .author
+        .direct_message(ctx, CreateMessage::new().embed(embed.into()))
+        .await
+    {
+        tracing::warn!(error = %error, "failed to DM social embed failure");
+    }
+}
+
+fn unavailable_embed(unavailable: &PostUnavailable) -> Embed {
+    let embed = Embed::new(EmbedKind::Error, "That post could not be embedded.");
+    match &unavailable.reason {
+        Some(reason) => embed.description(reason),
+        None => embed,
+    }
 }
 
 struct EmbeddedMessage {
@@ -318,17 +361,11 @@ async fn send_payload(
     Ok(response.id)
 }
 
-async fn fetch_post(api_url: &str, format: post::Format) -> Result<post::Post, reqwest::Error> {
+async fn fetch_post(api_url: &str, format: post::Format) -> Result<post::Post, Error> {
     for retry in 0..=EMBED_API_RETRIES {
-        let result = async {
-            let response = request(api_url).send().await?.error_for_status()?;
-            post::decode(response, format).await
-        }
-        .await;
-
-        match result {
+        match try_fetch_post(api_url, format).await {
             Ok(post) => return Ok(post),
-            Err(_) if retry < EMBED_API_RETRIES => {
+            Err(error) if retry < EMBED_API_RETRIES && !error.is::<PostUnavailable>() => {
                 tokio::time::sleep(EMBED_API_RETRY_DELAY * 2u32.pow(retry)).await;
             }
             Err(error) => return Err(error),
@@ -337,6 +374,46 @@ async fn fetch_post(api_url: &str, format: post::Format) -> Result<post::Post, r
 
     unreachable!()
 }
+
+async fn try_fetch_post(api_url: &str, format: post::Format) -> Result<post::Post, Error> {
+    let response = request(api_url).send().await?;
+    let status = response.status();
+    if status.is_client_error() {
+        let body = response.text().await.unwrap_or_default();
+        return Err(PostUnavailable {
+            status,
+            reason: api_error_reason(&body),
+        }
+        .into());
+    }
+    Ok(post::decode(response.error_for_status()?, format).await?)
+}
+
+fn api_error_reason(body: &str) -> Option<String> {
+    serde_json::from_str::<Value>(body)
+        .ok()?
+        .get("error")?
+        .as_str()
+        .map(str::to_owned)
+}
+
+#[derive(Debug)]
+struct PostUnavailable {
+    status: reqwest::StatusCode,
+    reason: Option<String>,
+}
+
+impl std::fmt::Display for PostUnavailable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "embed API returned {}", self.status)?;
+        if let Some(reason) = &self.reason {
+            write!(f, ": {reason}")?;
+        }
+        Ok(())
+    }
+}
+
+impl std::error::Error for PostUnavailable {}
 
 fn request(url: &str) -> RequestBuilder {
     HTTP.get(url).header(USER_AGENT, APP_USER_AGENT)
@@ -522,6 +599,16 @@ mod tests {
             .unwrap();
 
         assert_eq!(request.headers()[USER_AGENT], APP_USER_AGENT);
+    }
+
+    #[test]
+    fn reads_the_reason_from_embed_api_errors() {
+        assert_eq!(
+            api_error_reason(r#"{"error":"Age-restricted content"}"#).as_deref(),
+            Some("Age-restricted content")
+        );
+        assert_eq!(api_error_reason(r#"{"code":404}"#), None);
+        assert_eq!(api_error_reason("<html></html>"), None);
     }
 
     #[test]

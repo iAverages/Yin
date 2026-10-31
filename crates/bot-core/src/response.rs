@@ -72,28 +72,34 @@ impl Embed {
     }
 }
 
+impl From<Embed> for CreateEmbed {
+    fn from(embed: Embed) -> Self {
+        let mut create = CreateEmbed::new()
+            .title(embed.title)
+            .color(embed.kind.color());
+
+        if let Some(description) = embed.description {
+            create = create.description(description);
+        }
+
+        if let Some(thumbnail) = embed.thumbnail {
+            create = create.thumbnail(thumbnail);
+        }
+
+        if let Some(image) = embed.image {
+            create = create.image(image);
+        }
+
+        for (name, value, inline) in embed.fields {
+            create = create.field(name, value, inline);
+        }
+
+        create
+    }
+}
+
 pub async fn send(ctx: Context<'_>, embed: Embed) -> Result<(), Error> {
-    let mut create = CreateEmbed::new()
-        .title(embed.title)
-        .color(embed.kind.color());
-
-    if let Some(description) = embed.description {
-        create = create.description(description);
-    }
-
-    if let Some(thumbnail) = embed.thumbnail {
-        create = create.thumbnail(thumbnail);
-    }
-
-    if let Some(image) = embed.image {
-        create = create.image(image);
-    }
-
-    for (name, value, inline) in embed.fields {
-        create = create.field(name, value, inline);
-    }
-
-    ctx.send(crate::poise::CreateReply::default().embed(create))
+    ctx.send(crate::poise::CreateReply::default().embed(embed.into()))
         .await?;
     Ok(())
 }
