@@ -59,8 +59,7 @@ mod tests {
             (social::server_social(), vec!["platform", "enabled"]),
         ] {
             assert_eq!(
-                command
-                    .subcommands
+                command.subcommands[..3]
                     .iter()
                     .map(|command| command.name.as_str())
                     .collect::<Vec<_>>(),

@@ -118,6 +118,21 @@ impl SocialPlatform {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, poise::ChoiceParameter)]
+pub enum SocialDisplay {
+    #[default]
+    #[name = "full"]
+    Full,
+    #[name = "media-only"]
+    MediaOnly,
+}
+
+impl SocialDisplay {
+    pub fn key(self) -> &'static str {
+        poise::ChoiceParameter::name(&self)
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub(crate) enum Request {
     FxEmbed { url: String, spoiler: bool },
@@ -130,6 +145,7 @@ pub(crate) struct Link {
     pub(crate) platform: SocialPlatform,
     url: Url,
     pub(crate) spoiler: bool,
+    pub(crate) display: SocialDisplay,
 }
 
 impl Link {
@@ -179,9 +195,20 @@ pub(crate) fn parse_links(content: &str) -> Vec<Link> {
                 platform: SocialPlatform::recognize(&url)?,
                 url,
                 spoiler,
+                display: SocialDisplay::Full,
             })
         })
         .collect()
+}
+
+pub(crate) fn apply_displays(links: &mut [Link], displays: &[(String, String)]) {
+    for link in links {
+        link.display = displays
+            .iter()
+            .find(|(platform, _)| platform == link.platform.key())
+            .and_then(|(_, display)| poise::ChoiceParameter::from_name(display))
+            .unwrap_or_default();
+    }
 }
 
 pub(crate) fn retain_enabled_links(links: &mut Vec<Link>, disabled_platforms: &[String]) {
@@ -226,6 +253,7 @@ mod tests {
                 platform,
                 url: Url::parse("https://example.com").unwrap(),
                 spoiler: false,
+                display: SocialDisplay::Full,
             }];
             retain_enabled_links(&mut links, &[platform.key().to_owned()]);
             assert!(links.is_empty());
@@ -251,5 +279,21 @@ mod tests {
         assert!(!links[0].spoiler);
         assert!(links[1].spoiler);
         assert!(!links[2].spoiler);
+    }
+
+    #[test]
+    fn applies_each_platforms_saved_display() {
+        let mut links =
+            parse_links("https://x.com/jack/status/20 https://vm.tiktok.com/ZN88Qw7ns/");
+        apply_displays(
+            &mut links,
+            &[
+                ("twitter".to_owned(), "media-only".to_owned()),
+                ("tiktok".to_owned(), "unknown".to_owned()),
+            ],
+        );
+
+        assert_eq!(links[0].display, SocialDisplay::MediaOnly);
+        assert_eq!(links[1].display, SocialDisplay::Full);
     }
 }

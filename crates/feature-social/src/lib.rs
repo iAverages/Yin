@@ -19,8 +19,8 @@ use reqwest::{Client, RequestBuilder, header::USER_AGENT};
 use serde_json::{Value, json};
 use source::Request as EmbedRequest;
 
-pub use source::SocialPlatform;
 pub use source::twitter::primary_translation_language;
+pub use source::{SocialDisplay, SocialPlatform};
 
 const MESSAGE_COMPONENT_LIMIT: usize = 40;
 const EMBED_API_RETRIES: u32 = 3;
@@ -56,6 +56,9 @@ async fn embed(
         String,
     >,
     #[description = "Hide the embed behind a spoiler"] spoiler: Option<bool>,
+    #[description = "How to display the embed. Defaults to your saved preference"] display: Option<
+        SocialDisplay,
+    >,
     #[description = "Text to send with the embed"]
     #[max_length = 2000]
     text: Option<String>,
@@ -79,6 +82,15 @@ async fn embed(
     let mut links = source::parse_links(&link);
     if spoiler == Some(true) {
         links.iter_mut().for_each(|link| link.spoiler = true);
+    }
+    match display {
+        Some(display) => links.iter_mut().for_each(|link| link.display = display),
+        None => source::apply_displays(
+            &mut links,
+            &UserSocialEmbedsRepository::new(&ctx.data.database)
+                .displays(ctx.interaction.user.id.get())
+                .await?,
+        ),
     }
     let mut components = match embed_components(
         ctx.data,
@@ -296,13 +308,18 @@ async fn send_embeds(
     if links.is_empty() {
         return Ok(Vec::new());
     }
-    let disabled_platforms = UserSocialEmbedsRepository::new(&data.database)
+    let repository = UserSocialEmbedsRepository::new(&data.database);
+    let disabled_platforms = repository
         .effective_disabled_platforms(message.author.id.get(), message.guild_id.map(|id| id.get()))
         .await?;
     source::retain_enabled_links(&mut links, &disabled_platforms);
     if links.is_empty() {
         return Ok(Vec::new());
     }
+    source::apply_displays(
+        &mut links,
+        &repository.displays(message.author.id.get()).await?,
+    );
     let components =
         embed_components(data, ctx, links, message.author.id, message.guild_id, None).await?;
 
@@ -333,11 +350,12 @@ async fn embed_components(
     let mut components = Vec::new();
     for link in links {
         let platform = link.platform;
+        let display = link.display;
         let abembed = source::abembed_url(data, user_id, guild_id, platform).await;
         let Some(request) = link.request(&twitter, abembed) else {
             continue;
         };
-        let component = match request {
+        let mut component = match request {
             EmbedRequest::FxEmbed { url, spoiler } => {
                 post::component(&fetch_post(&url, post::Format::FxEmbed).await?, spoiler)
             }
@@ -352,6 +370,9 @@ async fn embed_components(
                 component
             }
         };
+        if display == SocialDisplay::MediaOnly {
+            keep_only_media(&mut component);
+        }
         components.push(component);
     }
     Ok(components)
@@ -481,6 +502,19 @@ fn rewrite_abembed_gifs(value: &mut Value) {
     }
 }
 
+fn keep_only_media(component: &mut Value) {
+    let Some(children) = component
+        .get_mut("components")
+        .and_then(Value::as_array_mut)
+    else {
+        return;
+    };
+    let is_media = |child: &Value| child["type"] == 12;
+    if children.iter().any(is_media) {
+        children.retain(is_media);
+    }
+}
+
 fn create_payload(components: Vec<Value>) -> Value {
     json!({
         "flags": 1 << 15,
@@ -592,6 +626,37 @@ mod tests {
             "https://gif.abembed.com/tweet_video/a.webp"
         );
         assert_eq!(component["other"], "https://example.com/a.gif");
+    }
+
+    #[test]
+    fn media_only_keeps_galleries_and_falls_back_when_there_is_no_media() {
+        let mut with_media = json!({
+            "type": 17,
+            "spoiler": true,
+            "components": [
+                {"type": 10, "content": "text"},
+                {"type": 12, "items": [{"media": {"url": "https://example.com/a.jpg"}}]},
+                {"type": 14},
+                {"type": 12, "items": [{"media": {"url": "https://example.com/b.jpg"}}]},
+            ],
+        });
+        let text_only = json!({"type": 17, "components": [{"type": 10, "content": "text"}]});
+        let mut without_media = text_only.clone();
+
+        keep_only_media(&mut with_media);
+        keep_only_media(&mut without_media);
+
+        assert_eq!(with_media["spoiler"], true);
+        assert_eq!(
+            with_media["components"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|child| child["type"].clone())
+                .collect::<Vec<_>>(),
+            [12, 12]
+        );
+        assert_eq!(without_media, text_only);
     }
 
     #[test]

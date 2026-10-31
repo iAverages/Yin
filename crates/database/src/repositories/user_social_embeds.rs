@@ -54,14 +54,54 @@ impl<'a> UserSocialEmbedsRepository<'a> {
         Ok(())
     }
 
+    pub async fn displays(&self, user_id: u64) -> Result<Vec<(String, String)>, DatabaseError> {
+        Ok(sqlx::query_as(
+            "SELECT platform, display FROM user_social_embed_displays WHERE user_id = ? \
+             ORDER BY platform",
+        )
+        .bind(user_id)
+        .fetch_all(self.database.pool())
+        .await?)
+    }
+
+    pub async fn set_display(
+        &self,
+        user_id: u64,
+        platform: &str,
+        display: Option<&str>,
+    ) -> Result<(), DatabaseError> {
+        let query = match display {
+            Some(display) => sqlx::query(
+                "INSERT INTO user_social_embed_displays (user_id, platform, display) \
+                 VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE display = VALUES(display)",
+            )
+            .bind(user_id)
+            .bind(platform)
+            .bind(display),
+            None => sqlx::query(
+                "DELETE FROM user_social_embed_displays WHERE user_id = ? AND platform = ?",
+            )
+            .bind(user_id)
+            .bind(platform),
+        };
+        query.execute(self.database.pool()).await?;
+        Ok(())
+    }
+
     pub async fn reset(&self, user_id: u64, platform: Option<&str>) -> Result<(), DatabaseError> {
         if let Some(platform) = platform {
+            self.set_display(user_id, platform, None).await?;
             return self.set_enabled(user_id, platform, true).await;
         }
-        sqlx::query("DELETE FROM user_social_embed_opt_outs WHERE user_id = ?")
-            .bind(user_id)
-            .execute(self.database.pool())
-            .await?;
+        for sql in [
+            "DELETE FROM user_social_embed_opt_outs WHERE user_id = ?",
+            "DELETE FROM user_social_embed_displays WHERE user_id = ?",
+        ] {
+            sqlx::query(sql)
+                .bind(user_id)
+                .execute(self.database.pool())
+                .await?;
+        }
         Ok(())
     }
 }
@@ -199,5 +239,46 @@ mod tests {
 
         repository.set_enabled(1, "spotify", true).await.unwrap();
         assert!(repository.disabled_platforms(1).await.unwrap().is_empty());
+    }
+
+    #[sqlx::test(migrations = "./migrations")]
+    #[ignore = "requires DATABASE_URL with permission to create test databases"]
+    async fn displays_persist_per_user_and_platform_and_reset(pool: sqlx::MySqlPool) {
+        let database = Database { pool };
+        let repository = UserSocialEmbedsRepository::new(&database);
+        assert!(repository.displays(1).await.unwrap().is_empty());
+
+        repository
+            .set_display(1, "twitter", Some("media-only"))
+            .await
+            .unwrap();
+        repository
+            .set_display(1, "twitter", Some("media-only"))
+            .await
+            .unwrap();
+        repository
+            .set_display(1, "tiktok", Some("media-only"))
+            .await
+            .unwrap();
+        repository
+            .set_display(2, "spotify", Some("media-only"))
+            .await
+            .unwrap();
+        let pair = |platform: &str| (platform.to_owned(), "media-only".to_owned());
+        assert_eq!(
+            repository.displays(1).await.unwrap(),
+            [pair("tiktok"), pair("twitter")]
+        );
+
+        repository.set_display(1, "tiktok", None).await.unwrap();
+        assert_eq!(repository.displays(1).await.unwrap(), [pair("twitter")]);
+
+        repository.set_enabled(1, "twitter", false).await.unwrap();
+        repository.reset(1, Some("twitter")).await.unwrap();
+        assert!(repository.displays(1).await.unwrap().is_empty());
+        assert!(repository.disabled_platforms(1).await.unwrap().is_empty());
+
+        repository.reset(2, None).await.unwrap();
+        assert!(repository.displays(2).await.unwrap().is_empty());
     }
 }

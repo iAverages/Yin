@@ -1,7 +1,7 @@
 use bot_core::response::{self, Embed, EmbedKind};
 use bot_core::{Context, Error, poise};
 use database::{GuildSettingsRepository, UserSocialEmbedsRepository};
-use feature_social::SocialPlatform;
+use feature_social::{SocialDisplay, SocialPlatform};
 
 enum SocialScope {
     User,
@@ -24,7 +24,7 @@ pub fn validate_social_platform(platform: &str) -> Option<&'static str> {
     guild_only,
     ephemeral,
     subcommand_required,
-    subcommands("view", "set", "reset"),
+    subcommands("view", "set", "reset", "display"),
     install_context = "Guild",
     interaction_context = "Guild"
 )]
@@ -48,6 +48,30 @@ async fn set(
     set_settings(ctx, platform, enabled, SocialScope::User).await
 }
 
+/// Set how your embeds from a platform are displayed.
+#[poise::command(prefix_command, slash_command, guild_only, ephemeral)]
+async fn display(
+    ctx: Context<'_>,
+    #[description = "Social platform to configure"] platform: SocialPlatform,
+    #[description = "How the bot should display your links from this platform"]
+    display: SocialDisplay,
+) -> Result<(), Error> {
+    UserSocialEmbedsRepository::new(&ctx.data().database)
+        .set_display(
+            ctx.author().id.get(),
+            platform.key(),
+            (display != SocialDisplay::Full).then(|| display.key()),
+        )
+        .await?;
+    response::send(
+        ctx,
+        Embed::new(EmbedKind::Success, "Your Social Embeds Updated")
+            .description("Applies to your links and `/embed` across all servers.")
+            .field(platform.key(), display.key(), true),
+    )
+    .await
+}
+
 /// Reset your social embed preferences to enabled by default.
 #[poise::command(prefix_command, slash_command, guild_only, ephemeral)]
 async fn reset(
@@ -60,14 +84,16 @@ async fn reset(
 }
 
 async fn view_settings(ctx: Context<'_>, scope: SocialScope) -> Result<(), Error> {
-    let (disabled, title, description) = match scope {
-        SocialScope::User => (
-            UserSocialEmbedsRepository::new(&ctx.data().database)
-                .disabled_platforms(ctx.author().id.get())
-                .await?,
-            "Your Social Embeds",
-            "Applies to your links across all servers. Server settings may also disable embeds.",
-        ),
+    let (disabled, displays, title, description) = match scope {
+        SocialScope::User => {
+            let repository = UserSocialEmbedsRepository::new(&ctx.data().database);
+            (
+                repository.disabled_platforms(ctx.author().id.get()).await?,
+                repository.displays(ctx.author().id.get()).await?,
+                "Your Social Embeds",
+                "Applies to your links across all servers. Server settings may also disable embeds.",
+            )
+        }
         SocialScope::Server => (
             GuildSettingsRepository::new(&ctx.data().database)
                 .disabled_social_platforms(
@@ -76,6 +102,7 @@ async fn view_settings(ctx: Context<'_>, scope: SocialScope) -> Result<(), Error
                         .get(),
                 )
                 .await?,
+            Vec::new(),
             "Server Social Embeds",
             "Applies to everyone's links in this server. Personal opt-outs still apply.",
         ),
@@ -83,9 +110,17 @@ async fn view_settings(ctx: Context<'_>, scope: SocialScope) -> Result<(), Error
     let mut embed = Embed::new(EmbedKind::Info, title).description(description);
     for platform in SocialPlatform::ALL {
         let enabled = !disabled.iter().any(|disabled| disabled == platform.key());
+        let display = displays
+            .iter()
+            .find(|(display_platform, _)| display_platform == platform.key())
+            .map(|(_, display)| display);
         embed = embed.field(
             platform.key(),
-            if enabled { "Enabled" } else { "Disabled" },
+            match (enabled, display) {
+                (false, _) => "Disabled".to_owned(),
+                (true, Some(display)) => format!("Enabled ({display})"),
+                (true, None) => "Enabled".to_owned(),
+            },
             true,
         );
     }
