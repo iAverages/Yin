@@ -924,8 +924,10 @@ test("sign-in returns to the requested page and never leaves the panel", async (
         ["/login?redirect=%2F%2Fevil.example", "http://127.0.0.1:3010/"],
     ]) {
         await page.goto(path);
-        await page.getByRole("button", { name: "Sign in with Discord" }).click();
-        await expect(page.getByRole("alert")).toBeVisible();
+        await expect(async () => {
+            await page.getByRole("button", { name: "Sign in with Discord" }).click();
+            await expect(page.getByRole("alert")).toBeVisible({ timeout: 1_000 });
+        }).toPass();
         expect(callbackURL).toBe(expected);
     }
 });
