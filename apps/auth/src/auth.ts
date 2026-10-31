@@ -19,6 +19,9 @@ export const auth = betterAuth({
   secret: config.betterAuthSecret,
   baseURL: config.betterAuthUrl,
   trustedOrigins: config.trustedOrigins,
+  onAPIError: {
+    errorURL: config.installErrorUrl,
+  },
   advanced: {
     crossSubDomainCookies: {
       enabled: true,
