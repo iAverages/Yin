@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/solid-router";
 import { Show } from "solid-js";
 
-import { env } from "../env";
+import { discordInstallUrl } from "../lib/discord-install";
 import { Icon } from "./icon";
 
 export const DiscordInstallResult = (props: {
@@ -9,8 +9,7 @@ export const DiscordInstallResult = (props: {
     target: "guild" | "user";
 }) => {
     const succeeded = () => props.outcome === "success";
-    const retryUrl = () =>
-        new URL(`/install/discord/${props.target}`, env.VITE_AUTH_URL).toString();
+    const retryUrl = () => discordInstallUrl(props.target);
 
     return (
         <main class="flex min-h-svh items-center justify-center px-5 py-12">

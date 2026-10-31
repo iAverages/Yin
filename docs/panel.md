@@ -110,7 +110,7 @@ Production hosts are:
 - API: `https://api-yin.kirsi.dev`
 - Auth: `https://auth-yin.kirsi.dev`
 
-`VITE_API_URL` and `VITE_AUTH_URL` are set in the panel derivation in `flake.nix`.
+`VITE_API_URL`, `VITE_AUTH_URL` and `VITE_DISCORD_CLIENT_ID` are set in the panel derivation in `flake.nix`.
 Vite embeds them in both the browser and SSR bundles at **build time**; changing
 container environment variables cannot override them. Rebuild the image when
 changing origins. SSR must be able to reach the public API and auth HTTPS hosts.

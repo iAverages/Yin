@@ -13,6 +13,9 @@ import { Route as DashboardRouteImport } from './routes/_dashboard'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardIndexRouteImport } from './routes/_dashboard.index'
 import { Route as DashboardAdminRouteImport } from './routes/_dashboard.admin'
+import { Route as InstallIndexRouteImport } from './routes/install.index'
+import { Route as InstallGuildRouteImport } from './routes/install.guild'
+import { Route as InstallUserRouteImport } from './routes/install.user'
 import { Route as DashboardAdminIndexRouteImport } from './routes/_dashboard.admin.index'
 import { Route as DashboardGuildsGuildIdRouteImport } from './routes/_dashboard.guilds.$guildId'
 import { Route as InstallDiscordErrorRouteImport } from './routes/install.discord.error'
@@ -37,6 +40,21 @@ const DashboardAdminRoute = DashboardAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => DashboardRoute,
+} as any)
+const InstallIndexRoute = InstallIndexRouteImport.update({
+  id: '/install/',
+  path: '/install/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstallGuildRoute = InstallGuildRouteImport.update({
+  id: '/install/guild',
+  path: '/install/guild',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstallUserRoute = InstallUserRouteImport.update({
+  id: '/install/user',
+  path: '/install/user',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardAdminIndexRoute = DashboardAdminIndexRouteImport.update({
   id: '/',
@@ -69,6 +87,9 @@ export interface FileRoutesByFullPath {
   '/': typeof DashboardIndexRoute
   '/login': typeof LoginRoute
   '/admin': typeof DashboardAdminRouteWithChildren
+  '/install/guild': typeof InstallGuildRoute
+  '/install/user': typeof InstallUserRoute
+  '/install/': typeof InstallIndexRoute
   '/guilds/$guildId': typeof DashboardGuildsGuildIdRoute
   '/install/discord/error': typeof InstallDiscordErrorRoute
   '/install/discord/success': typeof InstallDiscordSuccessRoute
@@ -77,7 +98,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/install/guild': typeof InstallGuildRoute
+  '/install/user': typeof InstallUserRoute
   '/': typeof DashboardIndexRoute
+  '/install': typeof InstallIndexRoute
   '/guilds/$guildId': typeof DashboardGuildsGuildIdRoute
   '/install/discord/error': typeof InstallDiscordErrorRoute
   '/install/discord/success': typeof InstallDiscordSuccessRoute
@@ -89,7 +113,10 @@ export interface FileRoutesById {
   '/_dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
   '/_dashboard/admin': typeof DashboardAdminRouteWithChildren
+  '/install/guild': typeof InstallGuildRoute
+  '/install/user': typeof InstallUserRoute
   '/_dashboard/': typeof DashboardIndexRoute
+  '/install/': typeof InstallIndexRoute
   '/_dashboard/guilds/$guildId': typeof DashboardGuildsGuildIdRoute
   '/install/discord/error': typeof InstallDiscordErrorRoute
   '/install/discord/success': typeof InstallDiscordSuccessRoute
@@ -102,6 +129,9 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/admin'
+    | '/install/guild'
+    | '/install/user'
+    | '/install/'
     | '/guilds/$guildId'
     | '/install/discord/error'
     | '/install/discord/success'
@@ -110,7 +140,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/install/guild'
+    | '/install/user'
     | '/'
+    | '/install'
     | '/guilds/$guildId'
     | '/install/discord/error'
     | '/install/discord/success'
@@ -121,7 +154,10 @@ export interface FileRouteTypes {
     | '/_dashboard'
     | '/login'
     | '/_dashboard/admin'
+    | '/install/guild'
+    | '/install/user'
     | '/_dashboard/'
+    | '/install/'
     | '/_dashboard/guilds/$guildId'
     | '/install/discord/error'
     | '/install/discord/success'
@@ -132,6 +168,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRouteWithChildren
   LoginRoute: typeof LoginRoute
+  InstallGuildRoute: typeof InstallGuildRoute
+  InstallUserRoute: typeof InstallUserRoute
+  InstallIndexRoute: typeof InstallIndexRoute
   InstallDiscordErrorRoute: typeof InstallDiscordErrorRoute
   InstallDiscordSuccessRoute: typeof InstallDiscordSuccessRoute
 }
@@ -165,6 +204,27 @@ declare module '@tanstack/solid-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof DashboardAdminRouteImport
       parentRoute: typeof DashboardRoute
+    }
+    '/install/': {
+      id: '/install/'
+      path: '/install'
+      fullPath: '/install/'
+      preLoaderRoute: typeof InstallIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/install/guild': {
+      id: '/install/guild'
+      path: '/install/guild'
+      fullPath: '/install/guild'
+      preLoaderRoute: typeof InstallGuildRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/install/user': {
+      id: '/install/user'
+      path: '/install/user'
+      fullPath: '/install/user'
+      preLoaderRoute: typeof InstallUserRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_dashboard/admin/': {
       id: '/_dashboard/admin/'
@@ -237,6 +297,9 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRouteWithChildren,
   LoginRoute: LoginRoute,
+  InstallGuildRoute: InstallGuildRoute,
+  InstallUserRoute: InstallUserRoute,
+  InstallIndexRoute: InstallIndexRoute,
   InstallDiscordErrorRoute: InstallDiscordErrorRoute,
   InstallDiscordSuccessRoute: InstallDiscordSuccessRoute,
 }

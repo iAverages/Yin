@@ -82,3 +82,25 @@ test.describe("install results without JavaScript", () => {
         });
     }
 });
+
+test("/install redirects to Discord's default install link", async ({ request }) => {
+    const response = await request.get("/install", { maxRedirects: 0 });
+
+    expect(response.status()).toBe(302);
+    expect(response.headers().location).toBe(
+        "https://discord.com/oauth2/authorize?client_id=1234567890",
+    );
+});
+
+for (const target of ["guild", "user"]) {
+    test(`/install/${target} redirects to the auth service's ${target} install`, async ({
+        request,
+    }) => {
+        const response = await request.get(`/install/${target}`, { maxRedirects: 0 });
+
+        expect(response.status()).toBe(302);
+        expect(response.headers().location).toBe(
+            `http://127.0.0.1:33010/install/discord/${target}`,
+        );
+    });
+}

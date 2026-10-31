@@ -35,6 +35,7 @@ export default defineConfig({
             env: {
                 VITE_AUTH_URL: "http://127.0.0.1:33010",
                 VITE_API_URL: "http://127.0.0.1:33011",
+                VITE_DISCORD_CLIENT_ID: "1234567890",
             },
         },
     ],

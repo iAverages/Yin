@@ -100,6 +100,7 @@
 
         VITE_API_URL = "https://api-yin.kirsi.dev";
         VITE_AUTH_URL = "https://auth-yin.kirsi.dev";
+        VITE_DISCORD_CLIENT_ID = "479599229061431298";
         NITRO_PRESET = "node-server";
 
         buildPhase = ''

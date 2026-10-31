@@ -6,6 +6,7 @@ export const env = createEnv({
     client: {
         VITE_API_URL: z.url().default("http://api.yin.localhost"),
         VITE_AUTH_URL: z.url().default("http://auth.yin.localhost"),
+        VITE_DISCORD_CLIENT_ID: z.string().min(1),
     },
     runtimeEnv: import.meta.env,
     emptyStringAsUndefined: true,
