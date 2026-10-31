@@ -56,6 +56,9 @@ async fn embed(
         String,
     >,
     #[description = "Hide the embed behind a spoiler"] spoiler: Option<bool>,
+    #[description = "Text to send with the embed"]
+    #[max_length = 2000]
+    text: Option<String>,
 ) -> Result<(), Error> {
     ctx.defer_ephemeral().await?;
     let language = match language {
@@ -77,7 +80,7 @@ async fn embed(
     if spoiler == Some(true) {
         links.iter_mut().for_each(|link| link.spoiler = true);
     }
-    let components = match embed_components(
+    let mut components = match embed_components(
         ctx.data,
         ctx.serenity_context,
         links,
@@ -102,6 +105,9 @@ async fn embed(
             Embed::new(EmbedKind::Error, "That is not a supported social link."),
         )
         .await;
+    }
+    if let Some(text) = text {
+        components.insert(0, json!({"type": 10, "content": text}));
     }
 
     ctx.serenity_context
