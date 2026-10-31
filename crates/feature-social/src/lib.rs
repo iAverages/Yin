@@ -14,6 +14,7 @@ use bot_core::serenity::{
 use bot_core::serenity::{ChannelId, GuildId, MessageId, UserId};
 use bot_core::{BotState, Command, Error, poise};
 use database::UserSocialEmbedsRepository;
+use database::settings::TranslationLanguage;
 use reqwest::{Client, RequestBuilder, header::USER_AGENT};
 use serde_json::{Value, json};
 use source::Request as EmbedRequest;
@@ -51,14 +52,33 @@ pub fn commands() -> Vec<Command> {
 async fn embed(
     ctx: poise::ApplicationContext<'_, BotState, Error>,
     #[description = "Link to embed"] link: String,
+    #[description = "Translation language, such as en, ja, pt-BR, or zh-Hant"] language: Option<
+        String,
+    >,
 ) -> Result<(), Error> {
     ctx.defer_ephemeral().await?;
+    let language = match language {
+        Some(language) => match TranslationLanguage::parse(&language) {
+            Some(language) => language.into_string(),
+            None => {
+                return response::error(
+                    ctx.into(),
+                    "Use a valid ISO language code, such as `en` or `pt-BR`.",
+                )
+                .await;
+            }
+        },
+        None => {
+            primary_translation_language(&ctx.interaction.locale).unwrap_or_else(|| "en".to_owned())
+        }
+    };
     let components = match embed_components(
         ctx.data,
         ctx.serenity_context,
         source::parse_links(&link),
         ctx.interaction.user.id,
         ctx.interaction.guild_id,
+        Some(language),
     )
     .await
     {
@@ -273,7 +293,7 @@ async fn send_embeds(
         return Ok(Vec::new());
     }
     let components =
-        embed_components(data, ctx, links, message.author.id, message.guild_id).await?;
+        embed_components(data, ctx, links, message.author.id, message.guild_id, None).await?;
 
     let mut response_ids = Vec::new();
     for components in component_batches(components)? {
@@ -288,12 +308,13 @@ async fn embed_components(
     links: Vec<source::Link>,
     user_id: UserId,
     guild_id: Option<GuildId>,
+    language: Option<String>,
 ) -> Result<Vec<Value>, Error> {
     let twitter = if links
         .iter()
         .any(|link| link.platform == SocialPlatform::Twitter)
     {
-        source::twitter::options(data, ctx, user_id, guild_id).await?
+        source::twitter::options(data, ctx, user_id, guild_id, language).await?
     } else {
         source::twitter::Options::default()
     };

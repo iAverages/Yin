@@ -44,9 +44,14 @@ pub(crate) async fn options(
     ctx: &serenity::Context,
     user_id: serenity::UserId,
     guild_id: Option<serenity::GuildId>,
+    language: Option<String>,
 ) -> Result<Options, Error> {
+    let language = match language {
+        Some(language) => language,
+        None => guild_translation_language(data, ctx, guild_id).await?,
+    };
     Ok(Options {
-        language: guild_translation_language(data, ctx, guild_id).await?,
+        language,
         backend: selected_backend(data, user_id, guild_id).await,
     })
 }
