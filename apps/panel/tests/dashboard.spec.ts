@@ -288,6 +288,15 @@ test("mobile moderation navigation closes the sheet and keeps the table usable",
     );
 });
 
+test("an expired session sends the user back to login", async ({ page }) => {
+    await page.goto("/guilds/103", { waitUntil: "domcontentloaded" });
+    await page.route("**/guilds/103/settings/general", (route) =>
+        route.fulfill({ status: 401, body: "unauthorized" }),
+    );
+    await page.getByRole("button", { name: "Save general", exact: true }).click();
+    await expect(page).toHaveURL("/login?redirect=%2Fguilds%2F103");
+});
+
 test("SSR settings errors keep navigation available and can be retried", async ({
     page,
     context,

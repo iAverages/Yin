@@ -107,6 +107,10 @@ export const apiFetch = async <T>(path: string, init: RequestInit = {}) => {
         redirect: "error",
         signal: init.signal ?? AbortSignal.timeout(10_000),
     });
+    if (response.status === 401 && !import.meta.env.SSR) {
+        const search = new URLSearchParams({ redirect: location.pathname + location.search });
+        location.assign(`/login?${search}`);
+    }
     if (!response.ok) {
         const message = await response.text();
         throw new ApiRequestError(
