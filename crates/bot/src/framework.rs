@@ -70,6 +70,7 @@ fn commands() -> Vec<Command> {
     commands.extend(feature_info::commands());
     commands.extend(feature_moderation::commands());
     commands.extend(feature_settings::commands());
+    commands.extend(feature_social::commands());
     commands
 }
 

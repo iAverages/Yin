@@ -5,13 +5,14 @@ use std::collections::VecDeque;
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
+use bot_core::response::{self, Embed, EmbedKind};
 use bot_core::serenity::{
     self,
     builder::EditMessage,
     http::{LightMethod, Request as DiscordRequest, Route},
 };
-use bot_core::serenity::{ChannelId, MessageId};
-use bot_core::{BotState, Error};
+use bot_core::serenity::{ChannelId, GuildId, MessageId, UserId};
+use bot_core::{BotState, Command, Error, poise};
 use database::UserSocialEmbedsRepository;
 use reqwest::{Client, RequestBuilder, header::USER_AGENT};
 use serde_json::{Value, json};
@@ -35,6 +36,46 @@ static HTTP: LazyLock<Client> = LazyLock::new(|| {
         .build()
         .expect("valid social embed HTTP client")
 });
+
+pub fn commands() -> Vec<Command> {
+    vec![embed()]
+}
+
+/// Send the social embed for a link
+#[poise::command(
+    slash_command,
+    install_context = "Guild|User",
+    interaction_context = "Guild|BotDm|PrivateChannel"
+)]
+async fn embed(
+    ctx: poise::ApplicationContext<'_, BotState, Error>,
+    #[description = "Link to embed"] link: String,
+) -> Result<(), Error> {
+    ctx.defer().await?;
+    let components = embed_components(
+        ctx.data,
+        ctx.serenity_context,
+        source::parse_links(&link),
+        ctx.interaction.user.id,
+        ctx.interaction.guild_id,
+    )
+    .await?;
+    if components.is_empty() {
+        return response::send(
+            ctx.into(),
+            Embed::new(EmbedKind::Error, "That is not a supported social link."),
+        )
+        .await;
+    }
+
+    for components in component_batches(components)? {
+        ctx.serenity_context
+            .http
+            .create_followup_message(&ctx.interaction.token, &create_payload(components), vec![])
+            .await?;
+    }
+    Ok(())
+}
 
 pub async fn handle_message(
     data: &BotState,
@@ -188,11 +229,28 @@ async fn send_embeds(
     if links.is_empty() {
         return Ok(Vec::new());
     }
+    let components =
+        embed_components(data, ctx, links, message.author.id, message.guild_id).await?;
+
+    let mut response_ids = Vec::new();
+    for components in component_batches(components)? {
+        response_ids.push(send_payload(ctx, message, create_payload(components)).await?);
+    }
+    Ok(response_ids)
+}
+
+async fn embed_components(
+    data: &BotState,
+    ctx: &serenity::Context,
+    links: Vec<source::Link>,
+    user_id: UserId,
+    guild_id: Option<GuildId>,
+) -> Result<Vec<Value>, Error> {
     let twitter = if links
         .iter()
         .any(|link| link.platform == SocialPlatform::Twitter)
     {
-        source::twitter::options(data, ctx, message).await?
+        source::twitter::options(data, ctx, user_id, guild_id).await?
     } else {
         source::twitter::Options::default()
     };
@@ -200,7 +258,7 @@ async fn send_embeds(
     let mut components = Vec::new();
     for link in links {
         let platform = link.platform;
-        let abembed = source::abembed_url(data, message, platform).await;
+        let abembed = source::abembed_url(data, user_id, guild_id, platform).await;
         let Some(request) = link.request(&twitter, abembed) else {
             continue;
         };
@@ -221,12 +279,7 @@ async fn send_embeds(
         };
         components.push(component);
     }
-
-    let mut response_ids = Vec::new();
-    for components in component_batches(components)? {
-        response_ids.push(send_payload(ctx, message, create_payload(components)).await?);
-    }
-    Ok(response_ids)
+    Ok(components)
 }
 
 async fn fetch_component(embed_url: &str, spoiler: bool) -> Result<Value, Error> {

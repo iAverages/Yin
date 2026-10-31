@@ -145,7 +145,8 @@ impl Link {
 
 pub(crate) async fn abembed_url(
     data: &BotState,
-    message: &serenity::Message,
+    user_id: serenity::UserId,
+    guild_id: Option<serenity::GuildId>,
     platform: SocialPlatform,
 ) -> &'static str {
     if matches!(platform, SocialPlatform::Bluesky | SocialPlatform::Spotify) {
@@ -154,11 +155,7 @@ pub(crate) async fn abembed_url(
     let key = format!("{}-staging-abembed", platform.key());
     match data
         .feature_flags
-        .is_enabled(
-            &key,
-            message.author.id.get(),
-            message.guild_id.map(|id| id.get()),
-        )
+        .is_enabled(&key, user_id.get(), guild_id.map(|id| id.get()))
         .await
     {
         Ok(staging) => abembed_from_flag(staging),

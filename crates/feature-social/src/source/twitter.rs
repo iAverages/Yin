@@ -42,11 +42,12 @@ impl Default for Options {
 pub(crate) async fn options(
     data: &BotState,
     ctx: &serenity::Context,
-    message: &serenity::Message,
+    user_id: serenity::UserId,
+    guild_id: Option<serenity::GuildId>,
 ) -> Result<Options, Error> {
     Ok(Options {
-        language: guild_translation_language(data, ctx, message).await?,
-        backend: selected_backend(data, message).await,
+        language: guild_translation_language(data, ctx, guild_id).await?,
+        backend: selected_backend(data, user_id, guild_id).await,
     })
 }
 
@@ -113,14 +114,14 @@ fn post_parts(url: &Url) -> Option<(&str, &str, Option<&str>)> {
     }
 }
 
-async fn selected_backend(data: &BotState, message: &serenity::Message) -> Backend {
+async fn selected_backend(
+    data: &BotState,
+    user_id: serenity::UserId,
+    guild_id: Option<serenity::GuildId>,
+) -> Backend {
     match data
         .feature_flags
-        .value(
-            BACKEND_FLAG,
-            message.author.id.get(),
-            message.guild_id.map(|id| id.get()),
-        )
+        .value(BACKEND_FLAG, user_id.get(), guild_id.map(|id| id.get()))
         .await
     {
         Ok(value) => backend_from_flag(value),
@@ -141,9 +142,9 @@ fn backend_from_flag(value: Option<FlagValue>) -> Backend {
 async fn guild_translation_language(
     data: &BotState,
     ctx: &serenity::Context,
-    message: &serenity::Message,
+    guild_id: Option<serenity::GuildId>,
 ) -> Result<String, Error> {
-    let Some(guild_id) = message.guild_id else {
+    let Some(guild_id) = guild_id else {
         return Ok("en".to_owned());
     };
     let default = ctx
