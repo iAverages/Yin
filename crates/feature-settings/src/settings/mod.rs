@@ -96,7 +96,7 @@ pub async fn handle_interaction(
     default_member_permissions = "MANAGE_GUILD",
     required_permissions = "MANAGE_GUILD",
     subcommand_required,
-    subcommands("prefix", "language", "ladder", "server_social", "custom_commands"),
+    subcommands("prefix", "language", "server_social", "custom_commands"),
     install_context = "Guild",
     interaction_context = "Guild"
 )]
@@ -108,10 +108,6 @@ pub use feature_social::SocialDisplay;
 pub use language::language;
 pub use prefix::{DEFAULT_PREFIX, prefix};
 pub use social::{server_social, social_platform_keys, validate_social_platform};
-
-fn ladder() -> bot_core::Command {
-    feature_moderation::ladder_command()
-}
 
 fn custom_commands() -> bot_core::Command {
     crate::custom_commands::cmd()

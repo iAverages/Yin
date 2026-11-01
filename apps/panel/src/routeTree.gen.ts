@@ -23,7 +23,6 @@ import { Route as DashboardAdminIndexRouteImport } from './routes/_dashboard.adm
 import { Route as DashboardGuildsGuildIdRouteImport } from './routes/_dashboard.guilds.$guildId'
 import { Route as InstallDiscordErrorRouteImport } from './routes/install.discord.error'
 import { Route as InstallDiscordSuccessRouteImport } from './routes/install.discord.success'
-import { Route as DashboardGuildsGuildIdModerationRouteImport } from './routes/_dashboard.guilds.$guildId_.moderation'
 
 const DashboardRoute = DashboardRouteImport.update({
   id: '/_dashboard',
@@ -94,12 +93,6 @@ const InstallDiscordSuccessRoute = InstallDiscordSuccessRouteImport.update({
   path: '/install/discord/success',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardGuildsGuildIdModerationRoute =
-  DashboardGuildsGuildIdModerationRouteImport.update({
-    id: '/guilds/$guildId_/moderation',
-    path: '/guilds/$guildId/moderation',
-    getParentRoute: () => DashboardRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof DashboardIndexRoute
@@ -115,7 +108,6 @@ export interface FileRoutesByFullPath {
   '/install/discord/error': typeof InstallDiscordErrorRoute
   '/install/discord/success': typeof InstallDiscordSuccessRoute
   '/admin/': typeof DashboardAdminIndexRoute
-  '/guilds/$guildId/moderation': typeof DashboardGuildsGuildIdModerationRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -130,7 +122,6 @@ export interface FileRoutesByTo {
   '/install/discord/error': typeof InstallDiscordErrorRoute
   '/install/discord/success': typeof InstallDiscordSuccessRoute
   '/admin': typeof DashboardAdminIndexRoute
-  '/guilds/$guildId/moderation': typeof DashboardGuildsGuildIdModerationRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -148,7 +139,6 @@ export interface FileRoutesById {
   '/install/discord/error': typeof InstallDiscordErrorRoute
   '/install/discord/success': typeof InstallDiscordSuccessRoute
   '/_dashboard/admin/': typeof DashboardAdminIndexRoute
-  '/_dashboard/guilds/$guildId_/moderation': typeof DashboardGuildsGuildIdModerationRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -166,7 +156,6 @@ export interface FileRouteTypes {
     | '/install/discord/error'
     | '/install/discord/success'
     | '/admin/'
-    | '/guilds/$guildId/moderation'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -181,7 +170,6 @@ export interface FileRouteTypes {
     | '/install/discord/error'
     | '/install/discord/success'
     | '/admin'
-    | '/guilds/$guildId/moderation'
   id:
     | '__root__'
     | '/_dashboard'
@@ -198,7 +186,6 @@ export interface FileRouteTypes {
     | '/install/discord/error'
     | '/install/discord/success'
     | '/_dashboard/admin/'
-    | '/_dashboard/guilds/$guildId_/moderation'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -313,13 +300,6 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof InstallDiscordSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_dashboard/guilds/$guildId_/moderation': {
-      id: '/_dashboard/guilds/$guildId_/moderation'
-      path: '/guilds/$guildId/moderation'
-      fullPath: '/guilds/$guildId/moderation'
-      preLoaderRoute: typeof DashboardGuildsGuildIdModerationRouteImport
-      parentRoute: typeof DashboardRoute
-    }
   }
 }
 
@@ -340,7 +320,6 @@ interface DashboardRouteChildren {
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardGuildsGuildIdRoute: typeof DashboardGuildsGuildIdRoute
-  DashboardGuildsGuildIdModerationRoute: typeof DashboardGuildsGuildIdModerationRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
@@ -348,7 +327,6 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardGuildsGuildIdRoute: DashboardGuildsGuildIdRoute,
-  DashboardGuildsGuildIdModerationRoute: DashboardGuildsGuildIdModerationRoute,
 }
 
 const DashboardRouteWithChildren = DashboardRoute._addFileChildren(

@@ -22,7 +22,6 @@ const expectSingleFetches = async (request: APIRequestContext, id: string, paths
 for (const route of [
     { path: "/", loading: "Loading servers", heading: "Servers" },
     { path: "/guilds/103", loading: "Loading server settings", heading: "Night Shift" },
-    { path: "/guilds/103/moderation", loading: "Loading moderation", heading: "Night Shift" },
 ]) {
     test(`SSR deadline streams pending content without duplicate fetches: ${route.path}`, async ({
         page,
@@ -70,19 +69,22 @@ for (const slowQuery of ["guilds", "settings"]) {
         request,
     }) => {
         const id = await configure(context, { [`fixture-${slowQuery}-delay`]: "4500" });
-        await page.goto("/guilds/103/moderation", { waitUntil: "commit" });
+        await page.goto("/guilds/103", { waitUntil: "commit" });
         const sidebar = page.getByRole("complementary", { name: "Dashboard sidebar" });
         const main = page.getByRole("main");
+        const general = main.getByRole("region", { name: "General", exact: true });
         if (slowQuery === "settings") {
             await expect(sidebar.getByRole("button", { name: "Select server" })).toContainText(
                 "Night Shift",
             );
-            await expect(main.getByRole("status", { name: "Loading moderation" })).toBeVisible();
+            await expect(
+                main.getByRole("status", { name: "Loading server settings" }),
+            ).toBeVisible();
         } else {
             await expect(sidebar.getByRole("status", { name: "Loading servers" })).toBeVisible();
-            await expect(main.getByRole("region", { name: "Punishment ladder" })).toBeVisible();
+            await expect(general).toBeVisible();
         }
-        await expect(main.getByRole("region", { name: "Punishment ladder" })).toBeVisible();
+        await expect(general).toBeVisible();
         await expect(sidebar.getByRole("button", { name: "Select server" })).toBeEnabled();
         await expect(page.getByRole("status")).toHaveCount(0);
         await expectSingleFetches(request, id, ["/guilds", "/guilds/103/settings"]);
@@ -103,9 +105,9 @@ test("a failure after the SSR deadline replaces the skeleton and can be retried"
             body: "You need Manage Server or Administrator permission.",
         }),
     );
-    await page.goto("/guilds/103/moderation", { waitUntil: "commit" });
+    await page.goto("/guilds/103", { waitUntil: "commit" });
     const main = page.getByRole("main");
-    const loading = main.getByRole("status", { name: "Loading moderation" });
+    const loading = main.getByRole("status", { name: "Loading server settings" });
     await expect(loading).toBeVisible();
     await expect(main.getByRole("alert")).toHaveCount(0);
     const alert = main.getByRole("alert");
@@ -119,7 +121,7 @@ test("a failure after the SSR deadline replaces the skeleton and can be retried"
     const settings = await recovered.json();
     await page.route("**/guilds/103/settings", (route) => route.fulfill({ json: settings }));
     await alert.getByRole("button", { name: "Try again" }).click();
-    await expect(main.getByRole("region", { name: "Punishment ladder" })).toBeVisible();
+    await expect(main.getByRole("region", { name: "General", exact: true })).toBeVisible();
     await expect(alert).toBeHidden();
     // The library may report the deliberately rejected SSR promise before hydration.
     expect(

@@ -32,7 +32,6 @@ async fn main() -> Result<(), Error> {
         feature_flags,
     );
     let intents = bot_core::serenity::GatewayIntents::GUILDS
-        | bot_core::serenity::GatewayIntents::GUILD_MODERATION
         | bot_core::serenity::GatewayIntents::GUILD_MESSAGES
         | bot_core::serenity::GatewayIntents::DIRECT_MESSAGES
         | bot_core::serenity::GatewayIntents::MESSAGE_CONTENT;

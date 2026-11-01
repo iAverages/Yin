@@ -14,13 +14,6 @@ pub use repositories::custom_commands::{CustomCommand, CustomCommandRepository};
 pub use repositories::guild_directory::{BotGuild, GuildDirectoryRepository};
 pub use repositories::guild_settings::{GuildSettings, GuildSettingsRepository};
 pub use repositories::kv::KvRepository;
-pub use repositories::moderation::{
-    ChannelLockOperation, ChannelLockTarget, ExternalAuditCaseInsert, ModerationCase,
-    ModerationCaseHistory, ModerationRepository, ModerationStatus, NewChannelLockOperation,
-    NewChannelLockTarget, NewExternalAuditCase, NewModerationCase, NewPunishmentLadderExecution,
-    NewPunishmentLadderRule, NewWarn, NewWarning, PunishmentLadderExecution, PunishmentLadderRule,
-    WarnResult, Warning,
-};
 pub use repositories::user_social_embeds::UserSocialEmbedsRepository;
 
 pub struct Database {

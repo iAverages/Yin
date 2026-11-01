@@ -10,7 +10,6 @@ members = [
     "crates/feature-flags",
     "crates/feature-guilds",
     "crates/feature-info",
-    "crates/feature-moderation",
     "crates/feature-settings",
     "crates/feature-social",
     "crates/migrate",
@@ -25,7 +24,6 @@ feature-endfield = { path = "crates/feature-endfield" }
 feature-flags = { path = "crates/feature-flags" }
 feature-guilds = { path = "crates/feature-guilds" }
 feature-info = { path = "crates/feature-info" }
-feature-moderation = { path = "crates/feature-moderation" }
 feature-settings = { path = "crates/feature-settings" }
 feature-social = { path = "crates/feature-social" }
 

@@ -33,15 +33,6 @@ const settings = (guildId: string): GuildSettings => {
         activeTranslationLanguage: "en",
         socialEmbeds: [{ platform: "twitter", enabled: true }],
         customCommands: [{ name: "rules", response: "Read #rules." }],
-        ladderRules: [
-            {
-                id: 1,
-                warningThreshold: 3,
-                windowSeconds: 2592000,
-                action: "timeout",
-                durationSeconds: 86400,
-            },
-        ],
     };
 };
 
@@ -102,11 +93,6 @@ test("the server renders actual dashboard content with JavaScript disabled", asy
             page.getByRole("region", { name: "Custom commands", exact: true }),
         ).toContainText("Read #rules.");
         await expect(page.getByRole("status")).toHaveCount(0);
-        await page.goto("/guilds/103/moderation", { waitUntil: "domcontentloaded" });
-        await expect(page.getByRole("region", { name: "Punishment ladder" })).toContainText(
-            "3 warnings in 30 days",
-        );
-        await expect(page.getByRole("status")).toHaveCount(0);
         await page.goto("/settings", { waitUntil: "domcontentloaded" });
         await expect(page.getByRole("combobox", { name: "Twitter / X" })).toHaveValue("media-only");
         await expect(page.getByRole("status")).toHaveCount(0);
@@ -124,7 +110,7 @@ test("server-rendered content does not need the application bundle", async ({ pa
         route.request().resourceType() === "script" ? route.abort() : route.fallback(),
     );
     // No application code can fetch or render this content.
-    for (const path of ["/", "/guilds/103", "/guilds/103/moderation"]) {
+    for (const path of ["/", "/guilds/103"]) {
         await page.goto(path, { waitUntil: "domcontentloaded" });
         if (path === "/") {
             await expect(page.getByRole("link", { name: "Manage Night Shift" })).toBeVisible();
@@ -133,10 +119,7 @@ test("server-rendered content does not need the application bundle", async ({ pa
                 page.getByRole("heading", { name: "Night Shift", exact: true }),
             ).toBeVisible();
             await expect(
-                page.getByRole("button", {
-                    name: path.endsWith("moderation") ? "Add ladder rule" : "Save general",
-                    exact: true,
-                }),
+                page.getByRole("button", { name: "Save general", exact: true }),
             ).toBeDisabled();
         }
     }
@@ -189,10 +172,10 @@ test("a slow initial API response still renders content without JavaScript", asy
     ]);
     const page = await context.newPage();
     try {
-        await page.goto("/guilds/103/moderation", { waitUntil: "domcontentloaded" });
-        await expect(page.getByRole("region", { name: "Punishment ladder" })).toContainText(
-            "3 warnings in 30 days",
-        );
+        await page.goto("/guilds/103", { waitUntil: "domcontentloaded" });
+        await expect(
+            page.getByRole("region", { name: "Custom commands", exact: true }),
+        ).toContainText("Read #rules.");
         await expect(page.getByRole("button", { name: "Select server" })).toContainText(
             "Night Shift",
         );
@@ -202,102 +185,32 @@ test("a slow initial API response still renders content without JavaScript", asy
     }
 });
 
-for (const moderation of [false, true]) {
-    test(`client navigation keeps the sidebar visible while loading ${moderation ? "moderation" : "settings"}`, async ({
-        page,
-    }) => {
-        await page.goto(moderation ? "/guilds/103/moderation" : "/", {
-            waitUntil: "domcontentloaded",
-        });
-        await expect(page.getByRole("button", { name: "Select server" })).toBeEnabled();
-        let release!: () => void;
-        const gate = new Promise<void>((resolve) => {
-            release = resolve;
-        });
-        await page.route("**/guilds/102/settings", async (route) => {
-            await gate;
-            await route.fulfill({ json: settings("102") });
-        });
-        await page.getByRole("button", { name: "Select server" }).click();
-        await page.getByRole("link", { name: "Yin Community", exact: true }).click();
-        const loading = page.getByRole("status", {
-            name: moderation ? "Loading moderation" : "Loading server settings",
-            exact: true,
-        });
-        await expect(loading).toBeVisible();
-        await expect(page.getByRole("button", { name: "Account menu" })).toBeVisible();
-        await expect(
-            page
-                .getByRole("navigation", { name: "Dashboard navigation", exact: true })
-                .getByRole("link", { name: "Servers", exact: true }),
-        ).toBeVisible();
-        await expect(
-            page.getByRole("button", {
-                name: moderation ? "Add ladder rule" : "Save general",
-                exact: true,
-            }),
-        ).toHaveCount(0);
-        release();
-        await expect(
-            page.getByRole("heading", { name: "Yin Community", exact: true }),
-        ).toBeVisible();
-        await expect(loading).toBeHidden();
-        await expect(page).toHaveURL(moderation ? "/guilds/102/moderation" : "/guilds/102");
+test("client navigation keeps the sidebar visible while loading settings", async ({ page }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("button", { name: "Select server" })).toBeEnabled();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+        release = resolve;
     });
-}
-
-test("moderation has its own route and shares the server settings cache", async ({ page }) => {
-    let settingsRequests = 0;
-    page.on("request", (request) => {
-        if (request.url().endsWith(":33011/guilds/103/settings")) settingsRequests++;
+    await page.route("**/guilds/102/settings", async (route) => {
+        await gate;
+        await route.fulfill({ json: settings("102") });
     });
-    await page.goto("/guilds/103", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("button", { name: "Save general", exact: true })).toBeEnabled();
-    await expect(page.getByRole("heading", { name: "Punishment ladder" })).toHaveCount(0);
-    const navigation = page.getByRole("navigation", { name: "Dashboard navigation", exact: true });
-    await navigation.getByRole("link", { name: "Moderation", exact: true }).click();
-    await expect(page).toHaveURL("/guilds/103/moderation");
-    await expect(page.getByRole("region", { name: "Punishment ladder" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "General", exact: true })).toHaveCount(0);
-    await expect(navigation.getByRole("link", { name: "Moderation", exact: true })).toHaveAttribute(
-        "aria-current",
-        "page",
-    );
+    await page.getByRole("button", { name: "Select server" }).click();
+    await page.getByRole("link", { name: "Yin Community", exact: true }).click();
+    const loading = page.getByRole("status", { name: "Loading server settings", exact: true });
+    await expect(loading).toBeVisible();
+    await expect(page.getByRole("button", { name: "Account menu" })).toBeVisible();
     await expect(
-        navigation.getByRole("link", { name: "Server settings", exact: true }),
-    ).not.toHaveAttribute("aria-current", "page");
-    await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText("Moderation");
-    await navigation.getByRole("link", { name: "Server settings", exact: true }).click();
-    await expect(page.getByRole("region", { name: "General", exact: true })).toBeVisible();
-    expect(settingsRequests).toBe(0);
-});
-
-test("mobile moderation navigation closes the sheet and keeps the table usable", async ({
-    page,
-}) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/guilds/103", { waitUntil: "domcontentloaded" });
-    await page.getByRole("button", { name: "Open navigation" }).click();
-    const drawer = page.getByRole("dialog", { name: "Dashboard navigation" });
-    await drawer.getByRole("link", { name: "Moderation", exact: true }).click();
-    await expect(page).toHaveURL("/guilds/103/moderation");
-    await expect(drawer).toBeHidden();
-    await page.route("**/guilds/103/ladder-rules/1", (route) =>
-        route.fulfill({ json: { ...settings("103"), ladderRules: [] } }),
-    );
-    await page
-        .getByRole("region", { name: "Punishment ladder" })
-        .getByRole("button", { name: "Remove", exact: true })
-        .click();
-    await expect(
-        page.getByRole("cell", { name: "No punishment ladder rules configured." }),
+        page
+            .getByRole("navigation", { name: "Dashboard navigation", exact: true })
+            .getByRole("link", { name: "Servers", exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole("region", { name: /^Notifications/ })).toContainText(
-        "Punishment ladder rule removed.",
-    );
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-        true,
-    );
+    await expect(page.getByRole("button", { name: "Save general", exact: true })).toHaveCount(0);
+    release();
+    await expect(page.getByRole("heading", { name: "Yin Community", exact: true })).toBeVisible();
+    await expect(loading).toBeHidden();
+    await expect(page).toHaveURL("/guilds/102");
 });
 
 test("an expired session sends the user back to login", async ({ page }) => {
@@ -321,14 +234,14 @@ test("SSR settings errors keep navigation available and can be retried", async (
     await page.route("**/guilds/103/settings", (route) =>
         route.fulfill({ status: 403, body: "You need Manage Server or Administrator permission." }),
     );
-    await page.goto("/guilds/103/moderation", { waitUntil: "domcontentloaded" });
+    await page.goto("/guilds/103", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("button", { name: "Toggle sidebar" })).toBeEnabled();
     const alert = page.getByRole("main").getByRole("alert");
     await expect(alert).toContainText("You need Manage Server");
     await expect(page.getByRole("button", { name: "Account menu" })).toBeVisible();
     await page.unroute("**/guilds/103/settings");
     await alert.getByRole("button", { name: "Try again" }).click();
-    await expect(page.getByRole("region", { name: "Punishment ladder" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "General", exact: true })).toBeVisible();
     await expect(alert).toBeHidden();
     // Solid Query also serializes its rejected SSR promise before hydration.
     // Only the deliberate API failure is allowed, never a hydration/runtime error.
@@ -761,10 +674,6 @@ test("invalid form input shows an error on the field without calling the API", a
         requests += 1;
         return route.fulfill({ json: settings("103") });
     });
-    await page.route("**/guilds/103/ladder-rules", (route) => {
-        requests += 1;
-        return route.fulfill({ json: settings("103") });
-    });
     await page.goto("/guilds/103", { waitUntil: "domcontentloaded" });
 
     const prefix = page.getByRole("textbox", { name: /^Command prefix/ });
@@ -780,15 +689,6 @@ test("invalid form input shows an error on the field without calling the API", a
     await page.getByRole("button", { name: "Create or update command", exact: true }).click();
     await expect(name).toHaveAccessibleDescription(/1-32 characters/);
     await expect(response).toHaveAccessibleDescription(/1-2,000 characters/);
-
-    await page
-        .getByRole("navigation", { name: "Dashboard navigation", exact: true })
-        .getByRole("link", { name: "Moderation", exact: true })
-        .click();
-    const timeoutDays = page.getByRole("spinbutton", { name: "Timeout days" });
-    await timeoutDays.fill("29");
-    await page.getByRole("button", { name: "Add ladder rule", exact: true }).click();
-    await expect(timeoutDays).toHaveAccessibleDescription("Timeout must be 1-28 days.");
     expect(requests).toBe(0);
 });
 
@@ -816,30 +716,10 @@ test("all settings actions report success in toasts", async ({ page }) => {
             method: "DELETE",
             message: "Custom command removed.",
         },
-        {
-            section: "Punishment ladder",
-            button: "Add ladder rule",
-            endpoint: "ladder-rules",
-            method: "POST",
-            message: "Punishment ladder rule added.",
-        },
-        {
-            section: "Punishment ladder",
-            button: "Remove",
-            endpoint: "ladder-rules/1",
-            method: "DELETE",
-            message: "Punishment ladder rule removed.",
-        },
     ];
     await page.getByRole("textbox", { name: /^Command name/ }).fill("rules");
     await page.getByRole("textbox", { name: /^Response text/ }).fill("Read #rules.");
     for (const action of cases) {
-        if (action.section === "Punishment ladder" && !page.url().endsWith("/moderation")) {
-            await page
-                .getByRole("navigation", { name: "Dashboard navigation", exact: true })
-                .getByRole("link", { name: "Moderation", exact: true })
-                .click();
-        }
         await page.route(`**/guilds/103/${action.endpoint}`, (route) => {
             expect(route.request().method()).toBe(action.method);
             return route.fulfill({ json: settings("103") });
@@ -939,7 +819,6 @@ test("the layout protects direct dashboard URLs but is absent from sign-in", asy
     for (const [path, login] of [
         ["/", "/login"],
         ["/guilds/103", "/login?redirect=%2Fguilds%2F103"],
-        ["/guilds/103/moderation", "/login?redirect=%2Fguilds%2F103%2Fmoderation"],
     ]) {
         await page.goto(path, { waitUntil: "domcontentloaded" });
         await expect(page).toHaveURL(login);
@@ -959,7 +838,7 @@ test("sign-in returns to the requested page and never leaves the panel", async (
         return route.fulfill({ status: 500, json: { message: "stop" } });
     });
     for (const [path, expected] of [
-        ["/guilds/103/moderation", "http://127.0.0.1:3010/guilds/103/moderation"],
+        ["/guilds/103", "http://127.0.0.1:3010/guilds/103"],
         ["/login?redirect=%2F%2Fevil.example", "http://127.0.0.1:3010/"],
     ]) {
         await page.goto(path);

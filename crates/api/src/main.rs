@@ -94,14 +94,6 @@ fn app(state: AppState) -> Router {
             "/guilds/{guild_id}/custom-commands/{name}",
             delete(guilds::delete_custom_command),
         )
-        .route(
-            "/guilds/{guild_id}/ladder-rules",
-            post(guilds::create_ladder_rule),
-        )
-        .route(
-            "/guilds/{guild_id}/ladder-rules/{rule_id}",
-            put(guilds::update_ladder_rule).delete(guilds::delete_ladder_rule),
-        )
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth::require_auth,

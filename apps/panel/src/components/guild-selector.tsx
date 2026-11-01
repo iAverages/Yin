@@ -1,6 +1,6 @@
 import { Popover } from "@kobalte/core/popover";
 import { createQuery } from "@tanstack/solid-query";
-import { Link, useLocation, useParams } from "@tanstack/solid-router";
+import { Link, useParams } from "@tanstack/solid-router";
 import { For, Show, createMemo, createSignal, type JSX } from "solid-js";
 
 import { managedGuildsOptions } from "../lib/guild-queries";
@@ -16,7 +16,6 @@ export const GuildSelector = (props: {
     onNavigate?: () => void;
 }) => {
     const params = useParams({ strict: false });
-    const location = useLocation();
     const guilds = createQuery(() => ({ ...managedGuildsOptions(), throwOnError: false }));
     const [search, setSearch] = createSignal("");
     const installed = createMemo(() => (guilds.data ?? []).filter((guild) => guild.botInstalled));
@@ -146,11 +145,7 @@ export const GuildSelector = (props: {
                                     {(guild) => (
                                         <Link
                                             data-guild-option
-                                            to={
-                                                location().pathname.endsWith("/moderation")
-                                                    ? "/guilds/$guildId/moderation"
-                                                    : "/guilds/$guildId"
-                                            }
+                                            to="/guilds/$guildId"
                                             params={{ guildId: guild.id }}
                                             class="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground no-underline hover:bg-elevated focus-visible:bg-elevated"
                                             aria-label={guild.name}

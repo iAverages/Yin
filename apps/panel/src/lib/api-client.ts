@@ -27,14 +27,6 @@ export type CustomCommand = {
     response: string;
 };
 
-export type LadderRule = {
-    id: number;
-    warningThreshold: number;
-    windowSeconds: number;
-    action: "timeout" | "kick" | "ban";
-    durationSeconds: number | null;
-};
-
 export type GuildSettings = {
     guild: ManagedGuild;
     commandPrefix: string | null;
@@ -43,7 +35,6 @@ export type GuildSettings = {
     activeTranslationLanguage: string;
     socialEmbeds: SocialEmbedSetting[];
     customCommands: CustomCommand[];
-    ladderRules: LadderRule[];
 };
 
 export type GeneralSettingsInput = {
@@ -54,8 +45,6 @@ export type GeneralSettingsInput = {
 export type SocialEmbedsInput = {
     disabledPlatforms: string[];
 };
-
-export type LadderRuleInput = Omit<LadderRule, "id">;
 
 export const getManagedGuilds = () => {
     return apiFetch<ManagedGuild[]>("/guilds");
@@ -81,15 +70,6 @@ export const upsertCustomCommand = (guildId: string, input: CustomCommand) =>
 
 export const deleteCustomCommand = (guildId: string, name: string) =>
     guildFetch(guildId, `/custom-commands/${encodeURIComponent(name)}`, "DELETE");
-
-export const createLadderRule = (guildId: string, input: LadderRuleInput) =>
-    guildFetch(guildId, "/ladder-rules", "POST", input);
-
-export const updateLadderRule = (guildId: string, ruleId: number, input: LadderRuleInput) =>
-    guildFetch(guildId, `/ladder-rules/${ruleId}`, "PUT", input);
-
-export const deleteLadderRule = (guildId: string, ruleId: number) =>
-    guildFetch(guildId, `/ladder-rules/${ruleId}`, "DELETE");
 
 export const apiFetch = async <T>(path: string, init: RequestInit = {}) => {
     const headers = new Headers(init.headers);

@@ -9,7 +9,6 @@ import discordIcon from "../assets/icons/discord.svg";
 import overviewIcon from "../assets/icons/layout-dashboard.svg";
 import searchIcon from "../assets/icons/search.svg";
 import gearIcon from "../assets/icons/settings.svg";
-import moderationIcon from "../assets/icons/shield-check.svg";
 import closeIcon from "../assets/icons/x.svg";
 import userIcon from "../assets/icons/user.svg";
 
@@ -24,7 +23,6 @@ export type IconName =
     | "close"
     | "discord"
     | "gear"
-    | "moderation"
     | "overview"
     | "search"
     | "user";
@@ -40,7 +38,6 @@ const icons: Record<IconName, string> = {
     close: closeIcon,
     discord: discordIcon,
     gear: gearIcon,
-    moderation: moderationIcon,
     overview: overviewIcon,
     search: searchIcon,
     user: userIcon,

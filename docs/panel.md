@@ -2,13 +2,10 @@
 
 `apps/panel/src/routes/_dashboard.tsx` is the authenticated, pathless layout for
 all dashboard routes: `/`, `/guilds/$guildId` (general settings, social embeds and
-custom commands), `/guilds/$guildId/moderation` (punishment ladder), and `/settings`
+custom commands), and `/settings`
 (the signed-in user's own `/settings` preferences: per-platform embeds and
 display). Personal settings are read and written through `/me/settings`, which the API
-keys by the linked Discord account ID, never the better-auth user ID. The trailing
-underscore in `_dashboard.guilds.$guildId_.moderation.tsx` makes moderation a sibling
-of the settings page rather than nesting one editor inside the other. Switching
-guilds from moderation stays on moderation; both pages share the settings cache. Add new dashboard routes beneath `_dashboard`; do not add
+keys by the linked Discord account ID, never the better-auth user ID. Add new dashboard routes beneath `_dashboard`; do not add
 another sidebar or duplicate the auth guard. The hidden `/admin` area also uses
 this shell, with an additional owner-only parent guard and independent API checks;
 see [admin.md](admin.md) for its authorization, telemetry and deployment contract.
@@ -87,7 +84,7 @@ three times with backoff; client errors (auth, not found, validation) fail
 immediately. SSR never retries. Failed reads then show an explicit retry action.
 Route pending components cover client-side route loading; the same skeletons
 handle uncached API requests. Background refresh keeps existing
-content visible. Cached settings/moderation navigation needs no additional request.
+content visible. Cached settings navigation needs no additional request.
 
 Controls that need handlers stay disabled until hydration; form state is initialized
 on the server too. This avoids visible-but-inert clicks and empty SSR input values.
@@ -187,8 +184,8 @@ focus trapping and touch dismissal, authenticated route boundaries, pending/fail
 saves and toasts, installed-only guild search, popover animations, fixed scrolling,
 Ctrl+B, the edge-to-edge collapsed layout, full-content SSR with JavaScript disabled
 (including responses within the deadline), request-scoped hydration, client-navigation
-skeletons, retries, and moderation navigation/cache sharing. Deadline tests cover
-slow lists/settings/moderation, independently ready sections, late failures and
+skeletons, and retries. Deadline tests cover
+slow lists/settings, independently ready sections, late failures and
 single, uncancelled API requests. Unit tests use mocked timers to verify the exact
 budget, shared deadlines, timer cleanup, and early/late rejection handling.
 Traces and screenshots are saved under `apps/panel/test-results/` on failure.

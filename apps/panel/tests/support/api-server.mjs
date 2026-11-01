@@ -115,15 +115,6 @@ http.createServer(async (request, response) => {
             activeTranslationLanguage: cookies.includes("fixture-values=custom") ? "ja" : "en",
             socialEmbeds: [{ platform: "twitter", enabled: true }],
             customCommands: [{ name: "rules", response: "Read #rules." }],
-            ladderRules: [
-                {
-                    id: 1,
-                    warningThreshold: 3,
-                    windowSeconds: 2592000,
-                    action: "timeout",
-                    durationSeconds: 86400,
-                },
-            ],
         }),
     );
 }).listen(33011, "127.0.0.1");

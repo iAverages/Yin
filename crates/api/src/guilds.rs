@@ -6,14 +6,10 @@ use database::repositories::admin::AdminRepository;
 use database::settings::{
     CommandPrefix, CustomCommandName, CustomCommandText, TranslationLanguage,
 };
-use database::{
-    CustomCommandRepository, GuildDirectoryRepository, GuildSettingsRepository,
-    ModerationRepository, NewPunishmentLadderRule,
-};
+use database::{CustomCommandRepository, GuildDirectoryRepository, GuildSettingsRepository};
 use feature_guilds::{
     Freshness, GuildError, ManagedGuild, fresh_user_guild, managed_guilds, user_guilds,
 };
-use feature_moderation::{LadderRuleConfig, validate_ladder_rule_config};
 use feature_settings::{DEFAULT_PREFIX, social_platform_keys, validate_social_platform};
 use serde::{Deserialize, Serialize};
 
@@ -80,7 +76,6 @@ pub struct GuildSettingsResponse {
     active_translation_language: String,
     social_embeds: Vec<SocialEmbedSetting>,
     custom_commands: Vec<CustomCommandResponse>,
-    ladder_rules: Vec<LadderRuleResponse>,
 }
 
 #[derive(Debug, Serialize)]
@@ -95,16 +90,6 @@ pub struct SocialEmbedSetting {
 pub struct CustomCommandResponse {
     name: String,
     response: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LadderRuleResponse {
-    id: u64,
-    warning_threshold: u32,
-    window_seconds: u64,
-    action: String,
-    duration_seconds: Option<u64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -125,15 +110,6 @@ pub struct UpdateSocialEmbedsRequest {
 pub struct UpsertCustomCommandRequest {
     name: String,
     response: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UpsertLadderRuleRequest {
-    warning_threshold: u32,
-    window_seconds: u64,
-    action: String,
-    duration_seconds: Option<u64>,
 }
 
 pub async fn list_managed_guilds(
@@ -256,66 +232,6 @@ pub async fn delete_custom_command(
     Ok(Json(load_guild_settings(&state, guild_id, guild).await?))
 }
 
-pub async fn create_ladder_rule(
-    State(state): State<AppState>,
-    axum::Extension(session): axum::Extension<AuthSession>,
-    Path(guild_id): Path<u64>,
-    Json(request): Json<UpsertLadderRuleRequest>,
-) -> Result<Json<GuildSettingsResponse>, ApiError> {
-    let guild = require_manage_guild(&state, &session, guild_id).await?;
-    let rule = validate_ladder_rule(request)?;
-    ModerationRepository::new(&state.database)
-        .create_ladder_rule(NewPunishmentLadderRule {
-            guild_id,
-            warning_threshold: rule.warning_threshold,
-            window_seconds: rule.window_seconds,
-            action: &rule.action,
-            duration_seconds: rule.duration_seconds,
-        })
-        .await?;
-
-    Ok(Json(load_guild_settings(&state, guild_id, guild).await?))
-}
-
-pub async fn update_ladder_rule(
-    State(state): State<AppState>,
-    axum::Extension(session): axum::Extension<AuthSession>,
-    Path((guild_id, rule_id)): Path<(u64, u64)>,
-    Json(request): Json<UpsertLadderRuleRequest>,
-) -> Result<Json<GuildSettingsResponse>, ApiError> {
-    let guild = require_manage_guild(&state, &session, guild_id).await?;
-    let rule = validate_ladder_rule(request)?;
-    ModerationRepository::new(&state.database)
-        .update_ladder_rule(
-            guild_id,
-            rule_id,
-            rule.warning_threshold,
-            rule.window_seconds,
-            &rule.action,
-            rule.duration_seconds,
-        )
-        .await?
-        .ok_or(ApiError::NotFound("ladder rule not found"))?;
-
-    Ok(Json(load_guild_settings(&state, guild_id, guild).await?))
-}
-
-pub async fn delete_ladder_rule(
-    State(state): State<AppState>,
-    axum::Extension(session): axum::Extension<AuthSession>,
-    Path((guild_id, rule_id)): Path<(u64, u64)>,
-) -> Result<Json<GuildSettingsResponse>, ApiError> {
-    let guild = require_manage_guild(&state, &session, guild_id).await?;
-    if !ModerationRepository::new(&state.database)
-        .delete_ladder_rule(guild_id, rule_id)
-        .await?
-    {
-        return Err(ApiError::NotFound("ladder rule not found"));
-    }
-
-    Ok(Json(load_guild_settings(&state, guild_id, guild).await?))
-}
-
 async fn load_guild_settings(
     state: &AppState,
     guild_id: u64,
@@ -333,18 +249,6 @@ async fn load_guild_settings(
         .map(|command| CustomCommandResponse {
             name: command.name,
             response: command.response,
-        })
-        .collect();
-    let ladder_rules = ModerationRepository::new(&state.database)
-        .ladder_rules(guild_id)
-        .await?
-        .into_iter()
-        .map(|rule| LadderRuleResponse {
-            id: rule.id,
-            warning_threshold: rule.warning_threshold,
-            window_seconds: rule.window_seconds,
-            action: rule.action,
-            duration_seconds: rule.duration_seconds,
         })
         .collect();
     let command_prefix = settings
@@ -372,7 +276,6 @@ async fn load_guild_settings(
             })
             .collect(),
         custom_commands,
-        ladder_rules,
     })
 }
 
@@ -509,16 +412,6 @@ fn validate_command_name(name: &str) -> Result<CustomCommandName, ApiError> {
             "Names must be 1-32 characters using only letters, numbers, `_`, or `-`.".to_owned(),
         )
     })
-}
-
-fn validate_ladder_rule(request: UpsertLadderRuleRequest) -> Result<LadderRuleConfig, ApiError> {
-    validate_ladder_rule_config(
-        request.warning_threshold,
-        request.window_seconds,
-        &request.action,
-        request.duration_seconds,
-    )
-    .map_err(ApiError::BadRequest)
 }
 
 #[cfg(test)]

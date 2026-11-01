@@ -1,0 +1,10 @@
+DROP TABLE channel_lock_targets;
+DROP TABLE channel_lock_subjects;
+DROP TABLE channel_lock_operations;
+DROP TABLE punishment_ladder_executions;
+DROP TABLE punishment_ladder_rules;
+DROP TABLE moderation_warning_subjects;
+DROP TABLE moderation_warnings;
+DROP TABLE moderation_case_history;
+DROP TABLE moderation_audit_cursors;
+DROP TABLE moderation_cases;

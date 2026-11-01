@@ -1,4 +1,4 @@
-import { For, Show } from "solid-js";
+import { For } from "solid-js";
 
 import { cn } from "../lib/utils";
 
@@ -95,36 +95,19 @@ const EditorSkeleton = (props: { title: string }) => {
     );
 };
 
-export const GuildPageSkeleton = (props: { moderation?: boolean }) => {
+export const GuildPageSkeleton = () => {
     return (
-        <div
-            role="status"
-            aria-label={props.moderation ? "Loading moderation" : "Loading server settings"}
-            aria-busy="true"
-        >
+        <div role="status" aria-label="Loading server settings" aria-busy="true">
             <div aria-hidden="true">
                 <Skeleton class="h-8 w-52" />
-                <p class="mt-2 mb-0 text-sm text-muted">
-                    {props.moderation ? "Moderation" : "Server settings"}
-                </p>
-                <Show
-                    when={props.moderation}
-                    fallback={
-                        <>
-                            <div class="mt-8 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-                                <FormSkeleton title="General" />
-                                <FormSkeleton title="Social embeds" rows={3} />
-                            </div>
-                            <div class="mt-4">
-                                <EditorSkeleton title="Custom commands" />
-                            </div>
-                        </>
-                    }
-                >
-                    <div class="mt-8">
-                        <EditorSkeleton title="Punishment ladder" />
-                    </div>
-                </Show>
+                <p class="mt-2 mb-0 text-sm text-muted">Server settings</p>
+                <div class="mt-8 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+                    <FormSkeleton title="General" />
+                    <FormSkeleton title="Social embeds" rows={3} />
+                </div>
+                <div class="mt-4">
+                    <EditorSkeleton title="Custom commands" />
+                </div>
             </div>
         </div>
     );

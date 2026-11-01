@@ -11,7 +11,6 @@ feature-admin.workspace = true
 feature-endfield.workspace = true
 feature-flags.workspace = true
 feature-info.workspace = true
-feature-moderation.workspace = true
 feature-settings.workspace = true
 feature-social.workspace = true
 uuid.workspace = true

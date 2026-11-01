@@ -96,19 +96,6 @@ export const DashboardSidebar = (props: {
                             >
                                 <Icon name="gear" size={17} /> Server settings
                             </Link>
-                            <Link
-                                to="/guilds/$guildId/moderation"
-                                params={{ guildId: id() }}
-                                class={navigationClass}
-                                activeProps={{
-                                    class: "bg-elevated text-foreground",
-                                    "aria-current": "page",
-                                }}
-                                inactiveProps={{ class: "text-muted" }}
-                                onClick={props.onNavigate}
-                            >
-                                <Icon name="moderation" size={17} /> Moderation
-                            </Link>
                         </>
                     )}
                 </Show>

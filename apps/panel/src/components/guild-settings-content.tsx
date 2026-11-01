@@ -8,14 +8,10 @@ import { QueryBoundary } from "./query-boundary";
 
 export const GuildSettingsContent = (props: {
     guildId: string;
-    moderation?: boolean;
     children: (settings: Accessor<GuildSettings>) => JSX.Element;
 }) => {
     return (
-        <QueryBoundary
-            queryKey={settingsQueryKey(props.guildId)}
-            fallback={<GuildPageSkeleton moderation={props.moderation} />}
-        >
+        <QueryBoundary queryKey={settingsQueryKey(props.guildId)} fallback={<GuildPageSkeleton />}>
             <GuildSettingsData {...props} />
         </QueryBoundary>
     );
