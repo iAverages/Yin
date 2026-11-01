@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use bot_core::serenity;
 use database::{BotGuild, Database, GuildDirectoryRepository};
 use serde::{Deserialize, Serialize};
+use twilight_model::gateway::event::Event;
+use twilight_model::gateway::payload::incoming::GuildCreate;
 
 pub const USER_GUILD_CACHE_TTL_SECONDS: u32 = 300;
 const DISCORD_GUILDS_URL: &str = "https://discord.com/api/v10/users/@me/guilds";
@@ -186,34 +187,30 @@ async fn fetch_user_guilds_at(
 pub async fn handle_event(
     database: &Database,
     shard_id: u32,
-    event: &serenity::FullEvent,
+    event: &Event,
 ) -> Result<(), database::DatabaseError> {
     let repository = GuildDirectoryRepository::new(database);
     match event {
-        serenity::FullEvent::Ready { data_about_bot } => {
-            let ids: Vec<_> = data_about_bot
-                .guilds
-                .iter()
-                .map(|guild| guild.id.get())
-                .collect();
+        Event::Ready(ready) => {
+            let ids: Vec<_> = ready.guilds.iter().map(|guild| guild.id.get()).collect();
             repository.reconcile_shard(shard_id, &ids).await?;
         }
-        serenity::FullEvent::GuildCreate { guild, .. } => {
+        Event::GuildCreate(guild) => {
+            if let GuildCreate::Available(guild) = guild.as_ref() {
+                let icon = guild.icon.map(|icon| icon.to_string());
+                repository
+                    .upsert_bot_guild(guild.id.get(), &guild.name, icon.as_deref(), shard_id)
+                    .await?;
+            }
+        }
+        Event::GuildUpdate(guild) => {
             let icon = guild.icon.map(|icon| icon.to_string());
             repository
                 .upsert_bot_guild(guild.id.get(), &guild.name, icon.as_deref(), shard_id)
                 .await?;
         }
-        serenity::FullEvent::GuildUpdate {
-            new_data: guild, ..
-        } => {
-            let icon = guild.icon.map(|icon| icon.to_string());
-            repository
-                .upsert_bot_guild(guild.id.get(), &guild.name, icon.as_deref(), shard_id)
-                .await?;
-        }
-        serenity::FullEvent::GuildDelete { incomplete, .. } if !incomplete.unavailable => {
-            repository.mark_left(incomplete.id.get()).await?;
+        Event::GuildDelete(guild) if guild.unavailable != Some(true) => {
+            repository.mark_left(guild.id.get()).await?;
         }
         _ => {}
     }

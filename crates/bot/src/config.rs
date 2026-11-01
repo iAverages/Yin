@@ -1,13 +1,14 @@
 use std::env;
 use std::str::FromStr;
 
-use bot_core::serenity;
 use bot_core::{Environment, Error};
+use twilight_model::id::Id;
+use twilight_model::id::marker::GuildMarker;
 
 pub struct BotConfig {
     pub discord_token: String,
     pub environment: Environment,
-    pub dev_guild_id: Option<serenity::GuildId>,
+    pub dev_guild_id: Option<Id<GuildMarker>>,
     pub panel_url: Option<String>,
     pub database: database::DatabaseConfig,
 }
@@ -24,9 +25,13 @@ impl BotConfig {
         };
 
         let dev_guild_id = match env::var("DISCORD_DEV_GUILD_ID") {
-            Ok(value) => Some(serenity::GuildId::new(value.parse::<u64>().map_err(
-                |_| "DISCORD_DEV_GUILD_ID must be a valid Discord guild snowflake",
-            )?)),
+            Ok(value) => Some(
+                value
+                    .parse::<u64>()
+                    .ok()
+                    .and_then(Id::new_checked)
+                    .ok_or("DISCORD_DEV_GUILD_ID must be a valid Discord guild snowflake")?,
+            ),
             Err(env::VarError::NotPresent) => None,
             Err(error) => return Err(Box::new(error)),
         };

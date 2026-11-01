@@ -1,141 +1,117 @@
-use bot_core::response::{self, Embed, EmbedKind};
-use bot_core::serenity::{self, CreateAllowedMentions, CreateMessage};
-use bot_core::{BotState, Context, Error, poise};
+use bot_core::command::CommandContext;
+use bot_core::response::{Embed, EmbedKind};
+use bot_core::{BotState, Error};
+use database::CustomCommandRepository;
 use database::settings::{CustomCommandName, CustomCommandText};
-use database::{CustomCommandRepository, GuildSettingsRepository};
+use twilight_interactions::command::{CommandModel, CreateCommand};
+use twilight_model::channel::Message;
+use twilight_model::channel::message::AllowedMentions;
 
-use crate::DEFAULT_PREFIX;
-
-#[poise::command(
-    slash_command,
-    rename = "commands",
-    guild_only,
-    subcommand_required,
-    subcommands("create", "list", "remove"),
-    install_context = "Guild",
-    interaction_context = "Guild"
-)]
-pub async fn cmd(_ctx: Context<'_>) -> Result<(), Error> {
-    Ok(())
+#[derive(CommandModel, CreateCommand)]
+#[command(name = "commands", desc = "Manage this server's custom commands.")]
+pub enum CustomCommands {
+    #[command(name = "create")]
+    Create(Create),
+    #[command(name = "list")]
+    List(List),
+    #[command(name = "remove")]
+    Remove(Remove),
 }
 
-#[poise::command(
-    slash_command,
-    guild_only,
-    install_context = "Guild",
-    interaction_context = "Guild"
-)]
-pub async fn create(
-    ctx: Context<'_>,
-    #[description = "Command name"] name: String,
-    #[description = "Text the bot will send"] text: String,
-) -> Result<(), Error> {
-    let guild_id = ctx.guild_id().expect("guild-only command has a guild ID");
-    let Some(name) = CustomCommandName::parse(&name) else {
-        return response::error(
-            ctx,
-            "Names must be 1-32 characters using only letters, numbers, `_`, or `-`.",
-        )
-        .await;
-    };
-    let Some(text) = CustomCommandText::parse(&text) else {
-        return response::error(ctx, "Text must be 1-2,000 characters.").await;
-    };
-
-    CustomCommandRepository::new(&ctx.data().database)
-        .upsert(guild_id.get(), &name, &text)
-        .await?;
-
-    response::send(
-        ctx,
-        Embed::new(EmbedKind::Success, "Custom Command Saved").field(
-            "Command",
-            format!("`{name}`"),
-            true,
-        ),
-    )
-    .await
+#[derive(CommandModel, CreateCommand)]
+#[command(name = "create", desc = "Create or replace a custom command.")]
+pub struct Create {
+    /// Command name
+    name: String,
+    /// Text the bot will send
+    text: String,
 }
 
-#[poise::command(
-    slash_command,
-    guild_only,
-    install_context = "Guild",
-    interaction_context = "Guild"
-)]
-pub async fn list(ctx: Context<'_>) -> Result<(), Error> {
+#[derive(CommandModel, CreateCommand)]
+#[command(name = "list", desc = "List this server's custom commands.")]
+pub struct List;
+
+#[derive(CommandModel, CreateCommand)]
+#[command(name = "remove", desc = "Remove a custom command.")]
+pub struct Remove {
+    /// Command name
+    name: String,
+}
+
+pub async fn run(ctx: &CommandContext, command: CustomCommands) -> Result<(), Error> {
     let guild_id = ctx.guild_id().expect("guild-only command has a guild ID");
-    let commands = CustomCommandRepository::new(&ctx.data().database)
-        .list_entries(guild_id.get())
-        .await?;
-    if commands.is_empty() {
-        return response::info(ctx, "No custom commands have been created.").await;
+    let repository = CustomCommandRepository::new(&ctx.state.database);
+
+    match command {
+        CustomCommands::Create(Create { name, text }) => {
+            let Some(name) = CustomCommandName::parse(&name) else {
+                return ctx
+                    .error(
+                        "Names must be 1-32 characters using only letters, numbers, `_`, or `-`.",
+                    )
+                    .await;
+            };
+            let Some(text) = CustomCommandText::parse(&text) else {
+                return ctx.error("Text must be 1-2,000 characters.").await;
+            };
+            repository.upsert(guild_id.get(), &name, &text).await?;
+            ctx.send(
+                Embed::new(EmbedKind::Success, "Custom Command Saved").field(
+                    "Command",
+                    format!("`{name}`"),
+                    true,
+                ),
+            )
+            .await
+        }
+        CustomCommands::List(_) => {
+            let commands = repository.list_entries(guild_id.get()).await?;
+            if commands.is_empty() {
+                return ctx
+                    .send(Embed::new(
+                        EmbedKind::Info,
+                        "No custom commands have been created.",
+                    ))
+                    .await;
+            }
+            ctx.send(
+                Embed::new(EmbedKind::Info, "Custom Commands").description(
+                    commands
+                        .into_iter()
+                        .map(|command| format!("`{}`", command.name))
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                ),
+            )
+            .await
+        }
+        CustomCommands::Remove(Remove { name }) => {
+            let Some(name) = CustomCommandName::parse(&name) else {
+                return ctx.error("Invalid command name.").await;
+            };
+            if !repository.remove(guild_id.get(), name.as_str()).await? {
+                return ctx.error("That custom command does not exist.").await;
+            }
+            ctx.send(
+                Embed::new(EmbedKind::Success, "Custom Command Removed").field(
+                    "Command",
+                    format!("`{name}`"),
+                    true,
+                ),
+            )
+            .await
+        }
     }
-
-    response::send(
-        ctx,
-        Embed::new(EmbedKind::Info, "Custom Commands").description(
-            commands
-                .into_iter()
-                .map(|command| format!("`{}`", command.name))
-                .collect::<Vec<_>>()
-                .join("\n"),
-        ),
-    )
-    .await
 }
 
-#[poise::command(
-    slash_command,
-    guild_only,
-    install_context = "Guild",
-    interaction_context = "Guild"
-)]
-pub async fn remove(
-    ctx: Context<'_>,
-    #[description = "Command name"] name: String,
-) -> Result<(), Error> {
-    let guild_id = ctx.guild_id().expect("guild-only command has a guild ID");
-    let Some(name) = CustomCommandName::parse(&name) else {
-        return response::error(ctx, "Invalid command name.").await;
-    };
-    let removed = CustomCommandRepository::new(&ctx.data().database)
-        .remove(guild_id.get(), name.as_str())
-        .await?;
-    if !removed {
-        return response::error(ctx, "That custom command does not exist.").await;
-    }
-
-    response::send(
-        ctx,
-        Embed::new(EmbedKind::Success, "Custom Command Removed").field(
-            "Command",
-            format!("`{name}`"),
-            true,
-        ),
-    )
-    .await
-}
-
-pub async fn handle_message(
-    data: &BotState,
-    ctx: &serenity::Context,
-    message: &serenity::Message,
-) -> Result<(), Error> {
+pub async fn handle_message(data: &BotState, message: &Message, prefix: &str) -> Result<(), Error> {
     if message.author.bot {
         return Ok(());
     }
     let Some(guild_id) = message.guild_id else {
         return Ok(());
     };
-
-    let settings = GuildSettingsRepository::new(&data.database)
-        .find_by_guild_id(guild_id.get())
-        .await?;
-    let prefix = settings
-        .and_then(|settings| settings.command_prefix)
-        .unwrap_or_else(|| DEFAULT_PREFIX.to_owned());
-    let Some(name) = invocation_name(&message.content, &prefix) else {
+    let Some(name) = invocation_name(&message.content, prefix) else {
         return Ok(());
     };
     let Some(response) = CustomCommandRepository::new(&data.database)
@@ -145,14 +121,10 @@ pub async fn handle_message(
         return Ok(());
     };
 
-    message
-        .channel_id
-        .send_message(
-            ctx,
-            CreateMessage::new()
-                .content(response)
-                .allowed_mentions(CreateAllowedMentions::new()),
-        )
+    data.http
+        .create_message(message.channel_id)
+        .content(&response)
+        .allowed_mentions(Some(&AllowedMentions::default()))
         .await?;
     Ok(())
 }

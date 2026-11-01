@@ -1,31 +1,35 @@
-use bot_core::response::{self, Embed, EmbedKind};
+use bot_core::Error;
+use bot_core::cdn;
+use bot_core::command::CommandContext;
+use bot_core::response::{Embed, EmbedKind};
 use bot_core::time;
-use bot_core::{Context, Error, poise};
+use twilight_interactions::command::{CommandModel, CreateCommand};
 
-/// View information about the bot.
-#[poise::command(
-    slash_command,
-    prefix_command,
-    install_context = "Guild|User",
-    interaction_context = "Guild|BotDm|PrivateChannel"
-)]
-pub async fn bot(ctx: Context<'_>) -> Result<(), Error> {
-    let current_user = ctx.serenity_context().cache.current_user().clone();
-    let uptime = ctx.data().started_at.elapsed();
+#[derive(CommandModel, CreateCommand)]
+#[command(name = "bot", desc = "View information about the bot")]
+pub struct BotCommand;
+
+pub async fn run(ctx: &CommandContext) -> Result<(), Error> {
+    let state = &ctx.state;
+    let uptime = state.started_at.elapsed();
 
     let mut embed = Embed::new(EmbedKind::Info, "Bot Info")
         .field("Version", env!("CARGO_PKG_VERSION"), true)
-        .field("Environment", ctx.data().environment.to_string(), true)
+        .field("Environment", state.environment.to_string(), true)
         .field("Uptime", time::format_duration(uptime), true)
         .field(
             "Guild Count",
-            ctx.serenity_context().cache.guild_count().to_string(),
+            state.cache.stats().guilds().to_string(),
             true,
         );
 
-    if let Some(avatar_url) = current_user.avatar_url() {
+    if let Some(avatar_url) = state
+        .cache
+        .current_user()
+        .and_then(|user| cdn::avatar_url(user.id, user.avatar.as_ref()))
+    {
         embed = embed.thumbnail(avatar_url);
     }
 
-    response::send(ctx, embed).await
+    ctx.send(embed).await
 }

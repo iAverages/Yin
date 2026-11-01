@@ -1,8 +1,12 @@
 mod info;
 mod ping;
 
-use bot_core::Command;
+use bot_core::command::Command;
 
 pub fn commands() -> Vec<Command> {
-    vec![ping::ping(), info::info(), info::user_context()]
+    vec![
+        Command::slash::<ping::PingCommand>(ping::run),
+        Command::slash::<info::InfoCommand>(info::run),
+        Command::new(info::user_context_definition(), info::run_user_context),
+    ]
 }

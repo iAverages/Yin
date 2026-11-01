@@ -93,10 +93,10 @@ const Privacy = () => {
 
                 <h2>How long it's kept</h2>
                 <p>
-                    Settings stay until they're changed or deleted. Removing Yin from a server
-                    doesn't delete that server's data, so the settings are still there if it's added
-                    back. Website sign-ins expire a week after you last used the site. Your website
-                    account stays until you ask for it to be deleted.
+                    Settings stay until they're changed or deleted. When Yin is removed from a
+                    server, that server's data is kept for 30 days in case it's added back, then
+                    deleted. Website sign-ins expire a week after you last used the site. Your
+                    website account stays until you ask for it to be deleted.
                 </p>
 
                 <h2>Your options</h2>

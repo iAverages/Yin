@@ -5,5 +5,7 @@ edition = "2024"
 
 [dependencies]
 bot-core.workspace = true
-poise.workspace = true
 tracing.workspace = true
+twilight-interactions.workspace = true
+twilight-model.workspace = true
+twilight-util.workspace = true

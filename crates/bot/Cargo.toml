@@ -6,14 +6,19 @@ edition = "2024"
 [dependencies]
 bot-core.workspace = true
 database.workspace = true
-feature-guilds.workspace = true
 feature-admin.workspace = true
 feature-endfield.workspace = true
+feature-guilds.workspace = true
 feature-flags.workspace = true
 feature-info.workspace = true
 feature-settings.workspace = true
 feature-social.workspace = true
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
 uuid.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+twilight-cache-inmemory.workspace = true
+twilight-gateway.workspace = true
+twilight-http.workspace = true
+twilight-model.workspace = true

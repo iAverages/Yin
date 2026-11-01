@@ -5,7 +5,8 @@ The guild list has two sources of truth:
 - `bot_guilds`: persistent bot membership and current guild metadata. `feature-guilds`
   handles READY, GUILD_CREATE, GUILD_UPDATE and GUILD_DELETE. Temporary unavailability
   is not removal. READY reconciles each shard so departures while offline are removed.
-  Guild settings are retained when the bot leaves.
+  Guild data (the directory row, settings, custom commands and embed opt-outs) is
+  kept for 30 days after the bot leaves, then deleted by the bot's hourly purge.
 - `user_guild_cache`: a **five-minute**, user-scoped OAuth membership and permission
   snapshot. After storing the OAuth account and creating a session, Better Auth
   calls the API's existing authenticated `GET /guilds` to warm it. The API alone

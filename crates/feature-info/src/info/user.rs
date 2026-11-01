@@ -1,25 +1,34 @@
-use bot_core::response::{self, Embed, EmbedKind};
+use bot_core::Error;
+use bot_core::cdn;
+use bot_core::command::{CommandContext, CommandFuture};
+use bot_core::response::{Embed, EmbedKind};
 use bot_core::time;
-use bot_core::{Context, Error, poise, serenity};
+use twilight_interactions::command::{CommandModel, CreateCommand, ResolvedUser};
+use twilight_model::application::command::{Command as CommandDefinition, CommandType};
+use twilight_model::application::interaction::InteractionContextType;
+use twilight_model::id::Id;
+use twilight_model::oauth::ApplicationIntegrationType;
+use twilight_model::user::User;
+use twilight_util::builder::command::CommandBuilder;
+use twilight_util::snowflake::Snowflake;
 
-#[poise::command(
-    slash_command,
-    prefix_command,
-    install_context = "Guild|User",
-    interaction_context = "Guild|BotDm|PrivateChannel"
-)]
-pub async fn user(
-    ctx: Context<'_>,
-    #[description = "User to inspect"] user: Option<serenity::User>,
-    #[description = "Raw Discord user ID"] id: Option<String>,
-) -> Result<(), Error> {
-    if user.is_some() && id.is_some() {
-        return response::error(ctx, "Provide either a user or an ID, not both.").await;
+#[derive(CommandModel, CreateCommand)]
+#[command(name = "user", desc = "View information about a user")]
+pub struct UserCommand {
+    /// User to inspect
+    user: Option<ResolvedUser>,
+    /// Raw Discord user ID
+    id: Option<String>,
+}
+
+pub async fn run(ctx: &CommandContext, command: UserCommand) -> Result<(), Error> {
+    if command.user.is_some() && command.id.is_some() {
+        return ctx.error("Provide either a user or an ID, not both.").await;
     }
 
-    let target = if let Some(user) = user {
-        user
-    } else if let Some(id) = id {
+    let target = if let Some(user) = command.user {
+        user.resolved
+    } else if let Some(id) = command.id {
         let Some(user) = fetch_user_by_id(ctx, &id).await? else {
             return Ok(());
         };
@@ -31,39 +40,67 @@ pub async fn user(
     send_user_info(ctx, target).await
 }
 
-#[poise::command(
-    context_menu_command = "User Info",
-    install_context = "Guild|User",
-    interaction_context = "Guild|BotDm|PrivateChannel"
-)]
-pub async fn user_context(ctx: Context<'_>, user: serenity::User) -> Result<(), Error> {
-    send_user_info(ctx, user).await
+pub fn user_context_definition() -> CommandDefinition {
+    CommandBuilder::new("User Info", "", CommandType::User)
+        .contexts([
+            InteractionContextType::Guild,
+            InteractionContextType::BotDm,
+            InteractionContextType::PrivateChannel,
+        ])
+        .integration_types([
+            ApplicationIntegrationType::GuildInstall,
+            ApplicationIntegrationType::UserInstall,
+        ])
+        .build()
 }
 
-async fn fetch_user_by_id(ctx: Context<'_>, id: &str) -> Result<Option<serenity::User>, Error> {
-    let Ok(id) = id.trim().parse::<u64>() else {
-        response::error(ctx, "User ID must be a valid Discord snowflake.").await?;
+pub fn run_user_context(ctx: &CommandContext) -> CommandFuture<'_> {
+    Box::pin(async move {
+        let user = ctx
+            .data
+            .target_id
+            .zip(ctx.data.resolved.as_ref())
+            .and_then(|(target_id, resolved)| resolved.users.get(&target_id.cast()))
+            .cloned()
+            .ok_or("user context menu missing target user")?;
+        send_user_info(ctx, user).await
+    })
+}
+
+async fn fetch_user_by_id(ctx: &CommandContext, id: &str) -> Result<Option<User>, Error> {
+    let Some(id) = id.trim().parse::<u64>().ok().and_then(Id::new_checked) else {
+        ctx.error("User ID must be a valid Discord snowflake.")
+            .await?;
         return Ok(None);
     };
 
-    match serenity::UserId::new(id)
-        .to_user(ctx.serenity_context())
-        .await
-    {
+    let user = async { Ok::<_, Error>(ctx.state.http.user(id).await?.model().await?) }.await;
+    match user {
         Ok(user) => Ok(Some(user)),
         Err(error) => {
-            tracing::warn!(user_id = id, error = %error, "failed to fetch user by id");
-            response::error(ctx, "That user could not be found or is not accessible.").await?;
+            tracing::warn!(user_id = %id, error = %error, "failed to fetch user by id");
+            ctx.error("That user could not be found or is not accessible.")
+                .await?;
             Ok(None)
         }
     }
 }
 
-async fn send_user_info(ctx: Context<'_>, user: serenity::User) -> Result<(), Error> {
-    let member = if let Some(guild_id) = ctx.guild_id() {
-        guild_id.member(ctx.serenity_context(), user.id).await.ok()
-    } else {
-        None
+async fn send_user_info(ctx: &CommandContext, user: User) -> Result<(), Error> {
+    let member = match ctx.guild_id() {
+        Some(guild_id) => async {
+            Ok::<_, Error>(
+                ctx.state
+                    .http
+                    .guild_member(guild_id, user.id)
+                    .await?
+                    .model()
+                    .await?,
+            )
+        }
+        .await
+        .ok(),
+        None => None,
     };
 
     let display_name = member
@@ -79,17 +116,21 @@ async fn send_user_info(ctx: Context<'_>, user: serenity::User) -> Result<(), Er
         .field("Bot Account", if user.bot { "Yes" } else { "No" }, true)
         .field(
             "Created",
-            time::discord_timestamp(user.id.created_at()),
+            time::discord_timestamp(user.id.timestamp() / 1000),
             false,
         )
-        .thumbnail(user.face());
+        .thumbnail(cdn::face(&user));
 
     if let Some(member) = member {
         if let Some(joined_at) = member.joined_at {
-            embed = embed.field("Joined Server", time::discord_timestamp(joined_at), false);
+            embed = embed.field(
+                "Joined Server",
+                time::discord_timestamp(joined_at.as_secs()),
+                false,
+            );
         }
         embed = embed.field("Role Count", member.roles.len().to_string(), true);
     }
 
-    response::send(ctx, embed).await
+    ctx.send(embed).await
 }

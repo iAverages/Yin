@@ -1,18 +1,21 @@
 use std::collections::HashMap;
 
 use serde::Deserialize;
+use twilight_interactions::command::{CommandOption, CreateOption};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, poise::ChoiceParameter)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, CommandOption, CreateOption)]
 pub enum CodexType {
-    #[name = "operator"]
+    #[option(name = "operator", value = 0)]
     Operator,
-    #[name = "weapon"]
+    #[option(name = "weapon", value = 1)]
     Weapon,
-    #[name = "equipment"]
+    #[option(name = "equipment", value = 2)]
     Equipment,
 }
 
 impl CodexType {
+    pub const ALL: [Self; 3] = [Self::Operator, Self::Weapon, Self::Equipment];
+
     pub fn path(self) -> &'static str {
         match self {
             Self::Operator => "operator",

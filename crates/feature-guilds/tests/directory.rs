@@ -125,6 +125,51 @@ async fn reconciles_bot_membership_per_shard_and_updates_metadata(pool: MySqlPoo
 
 #[sqlx::test(migrations = "../database/migrations")]
 #[ignore = "requires DATABASE_URL with CREATE DATABASE permission"]
+async fn purges_guild_data_30_days_after_the_bot_left(pool: MySqlPool) {
+    let database = database(&pool).await;
+    let repository = GuildDirectoryRepository::new(&database);
+    // 1 is still installed, 2 left long ago, 3 left recently.
+    for id in 1..=3u64 {
+        repository
+            .upsert_bot_guild(id, "Guild", None, 0)
+            .await
+            .unwrap();
+        for sql in [
+            "INSERT INTO guild_settings (guild_id, command_prefix) VALUES (?, '!')",
+            "INSERT INTO custom_commands (guild_id, name, response) VALUES (?, 'a', 'b')",
+            "INSERT INTO custom_commands (guild_id, name, response) VALUES (?, 'c', 'd')",
+            "INSERT INTO guild_social_embed_opt_outs (guild_id, platform) VALUES (?, 'twitter')",
+        ] {
+            sqlx::query(sql).bind(id).execute(&pool).await.unwrap();
+        }
+    }
+    repository.mark_left(2).await.unwrap();
+    repository.mark_left(3).await.unwrap();
+    sqlx::query("UPDATE bot_guilds SET updated_at = TIMESTAMPADD(DAY, -31, CURRENT_TIMESTAMP(3)) WHERE guild_id IN (1, 2)")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    repository.purge_departed().await.unwrap();
+
+    for table in [
+        "bot_guilds",
+        "guild_settings",
+        "custom_commands",
+        "guild_social_embed_opt_outs",
+    ] {
+        let remaining: Vec<u64> = sqlx::query_scalar(&format!(
+            "SELECT DISTINCT guild_id FROM {table} ORDER BY guild_id"
+        ))
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        assert_eq!(remaining, [1, 3], "{table}");
+    }
+}
+
+#[sqlx::test(migrations = "../database/migrations")]
+#[ignore = "requires DATABASE_URL with CREATE DATABASE permission"]
 async fn reconciles_membership_beyond_one_inserts_bind_limit(pool: MySqlPool) {
     let database = database(&pool).await;
     let repository = GuildDirectoryRepository::new(&database);

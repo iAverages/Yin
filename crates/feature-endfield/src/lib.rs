@@ -2,8 +2,8 @@ mod client;
 mod command;
 mod model;
 
-use bot_core::Command;
+use bot_core::command::Command;
 
 pub fn commands() -> Vec<Command> {
-    vec![command::endfield()]
+    vec![Command::slash::<command::EndfieldCommand>(command::run)]
 }

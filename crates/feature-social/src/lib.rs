@@ -2,26 +2,41 @@ mod post;
 mod source;
 
 use std::collections::VecDeque;
-use std::sync::atomic::Ordering;
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use bot_core::response::{self, Embed, EmbedKind};
-use bot_core::serenity::{
-    self,
-    builder::{
-        CreateInteractionResponse, CreateInteractionResponseMessage, CreateMessage, EditMessage,
-    },
-    http::{LightMethod, Request as DiscordRequest, Route},
-};
-use bot_core::serenity::{ChannelId, ComponentInteraction, GuildId, MessageId, UserId};
-use bot_core::{BotState, Command, Error, poise};
+use bot_core::command::{Command, CommandContext, CommandFuture};
+use bot_core::raw;
+use bot_core::response::{Embed, EmbedKind};
+use bot_core::{BotState, Error};
 use database::UserSocialEmbedsRepository;
 use database::settings::TranslationLanguage;
 use reqwest::{Client, RequestBuilder, Url, header::USER_AGENT};
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::{Value, json};
 use source::Request as EmbedRequest;
+use twilight_http::request::channel::reaction::RequestReactionType;
+use twilight_http::routing::Route;
+use twilight_interactions::command::{CommandModel, CreateCommand};
+use twilight_model::application::command::{
+    Command as CommandDefinition, CommandOptionChoice, CommandOptionChoiceValue, CommandType,
+};
+use twilight_model::application::interaction::application_command::{
+    CommandData, CommandOptionValue,
+};
+use twilight_model::application::interaction::message_component::MessageComponentInteractionData;
+use twilight_model::application::interaction::{
+    Interaction, InteractionContextType, InteractionType,
+};
+use twilight_model::channel::Message;
+use twilight_model::channel::message::MessageFlags;
+use twilight_model::id::Id;
+use twilight_model::id::marker::{ChannelMarker, GuildMarker, MessageMarker, UserMarker};
+use twilight_model::oauth::ApplicationIntegrationType;
+use twilight_util::builder::command::CommandBuilder;
+use twilight_util::builder::interaction_response::{AutocompleteBuilder, ChannelMessageBuilder};
+
+type MessageId = Id<MessageMarker>;
 
 pub use source::abembed::{URL_FLAG as ABEMBED_URL_FLAG, set_base_url as set_abembed_url};
 pub use source::twitter::primary_translation_language;
@@ -35,6 +50,7 @@ const EMBEDDED_MESSAGE_CACHE_LIMIT: usize = 100;
 const EMBEDDED_MESSAGE_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
 const FOLLOWUP_TOKEN_TTL: Duration = Duration::from_secs(15 * 60);
 const DEFER_AFTER: Duration = Duration::from_secs(2);
+const MAX_CHOICES: usize = 25;
 const APP_USER_AGENT: &str = concat!("yin/", env!("CARGO_PKG_VERSION"));
 const DISCORD_USER_AGENT: &str = "Discordbot/2.0";
 const NOTICE_ID: &str = "social:notice";
@@ -104,15 +120,199 @@ const LANGUAGES: &[(&str, &str)] = &[
 ];
 
 pub fn commands() -> Vec<Command> {
-    vec![embed(), refresh_media()]
+    vec![
+        Command::slash::<EmbedCommand>(embed).ephemeral(),
+        Command::new(refresh_media_definition(), refresh_media).ephemeral(),
+    ]
 }
 
-async fn autocomplete_language(
-    _ctx: poise::ApplicationContext<'_, BotState, Error>,
-    partial: &str,
-) -> Vec<serenity::AutocompleteChoice> {
+#[derive(CommandModel, CreateCommand)]
+#[command(
+    name = "embed",
+    desc = "Send the social embed for a link",
+    contexts = "guild bot_dm private_channel",
+    integration_types = "guild_install user_install"
+)]
+struct EmbedCommand {
+    /// Link to embed
+    link: String,
+    /// Translation language, such as en, ja, pt-BR, or zh-Hant
+    #[command(autocomplete = true)]
+    language: Option<String>,
+    /// Hide the embed behind a spoiler
+    spoiler: Option<bool>,
+    /// How to display the embed. Defaults to your saved preference
+    display: Option<SocialDisplay>,
+    /// Text to send with the embed
+    #[command(max_length = 2000)]
+    text: Option<String>,
+}
+
+fn embed(ctx: &CommandContext) -> CommandFuture<'_> {
+    Box::pin(async move {
+        if ctx.interaction.kind == InteractionType::ApplicationCommandAutocomplete {
+            ctx.state
+                .http
+                .interaction(ctx.interaction.application_id)
+                .create_response(
+                    ctx.interaction.id,
+                    &ctx.interaction.token,
+                    &AutocompleteBuilder::new(language_choices(&ctx.data)).build(),
+                )
+                .await?;
+            return Ok(());
+        }
+        let EmbedCommand {
+            link,
+            language,
+            spoiler,
+            display,
+            text,
+        } = ctx.parse()?;
+        let user_id = ctx.author().id;
+        let language = match language {
+            Some(language) => match TranslationLanguage::parse(&language) {
+                Some(language) => language.into_string(),
+                None => {
+                    return ctx
+                        .error("Use a valid ISO language code, such as `en` or `pt-BR`.")
+                        .await;
+                }
+            },
+            None => ctx
+                .interaction
+                .locale
+                .as_deref()
+                .and_then(primary_translation_language)
+                .unwrap_or_else(|| "en".to_owned()),
+        };
+        let work = async {
+            let mut links = source::parse_links_with_alt_fixers(&link);
+            if spoiler == Some(true) {
+                links.iter_mut().for_each(|link| link.spoiler = true);
+            }
+            match display {
+                Some(display) => links.iter_mut().for_each(|link| link.display = display),
+                None => source::apply_displays(
+                    &mut links,
+                    &UserSocialEmbedsRepository::new(&ctx.state.database)
+                        .displays(user_id.get())
+                        .await?,
+                ),
+            }
+            embed_components(
+                &ctx.state,
+                links,
+                user_id,
+                ctx.guild_id(),
+                Some(language),
+                true,
+            )
+            .await
+        };
+        tokio::pin!(work);
+
+        let (result, deferred) = match tokio::time::timeout(DEFER_AFTER, &mut work).await {
+            Ok(result) => (result, false),
+            Err(_) => {
+                ctx.defer().await?;
+                (work.await, true)
+            }
+        };
+        let mut components = match result {
+            Ok(components) => components,
+            Err(error) => {
+                let Some(unavailable) = error.downcast_ref::<PostUnavailable>() else {
+                    return Err(error);
+                };
+                tracing::warn!(error = %unavailable, "social post unavailable");
+                return ctx.send(unavailable_embed(unavailable)).await;
+            }
+        };
+        if components.is_empty() {
+            return ctx.error("That is not a supported social link.").await;
+        }
+        if let Some(text) = text {
+            components.insert(0, json!({"type": 10, "content": text}));
+        }
+        if deferred {
+            components.insert(0, invoker_header(user_id));
+        }
+
+        let application_id = ctx.interaction.application_id;
+        let token = &ctx.interaction.token;
+        let mut batches = component_batches(components)?.into_iter();
+        if deferred {
+            ctx.state
+                .http
+                .interaction(application_id)
+                .delete_response(token)
+                .await?;
+        } else if let Some(components) = batches.next() {
+            let response = raw::request(
+                &ctx.state.http,
+                &Route::InteractionCallback {
+                    interaction_id: ctx.interaction.id.get(),
+                    interaction_token: token,
+                    with_response: true,
+                },
+                Some(&json!({"type": 4, "data": create_payload(components)})),
+            )
+            .await?;
+            ctx.mark_responded();
+            remember_followup_token(
+                message_id(&response["resource"]["message"])?,
+                token,
+                Instant::now(),
+            );
+        }
+        for components in batches {
+            let followup = raw::request(
+                &ctx.state.http,
+                &Route::ExecuteWebhook {
+                    thread_id: None,
+                    token,
+                    wait: None,
+                    with_components: None,
+                    webhook_id: application_id.get(),
+                },
+                Some(&create_payload(components)),
+            )
+            .await?;
+            remember_followup_token(message_id(&followup)?, token, Instant::now());
+        }
+
+        if UserSocialEmbedsRepository::new(&ctx.state.database)
+            .mark_notice_shown(user_id.get(), "command")
+            .await?
+        {
+            ctx.send(
+                Embed::new(EmbedKind::Info, "Customize your embeds").description(
+                    "Use `/settings` to choose how Yin embeds links from each platform.",
+                ),
+            )
+            .await?;
+        }
+        Ok(())
+    })
+}
+
+fn language_choices(data: &CommandData) -> Vec<CommandOptionChoice> {
+    let partial = data
+        .options
+        .iter()
+        .find_map(|option| match &option.value {
+            CommandOptionValue::Focused(value, _) => Some(value.as_str()),
+            _ => None,
+        })
+        .unwrap_or_default();
     matching_languages(partial)
-        .map(|(name, code)| serenity::AutocompleteChoice::new(format!("{name} ({code})"), code))
+        .take(MAX_CHOICES)
+        .map(|(name, code)| CommandOptionChoice {
+            name: format!("{name} ({code})"),
+            name_localizations: None,
+            value: CommandOptionChoiceValue::String(code.to_owned()),
+        })
         .collect()
 }
 
@@ -123,219 +323,117 @@ fn matching_languages(partial: &str) -> impl Iterator<Item = (&'static str, &'st
     })
 }
 
-/// Send the social embed for a link
-#[poise::command(
-    slash_command,
-    ephemeral,
-    install_context = "Guild|User",
-    interaction_context = "Guild|BotDm|PrivateChannel"
-)]
-async fn embed(
-    ctx: poise::ApplicationContext<'_, BotState, Error>,
-    #[description = "Link to embed"] link: String,
-    #[description = "Translation language, such as en, ja, pt-BR, or zh-Hant"]
-    #[autocomplete = "autocomplete_language"]
-    language: Option<String>,
-    #[description = "Hide the embed behind a spoiler"] spoiler: Option<bool>,
-    #[description = "How to display the embed. Defaults to your saved preference"] display: Option<
-        SocialDisplay,
-    >,
-    #[description = "Text to send with the embed"]
-    #[max_length = 2000]
-    text: Option<String>,
-) -> Result<(), Error> {
-    let language = match language {
-        Some(language) => match TranslationLanguage::parse(&language) {
-            Some(language) => language.into_string(),
-            None => {
-                return response::error(
-                    ctx.into(),
-                    "Use a valid ISO language code, such as `en` or `pt-BR`.",
-                )
-                .await;
-            }
-        },
-        None => {
-            primary_translation_language(&ctx.interaction.locale).unwrap_or_else(|| "en".to_owned())
+fn refresh_media_definition() -> CommandDefinition {
+    CommandBuilder::new("Refresh Media", "", CommandType::Message)
+        .contexts([
+            InteractionContextType::Guild,
+            InteractionContextType::BotDm,
+            InteractionContextType::PrivateChannel,
+        ])
+        .integration_types([
+            ApplicationIntegrationType::GuildInstall,
+            ApplicationIntegrationType::UserInstall,
+        ])
+        .build()
+}
+
+fn refresh_media(ctx: &CommandContext) -> CommandFuture<'_> {
+    Box::pin(async move {
+        let message = ctx
+            .data
+            .target_id
+            .zip(ctx.data.resolved.as_ref())
+            .and_then(|(target_id, resolved)| resolved.messages.get(&target_id.cast()))
+            .ok_or("message context menu missing target message")?;
+        let bot_id = ctx.state.cache.current_user().map(|user| user.id);
+        if Some(message.author.id) != bot_id {
+            return ctx.error("Only social embeds can be refreshed.").await;
         }
-    };
-    let work = async {
-        let mut links = source::parse_links_with_alt_fixers(&link);
-        if spoiler == Some(true) {
-            links.iter_mut().for_each(|link| link.spoiler = true);
-        }
-        match display {
-            Some(display) => links.iter_mut().for_each(|link| link.display = display),
-            None => source::apply_displays(
-                &mut links,
-                &UserSocialEmbedsRepository::new(&ctx.data.database)
-                    .displays(ctx.interaction.user.id.get())
-                    .await?,
+        let application_id = ctx.interaction.application_id.get();
+        let token = followup_token(message.id, Instant::now());
+        let (get, update) = match &token {
+            Some(token) => (
+                Route::GetFollowupMessage {
+                    application_id,
+                    interaction_token: token,
+                    thread_id: None,
+                    message_id: message.id.get(),
+                },
+                Route::UpdateWebhookMessage {
+                    message_id: message.id.get(),
+                    thread_id: None,
+                    token,
+                    webhook_id: application_id,
+                },
             ),
-        }
-        embed_components(
-            ctx.data,
-            ctx.serenity_context,
-            links,
-            ctx.interaction.user.id,
-            ctx.interaction.guild_id,
-            Some(language),
-            true,
-        )
-        .await
-    };
-    tokio::pin!(work);
+            None => (
+                Route::GetMessage {
+                    channel_id: message.channel_id.get(),
+                    message_id: message.id.get(),
+                },
+                Route::UpdateMessage {
+                    channel_id: message.channel_id.get(),
+                    message_id: message.id.get(),
+                },
+            ),
+        };
+        let mut message = match raw::request(&ctx.state.http, &get, None).await {
+            Ok(message) => message,
+            Err(error) => {
+                tracing::warn!(error = %error, "failed to fetch social embed for refresh");
+                return ctx.error("I can't edit that message anymore.").await;
+            }
+        };
 
-    let (result, deferred) = match tokio::time::timeout(DEFER_AFTER, &mut work).await {
-        Ok(result) => (result, false),
-        Err(_) => {
-            ctx.defer_ephemeral().await?;
-            (work.await, true)
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+        if !refresh_media_urls(&mut message["components"], timestamp) {
+            return ctx.error("That message has no media to refresh.").await;
         }
-    };
-    let mut components = match result {
-        Ok(components) => components,
-        Err(error) => {
-            let Some(unavailable) = error.downcast_ref::<PostUnavailable>() else {
-                return Err(error);
-            };
-            tracing::warn!(error = %unavailable, "social post unavailable");
-            return response::send(ctx.into(), unavailable_embed(unavailable)).await;
-        }
-    };
-    if components.is_empty() {
-        return response::send(
-            ctx.into(),
-            Embed::new(EmbedKind::Error, "That is not a supported social link."),
-        )
-        .await;
-    }
-    if let Some(text) = text {
-        components.insert(0, json!({"type": 10, "content": text}));
-    }
-    if deferred {
-        components.insert(0, invoker_header(ctx.interaction.user.id));
-    }
 
-    let http = &ctx.serenity_context.http;
-    let token = &ctx.interaction.token;
-    let mut batches = component_batches(components)?.into_iter();
-    if deferred {
-        http.delete_original_interaction_response(token).await?;
-    } else if let Some(components) = batches.next() {
-        http.create_interaction_response(
-            ctx.interaction.id,
-            token,
-            &json!({"type": 4, "data": create_payload(components)}),
-            vec![],
+        raw::request(
+            &ctx.state.http,
+            &update,
+            Some(&json!({"components": message["components"]})),
         )
         .await?;
-        ctx.has_sent_initial_response.store(true, Ordering::SeqCst);
-        let response = http.get_original_interaction_response(token).await?;
-        remember_followup_token(response.id, token, Instant::now());
-    }
-    for components in batches {
-        let followup = http
-            .create_followup_message(token, &create_payload(components), vec![])
-            .await?;
-        remember_followup_token(followup.id, token, Instant::now());
-    }
 
-    if UserSocialEmbedsRepository::new(&ctx.data.database)
-        .mark_notice_shown(ctx.interaction.user.id.get(), "command")
-        .await?
-    {
-        response::send(
-            ctx.into(),
-            Embed::new(EmbedKind::Info, "Customize your embeds")
-                .description("Use `/settings` to choose how Yin embeds links from each platform."),
-        )
-        .await?;
-    }
-    Ok(())
+        ctx.send(Embed::new(EmbedKind::Info, "Refreshed the media."))
+            .await
+    })
 }
 
-/// Reload the media in a social embed
-#[poise::command(
-    context_menu_command = "Refresh Media",
-    ephemeral,
-    install_context = "Guild|User",
-    interaction_context = "Guild|BotDm|PrivateChannel"
-)]
-async fn refresh_media(
-    ctx: poise::ApplicationContext<'_, BotState, Error>,
-    message: serenity::Message,
-) -> Result<(), Error> {
-    if message.author.id != ctx.framework.bot_id {
-        return response::error(ctx.into(), "Only social embeds can be refreshed.").await;
-    }
-    let http = &ctx.serenity_context.http;
-    let token = followup_token(message.id, Instant::now());
-    let route = match &token {
-        Some(token) => Route::WebhookFollowupMessage {
-            application_id: ctx.interaction.application_id,
-            token,
-            message_id: message.id,
-        },
-        None => Route::ChannelMessage {
-            channel_id: message.channel_id,
-            message_id: message.id,
-        },
-    };
-    let mut raw = match http
-        .fire::<Value>(DiscordRequest::new(route, LightMethod::Get))
-        .await
-    {
-        Ok(raw) => raw,
-        Err(error) => {
-            tracing::warn!(error = %error, "failed to fetch social embed for refresh");
-            return response::error(ctx.into(), "I can't edit that message anymore.").await;
-        }
-    };
-
-    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-    if !refresh_media_urls(&mut raw["components"], timestamp) {
-        return response::error(ctx.into(), "That message has no media to refresh.").await;
-    }
-
-    let body = serde_json::to_vec(&json!({"components": raw["components"]}))?;
-    http.fire::<serenity::Message>(DiscordRequest::new(route, LightMethod::Patch).body(Some(body)))
-        .await?;
-
-    response::info(ctx.into(), "Refreshed the media.").await
+fn message_id(message: &Value) -> Result<MessageId, serde_json::Error> {
+    serde_json::from_value(message["id"].clone())
 }
 
-pub async fn handle_message(
-    data: &BotState,
-    ctx: &serenity::Context,
-    message: &serenity::Message,
-) -> Result<(), Error> {
+pub async fn handle_message(data: &BotState, message: &Message) -> Result<(), Error> {
     if message.author.bot {
         return Ok(());
     }
 
-    let response_ids = match send_embeds(data, ctx, message).await {
+    let response_ids = match send_embeds(data, message).await {
         Ok(response_ids) if response_ids.is_empty() => return Ok(()),
         Ok(response_ids) => response_ids,
         Err(error) => {
-            report_failure(ctx, message, &error).await;
+            report_failure(data, message, &error).await;
             return Err(error);
         }
     };
 
     remember_message(message.id, response_ids, &message.content, Instant::now());
-    message
-        .channel_id
-        .edit_message(ctx, message.id, EditMessage::new().suppress_embeds(true))
+    data.http
+        .update_message(message.channel_id, message.id)
+        .flags(MessageFlags::SUPPRESS_EMBEDS)
         .await?;
     Ok(())
 }
 
 pub async fn handle_interaction(
-    ctx: &serenity::Context,
-    interaction: &ComponentInteraction,
+    data: &BotState,
+    interaction: &Interaction,
+    component: &MessageComponentInteractionData,
 ) -> Result<(), Error> {
-    if interaction.data.custom_id != NOTICE_ID {
+    if component.custom_id != NOTICE_ID {
         return Ok(());
     }
     let embed = Embed::new(EmbedKind::Info, "Social embeds").description(
@@ -343,47 +441,37 @@ pub async fn handle_interaction(
          preview. Use `/settings` to choose how your links are embedded, or set a platform to \
          **Off** to stop Yin embedding it.",
     );
-    interaction
-        .create_response(
-            ctx,
-            CreateInteractionResponse::Message(
-                CreateInteractionResponseMessage::new()
-                    .ephemeral(true)
-                    .embed(embed.into()),
-            ),
-        )
+    let response = ChannelMessageBuilder::new()
+        .embeds([embed.into()])
+        .flags(MessageFlags::EPHEMERAL)
+        .build();
+    data.http
+        .interaction(interaction.application_id)
+        .create_response(interaction.id, &interaction.token, &response)
         .await?;
     Ok(())
 }
 
 pub async fn handle_message_delete(
-    ctx: &serenity::Context,
-    channel_id: ChannelId,
+    data: &BotState,
+    channel_id: Id<ChannelMarker>,
     message_id: MessageId,
 ) -> Result<(), Error> {
     for response_id in take_embedded_responses(message_id) {
-        channel_id.delete_message(ctx, response_id).await?;
+        data.http.delete_message(channel_id, response_id).await?;
     }
     Ok(())
 }
 
-pub async fn handle_message_update(
-    data: &BotState,
-    ctx: &serenity::Context,
-    event: &serenity::MessageUpdateEvent,
-) -> Result<(), Error> {
-    let Some(content) = event.content.as_deref() else {
-        return Ok(());
-    };
-    if !should_refresh_message(event.id, content) {
+pub async fn handle_message_update(data: &BotState, message: &Message) -> Result<(), Error> {
+    if !should_refresh_message(message.id, &message.content) {
         return Ok(());
     }
 
-    let message = event.channel_id.message(ctx, event.id).await?;
-    let response_ids = match send_embeds(data, ctx, &message).await {
+    let response_ids = match send_embeds(data, message).await {
         Ok(response_ids) => response_ids,
         Err(error) => {
-            report_failure(ctx, &message, &error).await;
+            report_failure(data, message, &error).await;
             return Err(error);
         }
     };
@@ -392,23 +480,44 @@ pub async fn handle_message_update(
     let old_response_ids = take_embedded_responses(message.id);
     remember_message(message.id, response_ids, &message.content, Instant::now());
     for response_id in old_response_ids {
-        message.channel_id.delete_message(ctx, response_id).await?;
+        data.http
+            .delete_message(message.channel_id, response_id)
+            .await?;
     }
-    if suppression_changed(message.flags.unwrap_or_default(), suppress_embeds) {
-        message
-            .channel_id
-            .edit_message(
-                ctx,
-                message.id,
-                EditMessage::new().suppress_embeds(suppress_embeds),
-            )
+    if suppression_changed(
+        message.flags.unwrap_or(MessageFlags::empty()),
+        suppress_embeds,
+    ) {
+        let flags = if suppress_embeds {
+            MessageFlags::SUPPRESS_EMBEDS
+        } else {
+            MessageFlags::empty()
+        };
+        data.http
+            .update_message(message.channel_id, message.id)
+            .flags(flags)
             .await?;
     }
     Ok(())
 }
 
-async fn report_failure(ctx: &serenity::Context, message: &serenity::Message, error: &Error) {
-    let _ = message.react(ctx, '❌').await;
+async fn report_failure(data: &BotState, message: &Message, error: &Error) {
+    let _ = data
+        .http
+        .create_reaction(
+            message.channel_id,
+            message.id,
+            &RequestReactionType::Unicode { name: "❌" },
+        )
+        .await;
+    let link = format!(
+        "https://discord.com/channels/{}/{}/{}",
+        message
+            .guild_id
+            .map_or_else(|| "@me".to_owned(), |id| id.to_string()),
+        message.channel_id,
+        message.id
+    );
     let embed = match error.downcast_ref::<PostUnavailable>() {
         Some(unavailable) => unavailable_embed(unavailable),
         None => Embed::new(
@@ -416,12 +525,22 @@ async fn report_failure(ctx: &serenity::Context, message: &serenity::Message, er
             "Something went wrong while embedding that post.",
         ),
     }
-    .field("Message", message.link(), false);
-    if let Err(error) = message
-        .author
-        .direct_message(ctx, CreateMessage::new().embed(embed.into()))
-        .await
-    {
+    .field("Message", link, false);
+    let sent = async {
+        let channel = data
+            .http
+            .create_private_channel(message.author.id)
+            .await?
+            .model()
+            .await?;
+        data.http
+            .create_message(channel.id)
+            .embeds(&[embed.into()])
+            .await?;
+        Ok::<_, Error>(())
+    }
+    .await;
+    if let Err(error) = sent {
         tracing::warn!(error = %error, "failed to DM social embed failure");
     }
 }
@@ -517,15 +636,11 @@ fn followup_token(message_id: MessageId, now: Instant) -> Option<String> {
         .map(|token| token.token.clone())
 }
 
-fn suppression_changed(flags: serenity::MessageFlags, suppress: bool) -> bool {
-    flags.contains(serenity::MessageFlags::SUPPRESS_EMBEDS) != suppress
+fn suppression_changed(flags: MessageFlags, suppress: bool) -> bool {
+    flags.contains(MessageFlags::SUPPRESS_EMBEDS) != suppress
 }
 
-async fn send_embeds(
-    data: &BotState,
-    ctx: &serenity::Context,
-    message: &serenity::Message,
-) -> Result<Vec<MessageId>, Error> {
+async fn send_embeds(data: &BotState, message: &Message) -> Result<Vec<MessageId>, Error> {
     let mut links = source::parse_links(&message.content);
     if links.is_empty() {
         return Ok(Vec::new());
@@ -544,7 +659,6 @@ async fn send_embeds(
     );
     let mut components = embed_components(
         data,
-        ctx,
         links,
         message.author.id,
         message.guild_id,
@@ -565,17 +679,16 @@ async fn send_embeds(
 
     let mut response_ids = Vec::new();
     for components in component_batches(components)? {
-        response_ids.push(send_payload(ctx, message, create_payload(components)).await?);
+        response_ids.push(send_payload(data, message, create_payload(components)).await?);
     }
     Ok(response_ids)
 }
 
 async fn embed_components(
     data: &BotState,
-    ctx: &serenity::Context,
     links: Vec<source::Link>,
-    user_id: UserId,
-    guild_id: Option<GuildId>,
+    user_id: Id<UserMarker>,
+    guild_id: Option<Id<GuildMarker>>,
     language: Option<String>,
     view_link: bool,
 ) -> Result<Vec<Value>, Error> {
@@ -583,14 +696,13 @@ async fn embed_components(
         .iter()
         .any(|link| link.platform == SocialPlatform::Twitter)
     {
-        source::twitter::options(data, ctx, user_id, guild_id, language).await?
+        source::twitter::options(data, user_id, guild_id, language).await?
     } else {
         source::twitter::Options::default()
     };
 
     let abembed =
-        source::abembed::base_url(&data.database, user_id.get(), guild_id.map(GuildId::get))
-            .await?;
+        source::abembed::base_url(&data.database, user_id.get(), guild_id.map(Id::get)).await?;
 
     let spec = if links
         .iter()
@@ -660,26 +772,21 @@ async fn fetch_component(embed_url: &str, spoiler: bool) -> Result<Value, Error>
 }
 
 async fn send_payload(
-    ctx: &serenity::Context,
-    message: &serenity::Message,
+    data: &BotState,
+    message: &Message,
     mut payload: Value,
 ) -> Result<MessageId, Error> {
     payload["message_reference"] = json!({"message_id": message.id});
     payload["allowed_mentions"]["replied_user"] = json!(false);
-    let body = serde_json::to_vec(&payload)?;
-    let response = ctx
-        .http
-        .fire::<serenity::Message>(
-            DiscordRequest::new(
-                Route::ChannelMessages {
-                    channel_id: message.channel_id,
-                },
-                LightMethod::Post,
-            )
-            .body(Some(body)),
-        )
-        .await?;
-    Ok(response.id)
+    let response = raw::request(
+        &data.http,
+        &Route::CreateMessage {
+            channel_id: message.channel_id.get(),
+        },
+        Some(&payload),
+    )
+    .await?;
+    Ok(message_id(&response)?)
 }
 
 #[derive(Deserialize)]
@@ -839,7 +946,7 @@ fn keep_only_media(component: &mut Value) -> bool {
     true
 }
 
-fn invoker_header(user_id: UserId) -> Value {
+fn invoker_header(user_id: Id<UserMarker>) -> Value {
     json!({"type": 10, "content": format!("-# <@{user_id}> used `/embed`")})
 }
 
@@ -1061,15 +1168,9 @@ mod tests {
 
     #[test]
     fn only_updates_suppression_when_its_state_changes() {
-        assert!(!suppression_changed(
-            serenity::MessageFlags::SUPPRESS_EMBEDS,
-            true,
-        ));
-        assert!(suppression_changed(serenity::MessageFlags::empty(), true));
-        assert!(suppression_changed(
-            serenity::MessageFlags::SUPPRESS_EMBEDS,
-            false,
-        ));
+        assert!(!suppression_changed(MessageFlags::SUPPRESS_EMBEDS, true,));
+        assert!(suppression_changed(MessageFlags::empty(), true));
+        assert!(suppression_changed(MessageFlags::SUPPRESS_EMBEDS, false,));
     }
 
     #[test]
@@ -1128,16 +1229,16 @@ mod tests {
         messages.clear();
         messages.push_back(EmbeddedMessage {
             created_at: now - EMBEDDED_MESSAGE_CACHE_TTL,
-            message_id: serenity::MessageId::new(1),
-            response_ids: vec![serenity::MessageId::new(101)],
+            message_id: MessageId::new(1),
+            response_ids: vec![MessageId::new(101)],
             content: "expired".to_owned(),
         });
         drop(messages);
 
         for id in 2..=EMBEDDED_MESSAGE_CACHE_LIMIT as u64 + 2 {
             remember_message(
-                serenity::MessageId::new(id),
-                vec![serenity::MessageId::new(id + 100)],
+                MessageId::new(id),
+                vec![MessageId::new(id + 100)],
                 &format!("content {id}"),
                 now,
             );
@@ -1145,43 +1246,31 @@ mod tests {
 
         let messages = EMBEDDED_MESSAGES.lock().unwrap();
         assert_eq!(messages.len(), EMBEDDED_MESSAGE_CACHE_LIMIT);
-        assert_eq!(
-            messages.front().unwrap().message_id,
-            serenity::MessageId::new(3)
-        );
-        assert_eq!(
-            messages.back().unwrap().message_id,
-            serenity::MessageId::new(102)
-        );
+        assert_eq!(messages.front().unwrap().message_id, MessageId::new(3));
+        assert_eq!(messages.back().unwrap().message_id, MessageId::new(102));
         drop(messages);
 
-        assert!(!should_refresh_message(
-            serenity::MessageId::new(3),
-            "content 3"
-        ));
-        assert!(should_refresh_message(
-            serenity::MessageId::new(3),
-            "edited content"
-        ));
+        assert!(!should_refresh_message(MessageId::new(3), "content 3"));
+        assert!(should_refresh_message(MessageId::new(3), "edited content"));
         assert_eq!(
-            take_embedded_responses(serenity::MessageId::new(3)),
-            vec![serenity::MessageId::new(103)]
+            take_embedded_responses(MessageId::new(3)),
+            vec![MessageId::new(103)]
         );
-        assert!(take_embedded_responses(serenity::MessageId::new(3)).is_empty());
+        assert!(take_embedded_responses(MessageId::new(3)).is_empty());
         assert_eq!(
-            take_embedded_responses(serenity::MessageId::new(102)),
-            vec![serenity::MessageId::new(202)]
+            take_embedded_responses(MessageId::new(102)),
+            vec![MessageId::new(202)]
         );
 
         remember_message(
-            serenity::MessageId::new(200),
-            vec![serenity::MessageId::new(300), serenity::MessageId::new(301)],
+            MessageId::new(200),
+            vec![MessageId::new(300), MessageId::new(301)],
             "two embeds",
             now,
         );
         assert_eq!(
-            take_embedded_responses(serenity::MessageId::new(200)),
-            [serenity::MessageId::new(300), serenity::MessageId::new(301)]
+            take_embedded_responses(MessageId::new(200)),
+            [MessageId::new(300), MessageId::new(301)]
         );
 
         EMBEDDED_MESSAGES.lock().unwrap().clear();

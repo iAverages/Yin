@@ -60,8 +60,8 @@ Snapshots report:
 - Cached guild/user/channel counts and unavailable guild count. Cached users are
   **not** total members, and local runner count is not necessarily total shards.
 
-The publisher starts independently of Poise setup, including while connecting.
-The shard-manager lock is only held while copying runner metadata, never during
+The publisher starts alongside the gateway shards, including while connecting.
+The shard status lock is only held while copying shard metadata, never during
 database IO. Writes are bounded to five seconds; failures log a warning without
 stopping the gateway. Graceful exit marks the snapshot stopped.
 

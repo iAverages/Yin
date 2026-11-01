@@ -1,26 +1,26 @@
 use reqwest::Url;
+use twilight_interactions::command::{CommandOption, CreateOption};
 
 pub(crate) mod abembed;
 mod bluesky;
 mod spotify;
 pub(crate) mod twitter;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, poise::ChoiceParameter)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, CommandOption, CreateOption)]
 pub enum SocialPlatform {
-    #[name = "twitter"]
-    #[name = "x"]
+    #[option(name = "twitter", value = "twitter")]
     Twitter,
-    #[name = "bluesky"]
+    #[option(name = "bluesky", value = "bluesky")]
     Bluesky,
-    #[name = "instagram"]
+    #[option(name = "instagram", value = "instagram")]
     Instagram,
-    #[name = "facebook"]
+    #[option(name = "facebook", value = "facebook")]
     Facebook,
-    #[name = "tiktok"]
+    #[option(name = "tiktok", value = "tiktok")]
     TikTok,
-    #[name = "reddit"]
+    #[option(name = "reddit", value = "reddit")]
     Reddit,
-    #[name = "spotify"]
+    #[option(name = "spotify", value = "spotify")]
     Spotify,
 }
 
@@ -36,7 +36,7 @@ impl SocialPlatform {
     ];
 
     pub fn key(self) -> &'static str {
-        poise::ChoiceParameter::name(&self)
+        self.value()
     }
 
     pub(crate) fn from_provider(provider: &str) -> Option<Self> {
@@ -115,22 +115,24 @@ impl SocialPlatform {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, poise::ChoiceParameter)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, CommandOption, CreateOption)]
 pub enum SocialDisplay {
     #[default]
-    #[name = "full"]
+    #[option(name = "full", value = "full")]
     Full,
-    #[name = "media-only"]
+    #[option(name = "media-only", value = "media-only")]
     MediaOnly,
 }
 
 impl SocialDisplay {
     pub fn key(self) -> &'static str {
-        poise::ChoiceParameter::name(&self)
+        self.value()
     }
 
     pub fn from_key(key: &str) -> Option<Self> {
-        poise::ChoiceParameter::from_name(key)
+        [Self::Full, Self::MediaOnly]
+            .into_iter()
+            .find(|display| display.key() == key)
     }
 }
 

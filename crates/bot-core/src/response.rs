@@ -1,10 +1,10 @@
-use crate::serenity::{self, CreateEmbed};
-use crate::{Context, Error};
+use twilight_model::channel::message::embed::{EmbedImage, EmbedThumbnail};
+use twilight_util::builder::embed::{EmbedBuilder, EmbedFieldBuilder};
 
-const INFO_COLOR: serenity::Colour = serenity::Colour::from_rgb(128, 90, 213);
-const SUCCESS_COLOR: serenity::Colour = serenity::Colour::from_rgb(56, 161, 105);
-const WARNING_COLOR: serenity::Colour = serenity::Colour::from_rgb(221, 107, 32);
-const ERROR_COLOR: serenity::Colour = serenity::Colour::from_rgb(229, 62, 62);
+const INFO_COLOR: u32 = 0x805ad5;
+const SUCCESS_COLOR: u32 = 0x38a169;
+const WARNING_COLOR: u32 = 0xdd6b20;
+const ERROR_COLOR: u32 = 0xe53e3e;
 
 #[derive(Debug, Clone, Copy)]
 pub enum EmbedKind {
@@ -15,7 +15,7 @@ pub enum EmbedKind {
 }
 
 impl EmbedKind {
-    fn color(self) -> serenity::Colour {
+    fn color(self) -> u32 {
         match self {
             Self::Info => INFO_COLOR,
             Self::Success => SUCCESS_COLOR,
@@ -72,42 +72,39 @@ impl Embed {
     }
 }
 
-impl From<Embed> for CreateEmbed {
+impl From<Embed> for twilight_model::channel::message::Embed {
     fn from(embed: Embed) -> Self {
-        let mut create = CreateEmbed::new()
+        let mut builder = EmbedBuilder::new()
             .title(embed.title)
             .color(embed.kind.color());
 
         if let Some(description) = embed.description {
-            create = create.description(description);
-        }
-
-        if let Some(thumbnail) = embed.thumbnail {
-            create = create.thumbnail(thumbnail);
-        }
-
-        if let Some(image) = embed.image {
-            create = create.image(image);
+            builder = builder.description(description);
         }
 
         for (name, value, inline) in embed.fields {
-            create = create.field(name, value, inline);
+            let field = EmbedFieldBuilder::new(name, value);
+            builder = builder.field(if inline { field.inline() } else { field });
         }
 
-        create
+        let mut built = builder.build();
+        built.thumbnail = embed.thumbnail.map(|url| EmbedThumbnail {
+            height: None,
+            proxy_url: None,
+            url,
+            width: None,
+        });
+
+        built.image = embed.image.map(|url| EmbedImage {
+            content_type: None,
+            flags: None,
+            height: None,
+            placeholder: None,
+            placeholder_version: None,
+            proxy_url: None,
+            url,
+            width: None,
+        });
+        built
     }
-}
-
-pub async fn send(ctx: Context<'_>, embed: Embed) -> Result<(), Error> {
-    ctx.send(crate::poise::CreateReply::default().embed(embed.into()))
-        .await?;
-    Ok(())
-}
-
-pub async fn info(ctx: Context<'_>, title: impl Into<String>) -> Result<(), Error> {
-    send(ctx, Embed::new(EmbedKind::Info, title)).await
-}
-
-pub async fn error(ctx: Context<'_>, title: impl Into<String>) -> Result<(), Error> {
-    send(ctx, Embed::new(EmbedKind::Error, title)).await
 }

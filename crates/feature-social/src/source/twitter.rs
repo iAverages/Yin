@@ -1,8 +1,9 @@
-use bot_core::serenity;
 use bot_core::{BotState, Error};
 use database::settings::TranslationLanguage;
 use feature_flags::FlagValue;
 use reqwest::Url;
+use twilight_model::id::Id;
+use twilight_model::id::marker::{GuildMarker, UserMarker};
 
 use super::Request;
 
@@ -41,14 +42,13 @@ impl Default for Options {
 
 pub(crate) async fn options(
     data: &BotState,
-    ctx: &serenity::Context,
-    user_id: serenity::UserId,
-    guild_id: Option<serenity::GuildId>,
+    user_id: Id<UserMarker>,
+    guild_id: Option<Id<GuildMarker>>,
     language: Option<String>,
 ) -> Result<Options, Error> {
     let language = match language {
         Some(language) => language,
-        None => guild_translation_language(data, ctx, guild_id).await?,
+        None => guild_translation_language(data, guild_id).await?,
     };
     Ok(Options {
         language,
@@ -121,8 +121,8 @@ fn post_parts(url: &Url) -> Option<(&str, &str, Option<&str>)> {
 
 async fn selected_backend(
     data: &BotState,
-    user_id: serenity::UserId,
-    guild_id: Option<serenity::GuildId>,
+    user_id: Id<UserMarker>,
+    guild_id: Option<Id<GuildMarker>>,
 ) -> Backend {
     match data
         .feature_flags
@@ -146,16 +146,15 @@ fn backend_from_flag(value: Option<FlagValue>) -> Backend {
 
 async fn guild_translation_language(
     data: &BotState,
-    ctx: &serenity::Context,
-    guild_id: Option<serenity::GuildId>,
+    guild_id: Option<Id<GuildMarker>>,
 ) -> Result<String, Error> {
     let Some(guild_id) = guild_id else {
         return Ok("en".to_owned());
     };
-    let default = ctx
+    let default = data
         .cache
         .guild(guild_id)
-        .and_then(|guild| primary_translation_language(&guild.preferred_locale))
+        .and_then(|guild| primary_translation_language(guild.preferred_locale()))
         .unwrap_or_else(|| "en".to_owned());
     let configured = database::GuildSettingsRepository::new(&data.database)
         .find_by_guild_id(guild_id.get())

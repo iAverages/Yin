@@ -6,7 +6,7 @@ use crate::{Database, DatabaseError};
 const ADMIN_DISCORD_ID: &str = "307952129958477824";
 pub const RUNTIME_STALE_SECONDS: i64 = 45;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ShardSnapshot {
     pub id: u32,

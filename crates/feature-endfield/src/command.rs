@@ -1,7 +1,15 @@
-use bot_core::response::{self, Embed, EmbedKind};
-use bot_core::{Context, Error, poise, serenity};
+use bot_core::Error;
+use bot_core::command::{CommandContext, CommandFuture};
+use bot_core::response::{Embed, EmbedKind};
+use twilight_interactions::command::{CommandModel, CreateCommand};
+use twilight_model::application::command::{CommandOptionChoice, CommandOptionChoiceValue};
+use twilight_model::application::interaction::InteractionType;
+use twilight_model::application::interaction::application_command::{
+    CommandData, CommandOptionValue,
+};
+use twilight_util::builder::interaction_response::AutocompleteBuilder;
 
-use crate::client::{BASE_URL, CodexClient, absolute_url, item_url};
+use crate::client::{CodexClient, absolute_url, item_url};
 use crate::model::{
     BlackboardEntry, BlackboardValue, CatalogEntry, CodexType, EquipmentSet, OperatorPayload,
     Skill, Weapon,
@@ -9,50 +17,56 @@ use crate::model::{
 
 const MAX_CHOICES: usize = 25;
 
-#[poise::command(
-    slash_command,
-    subcommands("codex"),
-    install_context = "Guild|User",
-    interaction_context = "Guild|BotDm|PrivateChannel"
+#[derive(CommandModel, CreateCommand)]
+#[command(
+    name = "endfield",
+    desc = "Arknights: Endfield tools from akendfield.tools",
+    contexts = "guild bot_dm private_channel",
+    integration_types = "guild_install user_install"
 )]
-pub async fn endfield(ctx: Context<'_>) -> Result<(), Error> {
-    response::send(
-        ctx,
-        Embed::new(EmbedKind::Info, "Arknights: Endfield Tools")
-            .description("Maps, Codex data, and Dijiang base-skill planning from akendfield.tools.")
-            .field(
-                "Interactive Map",
-                format!("[Valley IV]({BASE_URL}/map/valley-iv) | [Wuling]({BASE_URL}/map/wuling)"),
-                false,
-            )
-            .field(
-                "Codex",
-                format!("[Operators, weapons, and equipment]({BASE_URL}/codex)"),
-                false,
-            )
-            .field(
-                "Dijiang",
-                format!("[Base skills]({BASE_URL}/dijiang/manufacturing?focus=overall&tier=max)"),
-                false,
-            ),
-    )
-    .await
+pub enum EndfieldCommand {
+    #[command(name = "codex")]
+    Codex(CodexCommand),
 }
 
-/// Look up an operator, weapon, or equipment set.
-#[poise::command(
-    slash_command,
-    install_context = "Guild|User",
-    interaction_context = "Guild|BotDm|PrivateChannel"
+#[derive(CommandModel, CreateCommand)]
+#[command(
+    name = "codex",
+    desc = "Look up an operator, weapon, or equipment set."
 )]
-pub async fn codex(
-    ctx: Context<'_>,
-    #[description = "Codex category"]
-    #[rename = "type"]
+pub struct CodexCommand {
+    /// Codex category
+    #[command(rename = "type")]
     kind: CodexType,
-    #[description = "Select a Codex entry"]
-    #[autocomplete = "autocomplete_codex"]
+    /// Select a Codex entry
+    #[command(autocomplete = true)]
     search: String,
+}
+
+pub fn run(ctx: &CommandContext) -> CommandFuture<'_> {
+    Box::pin(async move {
+        if ctx.interaction.kind == InteractionType::ApplicationCommandAutocomplete {
+            let choices = autocomplete_codex(&ctx.data).await;
+            ctx.state
+                .http
+                .interaction(ctx.interaction.application_id)
+                .create_response(
+                    ctx.interaction.id,
+                    &ctx.interaction.token,
+                    &AutocompleteBuilder::new(choices).build(),
+                )
+                .await?;
+            return Ok(());
+        }
+
+        let EndfieldCommand::Codex(command) = ctx.parse()?;
+        codex(ctx, command).await
+    })
+}
+
+async fn codex(
+    ctx: &CommandContext,
+    CodexCommand { kind, search }: CodexCommand,
 ) -> Result<(), Error> {
     ctx.defer().await?;
     let client = CodexClient::new();
@@ -98,11 +112,11 @@ pub async fn codex(
         }
     };
 
-    response::send(ctx, embed).await
+    ctx.send(embed).await
 }
 
-async fn autocomplete_codex(ctx: Context<'_>, partial: &str) -> Vec<serenity::AutocompleteChoice> {
-    let Some(kind) = selected_type(ctx) else {
+async fn autocomplete_codex(data: &CommandData) -> Vec<CommandOptionChoice> {
+    let Some((kind, partial)) = autocomplete_input(data) else {
         return Vec::new();
     };
     let client = CodexClient::new();
@@ -129,28 +143,29 @@ async fn autocomplete_codex(ctx: Context<'_>, partial: &str) -> Vec<serenity::Au
     }
 }
 
-fn selected_type(ctx: Context<'_>) -> Option<CodexType> {
-    let poise::Context::Application(ctx) = ctx else {
+fn autocomplete_input(data: &CommandData) -> Option<(CodexType, &str)> {
+    let CommandOptionValue::SubCommand(options) = &data.options.first()?.value else {
         return None;
     };
-    let value = ctx
-        .args
-        .iter()
-        .find(|argument| argument.name == "type")
-        .and_then(|argument| match argument.value {
-            serenity::ResolvedValue::Integer(value) => Some(value),
-            _ => None,
-        })?;
 
-    match value {
-        0 => Some(CodexType::Operator),
-        1 => Some(CodexType::Weapon),
-        2 => Some(CodexType::Equipment),
-        _ => None,
+    let mut kind = None;
+    let mut partial = None;
+
+    for option in options {
+        match &option.value {
+            CommandOptionValue::Integer(value) if option.name == "type" => {
+                kind = CodexType::ALL
+                    .into_iter()
+                    .find(|kind| kind.value() == *value);
+            }
+            CommandOptionValue::Focused(value, _) => partial = Some(value.as_str()),
+            _ => {}
+        }
     }
+    Some((kind?, partial?))
 }
 
-fn choices<T: CatalogEntry>(entries: &[T], partial: &str) -> Vec<serenity::AutocompleteChoice> {
+fn choices<T: CatalogEntry>(entries: &[T], partial: &str) -> Vec<CommandOptionChoice> {
     let partial = partial.trim().to_lowercase();
     entries
         .iter()
@@ -160,7 +175,11 @@ fn choices<T: CatalogEntry>(entries: &[T], partial: &str) -> Vec<serenity::Autoc
                 || entry.id().to_lowercase().contains(&partial)
         })
         .take(MAX_CHOICES)
-        .map(|entry| serenity::AutocompleteChoice::new(entry.name(), entry.id()))
+        .map(|entry| CommandOptionChoice {
+            name: entry.name().to_owned(),
+            name_localizations: None,
+            value: CommandOptionChoiceValue::String(entry.id().to_owned()),
+        })
         .collect()
 }
 
@@ -502,8 +521,9 @@ fn strip_game_markup(text: &str) -> String {
     output
 }
 
-async fn invalid_selection(ctx: Context<'_>) -> Result<(), Error> {
-    response::error(ctx, "Select an item from the search suggestions.").await
+async fn invalid_selection(ctx: &CommandContext) -> Result<(), Error> {
+    ctx.error("Select an item from the search suggestions.")
+        .await
 }
 
 #[cfg(test)]

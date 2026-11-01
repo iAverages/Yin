@@ -50,6 +50,20 @@ impl<'a> GuildDirectoryRepository<'a> {
         Ok(())
     }
 
+    pub async fn purge_departed(&self) -> Result<u64, DatabaseError> {
+        Ok(sqlx::query(
+            "DELETE b, s, c, o FROM bot_guilds b
+             LEFT JOIN guild_settings s ON s.guild_id = b.guild_id
+             LEFT JOIN custom_commands c ON c.guild_id = b.guild_id
+             LEFT JOIN guild_social_embed_opt_outs o ON o.guild_id = b.guild_id
+             WHERE b.bot_present = FALSE
+               AND b.updated_at < TIMESTAMPADD(DAY, -30, CURRENT_TIMESTAMP(3))",
+        )
+        .execute(self.database.pool())
+        .await?
+        .rows_affected())
+    }
+
     pub async fn reconcile_shard(&self, shard_id: u32, ids: &[u64]) -> Result<(), DatabaseError> {
         // batch to avoid bind limit
         const BATCH_SIZE: usize = 30_000;

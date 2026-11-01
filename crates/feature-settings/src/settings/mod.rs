@@ -2,33 +2,46 @@ mod language;
 mod prefix;
 mod social;
 
-use bot_core::serenity::{self, ComponentInteraction};
-use bot_core::{BotState, Context, Error, poise};
+use bot_core::command::{CommandContext, CommandFuture};
+use bot_core::{BotState, Error, raw};
 use serde_json::{Value, json};
+use twilight_http::routing::Route;
+use twilight_interactions::command::{CommandModel, CreateCommand};
+use twilight_model::application::interaction::Interaction;
+use twilight_model::application::interaction::message_component::MessageComponentInteractionData;
+use twilight_model::guild::Permissions;
+
+use crate::custom_commands::{self, CustomCommands};
 
 const HOME_ID: &str = "settings:home";
 const ACCENT_COLOR: u32 = 0x805ad5;
 
-/// Manage your personal settings.
-#[poise::command(
-    slash_command,
-    install_context = "Guild|User",
-    interaction_context = "Guild|BotDm|PrivateChannel"
+#[derive(CommandModel, CreateCommand)]
+#[command(
+    name = "settings",
+    desc = "Manage your personal settings.",
+    contexts = "guild bot_dm private_channel",
+    integration_types = "guild_install user_install"
 )]
-pub async fn settings(ctx: poise::ApplicationContext<'_, BotState, Error>) -> Result<(), Error> {
-    ctx.serenity_context
-        .http
-        .create_interaction_response(
-            ctx.interaction.id,
-            &ctx.interaction.token,
-            &json!({
+pub struct SettingsCommand;
+
+pub fn run_settings(ctx: &CommandContext) -> CommandFuture<'_> {
+    Box::pin(async move {
+        raw::request(
+            &ctx.state.http,
+            &Route::InteractionCallback {
+                interaction_id: ctx.interaction.id.get(),
+                interaction_token: &ctx.interaction.token,
+                with_response: false,
+            },
+            Some(&json!({
                 "type": 4,
-                "data": {"flags": 1 << 6 | 1 << 15, "components": home_components(ctx.data.panel_url.as_deref())},
-            }),
-            Vec::new(),
+                "data": {"flags": 1 << 6 | 1 << 15, "components": home_components(ctx.state.panel_url.as_deref())},
+            })),
         )
         .await?;
-    Ok(())
+        Ok(())
+    })
 }
 
 fn home_components(panel_url: Option<&str>) -> Vec<Value> {
@@ -67,55 +80,91 @@ fn home_components(panel_url: Option<&str>) -> Vec<Value> {
 
 pub async fn handle_interaction(
     data: &BotState,
-    ctx: &serenity::Context,
-    interaction: &ComponentInteraction,
+    interaction: &Interaction,
+    component: &MessageComponentInteractionData,
 ) -> Result<(), Error> {
-    let components = if interaction.data.custom_id == HOME_ID {
+    let components = if component.custom_id == HOME_ID {
         home_components(data.panel_url.as_deref())
-    } else if let Some(components) = social::handle_interaction(data, interaction).await? {
+    } else if let Some(components) =
+        social::handle_interaction(data, interaction, component).await?
+    {
         components
     } else {
         return Ok(());
     };
-    ctx.http
-        .create_interaction_response(
-            interaction.id,
-            &interaction.token,
-            &json!({"type": 7, "data": {"components": components}}),
-            Vec::new(),
-        )
-        .await?;
+    raw::request(
+        &data.http,
+        &Route::InteractionCallback {
+            interaction_id: interaction.id.get(),
+            interaction_token: &interaction.token,
+            with_response: false,
+        },
+        Some(&json!({"type": 7, "data": {"components": components}})),
+    )
+    .await?;
     Ok(())
 }
 
-/// Manage settings for this server.
-#[poise::command(
-    prefix_command,
-    slash_command,
-    guild_only,
-    default_member_permissions = "MANAGE_GUILD",
-    required_permissions = "MANAGE_GUILD",
-    subcommand_required,
-    subcommands("prefix", "language", "server_social", "custom_commands"),
-    install_context = "Guild",
-    interaction_context = "Guild"
+#[derive(CommandModel, CreateCommand)]
+#[command(
+    name = "guild",
+    desc = "Manage settings for this server.",
+    contexts = "guild",
+    integration_types = "guild_install",
+    default_permissions = "manage_guild"
 )]
-pub async fn guild(_ctx: Context<'_>) -> Result<(), Error> {
-    Ok(())
+pub enum GuildCommand {
+    #[command(name = "prefix")]
+    Prefix(prefix::PrefixCommand),
+    #[command(name = "language")]
+    Language(language::LanguageCommand),
+    #[command(name = "social")]
+    Social(social::ServerSocialCommand),
+    #[command(name = "commands")]
+    Commands(CustomCommands),
+}
+
+fn manage_guild() -> Permissions {
+    Permissions::MANAGE_GUILD
+}
+
+pub fn run_guild(ctx: &CommandContext) -> CommandFuture<'_> {
+    Box::pin(async move {
+        // Server admins can override default permissions, so check them again here.
+        let allowed = ctx
+            .interaction
+            .member
+            .as_ref()
+            .and_then(|member| member.permissions)
+            .is_some_and(|permissions| {
+                permissions.intersects(Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR)
+            });
+        if !allowed {
+            return ctx
+                .error("You are missing permissions to run that command.")
+                .await;
+        }
+        match ctx.parse::<GuildCommand>()? {
+            GuildCommand::Prefix(command) => prefix::run(ctx, command).await,
+            GuildCommand::Language(command) => language::run(ctx, command).await,
+            GuildCommand::Social(command) => social::run(ctx, command).await,
+            GuildCommand::Commands(command) => custom_commands::run(ctx, command).await,
+        }
+    })
 }
 
 pub use feature_social::SocialDisplay;
-pub use language::language;
-pub use prefix::{DEFAULT_PREFIX, prefix};
-pub use social::{server_social, social_platform_keys, validate_social_platform};
-
-fn custom_commands() -> bot_core::Command {
-    crate::custom_commands::cmd()
-}
+pub use prefix::{DEFAULT_PREFIX, active_prefix};
+pub use social::{social_platform_keys, validate_social_platform};
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use twilight_model::application::command::CommandOption;
+
+    fn names(options: &[CommandOption]) -> Vec<&str> {
+        options.iter().map(|option| option.name.as_str()).collect()
+    }
 
     #[test]
     fn home_opens_social_page() {
@@ -130,36 +179,31 @@ mod tests {
 
     #[test]
     fn settings_use_view_set_reset_with_required_set_values() {
-        for (command, values) in [
-            (prefix::prefix(), vec!["prefix"]),
-            (language::language(), vec!["language"]),
-            (social::server_social(), vec!["platform", "enabled"]),
+        let guild = GuildCommand::create_command();
+        for (group, values) in [
+            ("prefix", vec!["prefix"]),
+            ("language", vec!["language"]),
+            ("social", vec!["platform", "enabled"]),
         ] {
-            assert_eq!(
-                command
-                    .subcommands
-                    .iter()
-                    .map(|command| command.name.as_str())
-                    .collect::<Vec<_>>(),
-                ["view", "set", "reset"]
-            );
-            let view = &command.subcommands[0];
-            let set = &command.subcommands[1];
-            let reset = &command.subcommands[2];
-            assert!(view.parameters.is_empty());
-            assert_eq!(
-                set.parameters
-                    .iter()
-                    .map(|parameter| parameter.name.as_str())
-                    .collect::<Vec<_>>(),
-                values
-            );
-            assert!(set.parameters.iter().all(|parameter| parameter.required));
-            assert!(reset.parameters.iter().all(|parameter| !parameter.required));
+            let group = guild
+                .options
+                .iter()
+                .find(|option| option.name == group)
+                .unwrap();
+            let subcommands = group.options.as_deref().unwrap();
+            assert_eq!(names(subcommands), ["view", "set", "reset"]);
+            let option_list = |index: usize| subcommands[index].options.as_deref().unwrap_or(&[]);
+            assert!(option_list(0).is_empty());
+            assert_eq!(names(option_list(1)), values);
             assert!(
-                command.subcommands.iter().all(
-                    |command| command.slash_action.is_some() && command.prefix_action.is_some()
-                )
+                option_list(1)
+                    .iter()
+                    .all(|option| option.required == Some(true))
+            );
+            assert!(
+                option_list(2)
+                    .iter()
+                    .all(|option| option.required != Some(true))
             );
         }
     }
