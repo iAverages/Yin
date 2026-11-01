@@ -104,6 +104,21 @@ impl<'a> UserSocialEmbedsRepository<'a> {
         }
         Ok(())
     }
+
+    pub async fn mark_notice_shown(
+        &self,
+        user_id: u64,
+        notice: &str,
+    ) -> Result<bool, DatabaseError> {
+        let result = sqlx::query(
+            "INSERT IGNORE INTO user_social_embed_notices (user_id, notice) VALUES (?, ?)",
+        )
+        .bind(user_id)
+        .bind(notice)
+        .execute(self.database.pool())
+        .await?;
+        Ok(result.rows_affected() == 1)
+    }
 }
 
 #[cfg(test)]
@@ -280,5 +295,17 @@ mod tests {
 
         repository.reset(2, None).await.unwrap();
         assert!(repository.displays(2).await.unwrap().is_empty());
+    }
+
+    #[sqlx::test(migrations = "./migrations")]
+    #[ignore = "requires DATABASE_URL with permission to create test databases"]
+    async fn notices_are_shown_once_per_user_and_notice(pool: sqlx::MySqlPool) {
+        let database = Database { pool };
+        let repository = UserSocialEmbedsRepository::new(&database);
+
+        assert!(repository.mark_notice_shown(1, "auto").await.unwrap());
+        assert!(!repository.mark_notice_shown(1, "auto").await.unwrap());
+        assert!(repository.mark_notice_shown(1, "command").await.unwrap());
+        assert!(repository.mark_notice_shown(2, "auto").await.unwrap());
     }
 }

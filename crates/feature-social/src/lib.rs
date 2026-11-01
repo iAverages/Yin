@@ -8,10 +8,12 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use bot_core::response::{self, Embed, EmbedKind};
 use bot_core::serenity::{
     self,
-    builder::{CreateMessage, EditMessage},
+    builder::{
+        CreateInteractionResponse, CreateInteractionResponseMessage, CreateMessage, EditMessage,
+    },
     http::{LightMethod, Request as DiscordRequest, Route},
 };
-use bot_core::serenity::{ChannelId, GuildId, MessageId, UserId};
+use bot_core::serenity::{ChannelId, ComponentInteraction, GuildId, MessageId, UserId};
 use bot_core::{BotState, Command, Error, poise};
 use database::UserSocialEmbedsRepository;
 use database::settings::TranslationLanguage;
@@ -30,6 +32,7 @@ const EMBEDDED_MESSAGE_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
 const FOLLOWUP_TOKEN_TTL: Duration = Duration::from_secs(15 * 60);
 const APP_USER_AGENT: &str = concat!("yin/", env!("CARGO_PKG_VERSION"));
 const DISCORD_USER_AGENT: &str = "Discordbot/2.0";
+const NOTICE_ID: &str = "social:notice";
 static EMBEDDED_MESSAGES: LazyLock<Mutex<VecDeque<EmbeddedMessage>>> =
     LazyLock::new(|| Mutex::new(VecDeque::new()));
 static FOLLOWUP_TOKENS: Mutex<Vec<FollowupToken>> = Mutex::new(Vec::new());
@@ -138,6 +141,18 @@ async fn embed(
             .await?;
         remember_followup_token(followup.id, &ctx.interaction.token, Instant::now());
     }
+
+    if UserSocialEmbedsRepository::new(&ctx.data.database)
+        .mark_notice_shown(ctx.interaction.user.id.get(), "command")
+        .await?
+    {
+        response::send(
+            ctx.into(),
+            Embed::new(EmbedKind::Info, "Customize your embeds")
+                .description("Use `/settings` to choose how Yin embeds links from each platform."),
+        )
+        .await?;
+    }
     Ok(())
 }
 
@@ -213,6 +228,31 @@ pub async fn handle_message(
     message
         .channel_id
         .edit_message(ctx, message.id, EditMessage::new().suppress_embeds(true))
+        .await?;
+    Ok(())
+}
+
+pub async fn handle_interaction(
+    ctx: &serenity::Context,
+    interaction: &ComponentInteraction,
+) -> Result<(), Error> {
+    if interaction.data.custom_id != NOTICE_ID {
+        return Ok(());
+    }
+    let embed = Embed::new(EmbedKind::Info, "Social embeds").description(
+        "Yin replaces supported social links with an embed of the post and hides Discord's link \
+         preview. Use `/settings` to choose how your links are embedded, or set a platform to \
+         **Off** to stop Yin embedding it.",
+    );
+    interaction
+        .create_response(
+            ctx,
+            CreateInteractionResponse::Message(
+                CreateInteractionResponseMessage::new()
+                    .ephemeral(true)
+                    .embed(embed.into()),
+            ),
+        )
         .await?;
     Ok(())
 }
@@ -403,7 +443,7 @@ async fn send_embeds(
         &mut links,
         &repository.displays(message.author.id.get()).await?,
     );
-    let components = embed_components(
+    let mut components = embed_components(
         data,
         ctx,
         links,
@@ -413,6 +453,16 @@ async fn send_embeds(
         false,
     )
     .await?;
+    if !components.is_empty()
+        && repository
+            .mark_notice_shown(message.author.id.get(), "auto")
+            .await?
+    {
+        components.push(json!({
+            "type": 1,
+            "components": [{"type": 2, "style": 2, "label": "What's this?", "custom_id": NOTICE_ID}],
+        }));
+    }
 
     let mut response_ids = Vec::new();
     for components in component_batches(components)? {

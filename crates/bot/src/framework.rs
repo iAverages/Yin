@@ -95,6 +95,7 @@ async fn event_handler(
     } = event
     {
         feature_settings::handle_interaction(data, ctx, interaction).await?;
+        feature_social::handle_interaction(ctx, interaction).await?;
     }
     if let serenity::FullEvent::MessageUpdate { event, .. } = event {
         feature_social::handle_message_update(data, ctx, event).await?;
