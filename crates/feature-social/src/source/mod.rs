@@ -4,6 +4,7 @@ use reqwest::Url;
 mod bluesky;
 mod facebook;
 mod instagram;
+mod reddit;
 mod spotify;
 mod tiktok;
 pub(crate) mod twitter;
@@ -24,17 +25,20 @@ pub enum SocialPlatform {
     Facebook,
     #[name = "tiktok"]
     TikTok,
+    #[name = "reddit"]
+    Reddit,
     #[name = "spotify"]
     Spotify,
 }
 
 impl SocialPlatform {
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::Twitter,
         Self::Bluesky,
         Self::Instagram,
         Self::Facebook,
         Self::TikTok,
+        Self::Reddit,
         Self::Spotify,
     ];
 
@@ -56,6 +60,7 @@ impl SocialPlatform {
             Self::Instagram,
             Self::Facebook,
             Self::TikTok,
+            Self::Reddit,
         ]
         .into_iter()
         .find(|platform| platform.handles(url))
@@ -68,6 +73,7 @@ impl SocialPlatform {
             Self::Instagram => instagram::handles(url),
             Self::Facebook => facebook::handles(url),
             Self::TikTok => tiktok::handles(url),
+            Self::Reddit => reddit::handles(url),
             Self::Spotify => spotify::handles(url),
         }
     }
@@ -85,6 +91,7 @@ impl SocialPlatform {
             Self::Instagram => instagram::request(url, abembed, spoiler),
             Self::Facebook => facebook::request(url, abembed, spoiler),
             Self::TikTok => tiktok::request(url, abembed, spoiler),
+            Self::Reddit => reddit::request(url, abembed, spoiler),
             Self::Spotify => spotify::request(url, spoiler),
         }
     }
@@ -96,6 +103,7 @@ impl SocialPlatform {
             Self::Instagram => "Instagram",
             Self::Facebook => "Facebook",
             Self::TikTok => "TikTok",
+            Self::Reddit => "Reddit",
             Self::Spotify => "Spotify",
         }
     }
@@ -105,6 +113,7 @@ impl SocialPlatform {
             Self::Bluesky => 0x1185fe,
             Self::Instagram => 0xce0071,
             Self::Facebook => 0x1877f2,
+            Self::Reddit => 0xff4500,
             Self::Twitter | Self::TikTok | Self::Spotify => 0x1d9bf0,
         }
     }

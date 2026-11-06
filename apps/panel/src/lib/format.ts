@@ -26,6 +26,7 @@ export const platformLabel = (platform: string) => {
         instagram: "Instagram",
         facebook: "Facebook",
         tiktok: "TikTok",
+        reddit: "Reddit",
         spotify: "Spotify",
     };
     return labels[platform] ?? platform;

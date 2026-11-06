@@ -77,6 +77,7 @@ fn label(platform: SocialPlatform) -> &'static str {
         SocialPlatform::Instagram => "Instagram",
         SocialPlatform::Facebook => "Facebook",
         SocialPlatform::TikTok => "TikTok",
+        SocialPlatform::Reddit => "Reddit",
         SocialPlatform::Spotify => "Spotify",
     }
 }
