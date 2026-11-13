@@ -18,13 +18,16 @@ use bot_core::{BotState, Command, Error, poise};
 use database::UserSocialEmbedsRepository;
 use database::settings::TranslationLanguage;
 use reqwest::{Client, RequestBuilder, Url, header::USER_AGENT};
+use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::{Value, json};
 use source::Request as EmbedRequest;
 
+pub use source::abembed::{URL_FLAG as ABEMBED_URL_FLAG, set_base_url as set_abembed_url};
 pub use source::twitter::primary_translation_language;
 pub use source::{SocialDisplay, SocialPlatform};
 
 const MESSAGE_COMPONENT_LIMIT: usize = 40;
+const ABEMBED_MEDIA_LIMIT: &str = "380";
 const EMBED_API_RETRIES: u32 = 3;
 const EMBED_API_RETRY_DELAY: Duration = Duration::from_secs(1);
 const EMBEDDED_MESSAGE_CACHE_LIMIT: usize = 100;
@@ -489,6 +492,19 @@ async fn embed_components(
         source::twitter::Options::default()
     };
 
+    let abembed =
+        source::abembed::base_url(&data.database, user_id.get(), guild_id.map(GuildId::get))
+            .await?;
+
+    let spec = if links
+        .iter()
+        .any(|link| source::abembed::platform(&link.url).is_some())
+    {
+        source::abembed::spec(&data.database).await
+    } else {
+        None
+    };
+
     let mut components = Vec::new();
     for link in links {
         let platform = link.platform;
@@ -505,24 +521,25 @@ async fn embed_components(
                 }],
             })
         });
-        let abembed = source::abembed_url(data, user_id, guild_id, platform).await;
-        let Some(request) = link.request(&twitter, abembed) else {
+        let Some(request) = link.request(&twitter, &abembed, spec.as_ref()) else {
             continue;
         };
         let mut component = match request {
             EmbedRequest::FxEmbed { url, spoiler } => {
-                post::component(&fetch_post(&url, post::Format::FxEmbed).await?, spoiler)
+                post::component(&fetch_json::<post::Response>(&url).await?.status, spoiler)
             }
             EmbedRequest::AbEmbed { url, spoiler } => {
-                post::component(&fetch_post(&url, post::Format::AbEmbed).await?, spoiler)
-            }
-            EmbedRequest::Component { url, spoiler } => {
-                let mut component = fetch_component(&url, spoiler).await?;
+                let url = abembed_component_url(&url)?;
+                let mut component = fetch_json::<AbEmbedComponent>(url.as_str())
+                    .await?
+                    .component;
+                component["spoiler"] = json!(spoiler);
                 if platform == SocialPlatform::Twitter {
                     rewrite_abembed_gifs(&mut component);
                 }
                 component
             }
+            EmbedRequest::Component { url, spoiler } => fetch_component(&url, spoiler).await?,
         };
         let media_only = display == SocialDisplay::MediaOnly && keep_only_media(&mut component);
         components.push(component);
@@ -569,10 +586,22 @@ async fn send_payload(
     Ok(response.id)
 }
 
-async fn fetch_post(api_url: &str, format: post::Format) -> Result<post::Post, Error> {
+#[derive(Deserialize)]
+struct AbEmbedComponent {
+    component: Value,
+}
+
+fn abembed_component_url(url: &str) -> Result<Url, Error> {
+    Ok(Url::parse_with_params(
+        url,
+        [("media_limit", ABEMBED_MEDIA_LIMIT)],
+    )?)
+}
+
+async fn fetch_json<T: DeserializeOwned>(api_url: &str) -> Result<T, Error> {
     for retry in 0..=EMBED_API_RETRIES {
-        match try_fetch_post(api_url, format).await {
-            Ok(post) => return Ok(post),
+        match try_fetch_json(api_url).await {
+            Ok(body) => return Ok(body),
             Err(error) if retry < EMBED_API_RETRIES && !error.is::<PostUnavailable>() => {
                 tokio::time::sleep(EMBED_API_RETRY_DELAY * 2u32.pow(retry)).await;
             }
@@ -583,7 +612,7 @@ async fn fetch_post(api_url: &str, format: post::Format) -> Result<post::Post, E
     unreachable!()
 }
 
-async fn try_fetch_post(api_url: &str, format: post::Format) -> Result<post::Post, Error> {
+async fn try_fetch_json<T: DeserializeOwned>(api_url: &str) -> Result<T, Error> {
     let response = request(api_url).send().await?;
     let status = response.status();
     if status.is_client_error() {
@@ -594,7 +623,7 @@ async fn try_fetch_post(api_url: &str, format: post::Format) -> Result<post::Pos
         }
         .into());
     }
-    Ok(post::decode(response.error_for_status()?, format).await?)
+    Ok(response.error_for_status()?.json().await?)
 }
 
 fn api_error_reason(body: &str) -> Option<String> {
@@ -766,13 +795,26 @@ mod tests {
     #[test]
     fn finds_multiple_supported_links_in_message_order() {
         let twitter = source::twitter::Options::default();
+        let route = |response: &str| {
+            json!({"get": {"responses": {"200": {
+                "$ref": format!("#/components/responses/{response}"),
+            }}}})
+        };
+        let spec = source::abembed::Spec::parse(
+            &json!({"paths": {
+                "/tiktok/{shortcode}": route("DiscordEmbed"),
+                "/api/tiktok/{shortcode}": route("Post"),
+            }})
+            .to_string(),
+        )
+        .unwrap();
         let requests = source::parse_links(concat!(
             "first https://x.com/jack/status/20 ",
             "then ||https://open.spotify.com/track/11dFghVXANMlKmJXsNCbNl|| ",
             "and https://vm.tiktok.com/ZN88Qw7ns/"
         ))
         .into_iter()
-        .filter_map(|link| link.request(&twitter, "https://abembed.com/"))
+        .filter_map(|link| link.request(&twitter, "https://abembed.com/", Some(&spec)))
         .collect::<Vec<_>>();
 
         assert_eq!(
@@ -787,7 +829,7 @@ mod tests {
                     spoiler: true,
                 },
                 EmbedRequest::AbEmbed {
-                    url: "https://abembed.com/api/tiktok/ZN88Qw7ns".to_owned(),
+                    url: "https://abembed.com/api/tiktok/ZN88Qw7ns/component".to_owned(),
                     spoiler: false,
                 },
             ]
@@ -928,6 +970,22 @@ mod tests {
             serenity::MessageFlags::SUPPRESS_EMBEDS,
             false,
         ));
+    }
+
+    #[test]
+    fn asks_abembed_for_as_much_media_as_a_message_fits() {
+        for (url, limited) in [
+            (
+                "https://abembed.com/api/tiktok/ZN88Qw7ns/component",
+                "https://abembed.com/api/tiktok/ZN88Qw7ns/component?media_limit=380",
+            ),
+            (
+                "https://abembed.com/api/facebook/photo/component?fbid=1&set=a.2",
+                "https://abembed.com/api/facebook/photo/component?fbid=1&set=a.2&media_limit=380",
+            ),
+        ] {
+            assert_eq!(abembed_component_url(url).unwrap().as_str(), limited);
+        }
     }
 
     #[test]

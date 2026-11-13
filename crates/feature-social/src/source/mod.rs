@@ -1,16 +1,9 @@
-use bot_core::{BotState, serenity};
 use reqwest::Url;
 
+pub(crate) mod abembed;
 mod bluesky;
-mod facebook;
-mod instagram;
-mod reddit;
 mod spotify;
-mod tiktok;
 pub(crate) mod twitter;
-
-const ABEMBED: &str = "https://abembed.com/";
-const ABEMBED_STAGING: &str = "https://staging.abembed.com/";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, poise::ChoiceParameter)]
 pub enum SocialPlatform {
@@ -70,11 +63,8 @@ impl SocialPlatform {
         match self {
             Self::Twitter => twitter::handles(url),
             Self::Bluesky => bluesky::handles(url),
-            Self::Instagram => instagram::handles(url),
-            Self::Facebook => facebook::handles(url),
-            Self::TikTok => tiktok::handles(url),
-            Self::Reddit => reddit::handles(url),
             Self::Spotify => spotify::handles(url),
+            _ => abembed::platform(url) == Some(self),
         }
     }
 
@@ -83,16 +73,17 @@ impl SocialPlatform {
         url: &Url,
         twitter_options: &twitter::Options,
         abembed: &str,
+        spec: Option<&abembed::Spec>,
         spoiler: bool,
     ) -> Option<Request> {
         match self {
             Self::Twitter => twitter::request(url, twitter_options, abembed, spoiler),
             Self::Bluesky => bluesky::request(url, spoiler),
-            Self::Instagram => instagram::request(url, abembed, spoiler),
-            Self::Facebook => facebook::request(url, abembed, spoiler),
-            Self::TikTok => tiktok::request(url, abembed, spoiler),
-            Self::Reddit => reddit::request(url, abembed, spoiler),
             Self::Spotify => spotify::request(url, spoiler),
+            _ => Some(Request::AbEmbed {
+                url: spec?.component_url(url, abembed)?,
+                spoiler,
+            }),
         }
     }
 
@@ -111,10 +102,7 @@ impl SocialPlatform {
     pub(crate) fn accent_color(self) -> u32 {
         match self {
             Self::Bluesky => 0x1185fe,
-            Self::Instagram => 0xce0071,
-            Self::Facebook => 0x1877f2,
-            Self::Reddit => 0xff4500,
-            Self::Twitter | Self::TikTok | Self::Spotify => 0x1d9bf0,
+            _ => 0x1d9bf0,
         }
     }
 
@@ -166,37 +154,11 @@ impl Link {
         self,
         twitter_options: &twitter::Options,
         abembed: &str,
+        spec: Option<&abembed::Spec>,
     ) -> Option<Request> {
         self.platform
-            .request(&self.url, twitter_options, abembed, self.spoiler)
+            .request(&self.url, twitter_options, abembed, spec, self.spoiler)
     }
-}
-
-pub(crate) async fn abembed_url(
-    data: &BotState,
-    user_id: serenity::UserId,
-    guild_id: Option<serenity::GuildId>,
-    platform: SocialPlatform,
-) -> &'static str {
-    if matches!(platform, SocialPlatform::Bluesky | SocialPlatform::Spotify) {
-        return ABEMBED;
-    }
-    let key = format!("{}-staging-abembed", platform.key());
-    match data
-        .feature_flags
-        .is_enabled(&key, user_id.get(), guild_id.map(|id| id.get()))
-        .await
-    {
-        Ok(staging) => abembed_from_flag(staging),
-        Err(error) => {
-            tracing::warn!(error = %error, flag = key, "failed to evaluate abembed staging flag");
-            ABEMBED
-        }
-    }
-}
-
-fn abembed_from_flag(staging: bool) -> &'static str {
-    if staging { ABEMBED_STAGING } else { ABEMBED }
 }
 
 pub(crate) fn parse_links(content: &str) -> Vec<Link> {
@@ -248,12 +210,6 @@ fn parse_url(word: &str) -> Option<(Url, bool)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn staging_flag_selects_the_abembed_host() {
-        assert_eq!(abembed_from_flag(true), "https://staging.abembed.com/");
-        assert_eq!(abembed_from_flag(false), "https://abembed.com/");
-    }
 
     #[test]
     fn every_supported_platform_has_an_independent_toggle() {

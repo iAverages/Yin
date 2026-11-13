@@ -791,6 +791,7 @@ version = "0.1.0"
 dependencies = [
  "bot-core",
  "feature-flags",
+ "feature-social",
  "poise",
  "serde_json",
  "tracing",
@@ -873,6 +874,7 @@ dependencies = [
  "database",
  "feature-flags",
  "poise",
+ "regex",
  "reqwest 0.12.28",
  "serde",
  "serde_json",

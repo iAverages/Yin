@@ -1,0 +1,5 @@
+CREATE TABLE kv (
+    `key` VARCHAR(191) NOT NULL PRIMARY KEY,
+    value MEDIUMTEXT NOT NULL,
+    expires_at TIMESTAMP(3) NULL
+);

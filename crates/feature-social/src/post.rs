@@ -5,22 +5,6 @@ use serde_json::{Value, json};
 const DESCRIPTION_LIMIT: usize = 500;
 const MEDIA_GALLERY_ITEM_LIMIT: usize = 10;
 
-#[derive(Clone, Copy)]
-pub(crate) enum Format {
-    FxEmbed,
-    AbEmbed,
-}
-
-pub(crate) async fn decode(
-    response: reqwest::Response,
-    format: Format,
-) -> Result<Post, reqwest::Error> {
-    match format {
-        Format::FxEmbed => Ok(response.json::<Response>().await?.status),
-        Format::AbEmbed => Ok(response.json::<AbEmbedPost>().await?.into()),
-    }
-}
-
 pub(crate) fn component(post: &Post, spoiler: bool) -> Value {
     let mut components = Vec::new();
     append(&mut components, post, false);
@@ -143,8 +127,8 @@ fn truncate(value: &str, limit: usize) -> String {
 }
 
 #[derive(Deserialize)]
-struct Response {
-    status: Post,
+pub(crate) struct Response {
+    pub(crate) status: Post,
 }
 
 #[derive(Deserialize)]
@@ -199,51 +183,6 @@ struct MediaItem {
     #[serde(rename = "type")]
     kind: String,
     url: String,
-}
-
-#[derive(Deserialize)]
-struct AbEmbedPost {
-    url: String,
-    description: Option<String>,
-    author: Option<AbEmbedAuthor>,
-    stats: AbEmbedStats,
-    media: Vec<MediaItem>,
-    platform: String,
-}
-
-#[derive(Deserialize)]
-struct AbEmbedAuthor {
-    name: String,
-    username: Option<String>,
-    avatar_url: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct AbEmbedStats {
-    likes: Option<u64>,
-    reposts: Option<u64>,
-    comments: Option<u64>,
-}
-
-impl From<AbEmbedPost> for Post {
-    fn from(post: AbEmbedPost) -> Self {
-        Self {
-            url: post.url,
-            text: post.description.unwrap_or_default(),
-            likes: post.stats.likes,
-            reposts: post.stats.reposts,
-            replies: post.stats.comments,
-            author: post.author.map(|author| Author {
-                name: author.name,
-                screen_name: author.username.unwrap_or_default(),
-                avatar_url: author.avatar_url,
-            }),
-            media: Media { all: post.media },
-            provider: post.platform,
-            translation: None,
-            quote: None,
-        }
-    }
 }
 
 #[cfg(test)]
@@ -328,48 +267,6 @@ mod tests {
     fn truncates_on_character_boundaries() {
         assert_eq!(truncate("hello", 5), "hello");
         assert_eq!(truncate("😀abcd", 4), "😀...");
-    }
-
-    #[test]
-    fn decodes_abembed_response() {
-        let post: Post = serde_json::from_str::<AbEmbedPost>(
-            r#"{
-                "platform": "instagram",
-                "id": "DbCP6xzRzdo",
-                "url": "https://www.instagram.com/p/DbCP6xzRzdo/",
-                "description": "post text",
-                "author": {
-                    "name": "User (@user)",
-                    "username": "user",
-                    "url": "https://www.instagram.com/user/",
-                    "avatar_url": null
-                },
-                "stats": {"likes": 4, "reposts": null, "comments": 2},
-                "media": [{
-                    "type": "image",
-                    "url": "https://example.com/image.jpg",
-                    "width": 100,
-                    "height": 100
-                }]
-            }"#,
-        )
-        .unwrap()
-        .into();
-
-        let message = component(&post, false);
-        assert_eq!(message["accent_color"], 0xce0071);
-        assert_eq!(
-            message["components"][0]["content"],
-            "**User (@user)**\npost text"
-        );
-        assert_eq!(
-            message["components"][1]["items"][0]["media"]["url"],
-            "https://example.com/image.jpg"
-        );
-        assert_eq!(
-            message["components"][2]["content"],
-            "❤️ 4   💬 2\n[View on Instagram](https://www.instagram.com/p/DbCP6xzRzdo/)"
-        );
     }
 
     #[test]

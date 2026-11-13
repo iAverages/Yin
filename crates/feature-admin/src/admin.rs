@@ -153,7 +153,15 @@ async fn set_flag(
     scope: FeatureFlagScope,
     scope_name: String,
 ) -> Result<(), Error> {
-    if let Err(error) = ctx
+    if key == feature_social::ABEMBED_URL_FLAG {
+        if !feature_social::set_abembed_url(&ctx.data().database, scope, &value).await? {
+            return response::error(
+                ctx,
+                "Use an `https://` abembed.com URL, or `reset` to remove the override.",
+            )
+            .await;
+        }
+    } else if let Err(error) = ctx
         .data()
         .feature_flags
         .set_value(&key, scope, &value)

@@ -77,8 +77,8 @@ pub(super) fn request(
             url: format!("{FXTWITTER_API}{id}?lang={language}"),
             spoiler,
         },
-        Backend::AbEmbed => Request::Component {
-            url: format!("{abembed}twitter/{username}/status/{id}/{language}"),
+        Backend::AbEmbed => Request::AbEmbed {
+            url: format!("{abembed}api/twitter/{username}/status/{id}/{language}/component"),
             spoiler,
         },
     })
@@ -222,8 +222,8 @@ mod tests {
                 "https://abembed.com/",
                 true,
             ),
-            Some(Request::Component {
-                url: "https://abembed.com/twitter/jack/status/20/ja".to_owned(),
+            Some(Request::AbEmbed {
+                url: "https://abembed.com/api/twitter/jack/status/20/ja/component".to_owned(),
                 spoiler: true,
             })
         );
@@ -237,8 +237,9 @@ mod tests {
                 "https://staging.abembed.com/",
                 true,
             ),
-            Some(Request::Component {
-                url: "https://staging.abembed.com/twitter/jack/status/20/ja".to_owned(),
+            Some(Request::AbEmbed {
+                url: "https://staging.abembed.com/api/twitter/jack/status/20/ja/component"
+                    .to_owned(),
                 spoiler: true,
             })
         );
