@@ -15,12 +15,14 @@ use crate::AppState;
 pub struct AuthClient {
     client: reqwest::Client,
     get_session_url: Url,
+    discord_token_url: Url,
 }
 
 impl AuthClient {
     pub fn new(auth_service_url: &str) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let base_url = auth_service_url.trim_end_matches('/');
         let get_session_url = Url::parse(&format!("{base_url}/api/auth/get-session"))?;
+        let discord_token_url = Url::parse(&format!("{base_url}/discord/access-token"))?;
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(2))
             .build()?;
@@ -28,6 +30,7 @@ impl AuthClient {
         Ok(Self {
             client,
             get_session_url,
+            discord_token_url,
         })
     }
 
@@ -35,17 +38,18 @@ impl AuthClient {
         &self,
         headers: &HeaderMap,
     ) -> Result<Option<AuthSession>, AuthClientError> {
-        let mut request = self.client.get(self.get_session_url.clone());
+        let credentials: HeaderMap = [COOKIE, AUTHORIZATION]
+            .into_iter()
+            .filter_map(|name| headers.get(&name).cloned().map(|value| (name, value)))
+            .collect();
 
-        if let Some(cookie) = headers.get(COOKIE) {
-            request = request.header(COOKIE, cookie.clone());
-        }
-
-        if let Some(authorization) = headers.get(AUTHORIZATION) {
-            request = request.header(AUTHORIZATION, authorization.clone());
-        }
-
-        let response = request.send().await.map_err(AuthClientError::Request)?;
+        let response = self
+            .client
+            .get(self.get_session_url.clone())
+            .headers(credentials.clone())
+            .send()
+            .await
+            .map_err(AuthClientError::Request)?;
         let status = response.status();
 
         if !status.is_success() {
@@ -53,8 +57,46 @@ impl AuthClient {
             return Err(AuthClientError::Status { status, body });
         }
 
-        response.json().await.map_err(AuthClientError::Decode)
+        let session: Option<AuthSession> =
+            response.json().await.map_err(AuthClientError::Decode)?;
+        Ok(session.map(|session| AuthSession {
+            credentials,
+            ..session
+        }))
     }
+
+    pub async fn discord_token(
+        &self,
+        credentials: &HeaderMap,
+    ) -> Result<Option<String>, AuthClientError> {
+        let response = self
+            .client
+            .get(self.discord_token_url.clone())
+            .headers(credentials.clone())
+            .send()
+            .await
+            .map_err(AuthClientError::Request)?;
+        let status = response.status();
+
+        if matches!(status, StatusCode::BAD_REQUEST | StatusCode::UNAUTHORIZED) {
+            return Ok(None);
+        }
+
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            return Err(AuthClientError::Status { status, body });
+        }
+
+        let token: DiscordToken = response.json().await.map_err(AuthClientError::Decode)?;
+
+        Ok(Some(token.access_token).filter(|token| !token.is_empty()))
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DiscordToken {
+    access_token: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -74,6 +116,9 @@ pub enum AuthClientError {
 pub struct AuthSession {
     pub user: AuthUser,
     pub session: Session,
+    /// The caller's own auth headers, kept to fetch their Discord token later.
+    #[serde(skip)]
+    pub credentials: HeaderMap,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

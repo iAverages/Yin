@@ -19,6 +19,8 @@ pub enum GuildError {
     Snapshot(#[from] serde_json::Error),
     #[error("Discord returned an invalid guild page")]
     InvalidPage,
+    #[error("Discord token lookup failed. Try again shortly.")]
+    Token,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -91,6 +93,7 @@ pub async fn user_guilds(
     http: &reqwest::Client,
     user_id: &str,
     freshness: Freshness,
+    token: impl Future<Output = Result<String, GuildError>>,
 ) -> Result<Vec<UserGuild>, GuildError> {
     let repository = GuildDirectoryRepository::new(database);
     if freshness == Freshness::Cached
@@ -98,11 +101,7 @@ pub async fn user_guilds(
     {
         return Ok(serde_json::from_str(&snapshot)?);
     }
-    let token = repository
-        .discord_token(user_id)
-        .await?
-        .ok_or(GuildError::Unauthorized)?;
-    let guilds = fetch_user_guilds_at(http, &token, DISCORD_GUILDS_URL).await?;
+    let guilds = fetch_user_guilds_at(http, &token.await?, DISCORD_GUILDS_URL).await?;
     repository
         .cache_user_guilds(
             user_id,
@@ -114,16 +113,11 @@ pub async fn user_guilds(
 }
 
 pub async fn fresh_user_guild(
-    database: &Database,
     http: &reqwest::Client,
-    user_id: &str,
+    token: &str,
     guild_id: u64,
 ) -> Result<Option<UserGuild>, GuildError> {
-    let token = GuildDirectoryRepository::new(database)
-        .discord_token(user_id)
-        .await?
-        .ok_or(GuildError::Unauthorized)?;
-    fetch_user_guild_at(http, &token, guild_id, DISCORD_GUILDS_URL).await
+    fetch_user_guild_at(http, token, guild_id, DISCORD_GUILDS_URL).await
 }
 
 async fn fetch_user_guild_at(

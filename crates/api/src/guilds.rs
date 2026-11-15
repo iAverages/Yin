@@ -381,11 +381,30 @@ async fn load_managed_guilds(
     session: &AuthSession,
     freshness: Freshness,
 ) -> Result<Vec<ManagedGuild>, ApiError> {
-    let guilds = user_guilds(&state.database, &state.http, &session.user.id, freshness).await?;
+    let guilds = user_guilds(
+        &state.database,
+        &state.http,
+        &session.user.id,
+        freshness,
+        discord_token(state, session),
+    )
+    .await?;
     let installed = GuildDirectoryRepository::new(&state.database)
         .installed()
         .await?;
     Ok(managed_guilds(guilds, installed))
+}
+
+async fn discord_token(state: &AppState, session: &AuthSession) -> Result<String, GuildError> {
+    state
+        .auth
+        .discord_token(&session.credentials)
+        .await
+        .map_err(|error| {
+            tracing::error!(error = %error, "failed to fetch Discord token");
+            GuildError::Token
+        })?
+        .ok_or(GuildError::Unauthorized)
 }
 
 fn find_installed_guild(
@@ -421,7 +440,8 @@ async fn require_manage_guild(
         .ok_or(ApiError::Forbidden(
             "Add Yin to this server before editing settings.",
         ))?;
-    let guild = fresh_user_guild(&state.database, &state.http, &session.user.id, guild_id)
+    let token = discord_token(state, session).await?;
+    let guild = fresh_user_guild(&state.http, &token, guild_id)
         .await?
         .ok_or(ApiError::Forbidden(
             "You need Manage Server or Administrator permission.",

@@ -1,7 +1,15 @@
 //! Requires DATABASE_URL with permission to create isolated test databases.
 use database::{Database, DatabaseConfig, GuildDirectoryRepository};
-use feature_guilds::{Freshness, fresh_user_guild, user_guilds};
+use feature_guilds::{Freshness, GuildError, user_guilds};
 use sqlx::{ConnectOptions, MySqlPool};
+
+async fn unused_token() -> Result<String, GuildError> {
+    panic!("a cached read must not fetch a Discord token")
+}
+
+async fn no_token() -> Result<String, GuildError> {
+    Err(GuildError::Unauthorized)
+}
 
 async fn database(pool: &MySqlPool) -> Database {
     // sqlx creates an isolated database for each test; use its URL for the public
@@ -17,7 +25,7 @@ async fn database(pool: &MySqlPool) -> Database {
 
 #[sqlx::test(migrations = "../database/migrations")]
 #[ignore = "requires DATABASE_URL with CREATE DATABASE permission"]
-async fn cached_reads_skip_discord_but_writes_and_expired_reads_do_not(pool: MySqlPool) {
+async fn cached_reads_skip_discord_but_fresh_and_expired_reads_do_not(pool: MySqlPool) {
     let database = database(&pool).await;
     sqlx::query("INSERT INTO `user` (id, name, email, emailVerified, updatedAt) VALUES ('fixture', 'Fixture', 'fixture@example.com', FALSE, CURRENT_TIMESTAMP(3))")
         .execute(&pool).await.unwrap();
@@ -29,27 +37,18 @@ async fn cached_reads_skip_discord_but_writes_and_expired_reads_do_not(pool: MyS
         .unwrap();
     let http = reqwest::Client::new();
 
-    // No OAuth account exists: any accidental upstream lookup fails this test.
-    let guilds = user_guilds(&database, &http, "fixture", Freshness::Cached)
-        .await
-        .unwrap();
+    let guilds = user_guilds(
+        &database,
+        &http,
+        "fixture",
+        Freshness::Cached,
+        unused_token(),
+    )
+    .await
+    .unwrap();
     assert_eq!(guilds[0].id, "9007199254740993");
     assert!(
-        fresh_user_guild(&database, &http, "fixture", 9007199254740993)
-            .await
-            .is_err()
-    );
-    // A targeted write lookup must not replace or extend a complete snapshot.
-    assert_eq!(
-        repository
-            .cached_user_guilds("fixture")
-            .await
-            .unwrap()
-            .as_deref(),
-        Some(snapshot)
-    );
-    assert!(
-        user_guilds(&database, &http, "fixture", Freshness::Fresh)
+        user_guilds(&database, &http, "fixture", Freshness::Fresh, no_token())
             .await
             .is_err()
     );
@@ -64,7 +63,7 @@ async fn cached_reads_skip_discord_but_writes_and_expired_reads_do_not(pool: MyS
     sqlx::query("UPDATE user_guild_cache SET expires_at = TIMESTAMPADD(SECOND, -1, CURRENT_TIMESTAMP(3)) WHERE user_id = 'fixture'")
         .execute(&pool).await.unwrap();
     assert!(
-        user_guilds(&database, &http, "fixture", Freshness::Cached)
+        user_guilds(&database, &http, "fixture", Freshness::Cached, no_token())
             .await
             .is_err()
     );
@@ -74,10 +73,16 @@ async fn cached_reads_skip_discord_but_writes_and_expired_reads_do_not(pool: MyS
         .await
         .unwrap();
     assert!(
-        user_guilds(&database, &http, "fixture", Freshness::Cached)
-            .await
-            .unwrap()
-            .is_empty()
+        user_guilds(
+            &database,
+            &http,
+            "fixture",
+            Freshness::Cached,
+            unused_token()
+        )
+        .await
+        .unwrap()
+        .is_empty()
     );
 }
 

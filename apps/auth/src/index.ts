@@ -4,12 +4,14 @@ import { cors } from "hono/cors";
 
 import { auth } from "./auth";
 import { loadConfig } from "./config";
+import { registerDiscordTokenRoute } from "./discord-token";
 import { registerInstallRoutes } from "./install";
 
 const config = loadConfig();
 const app = new Hono();
 
 registerInstallRoutes(app, config);
+registerDiscordTokenRoute(app, auth.api.getAccessToken);
 
 app.use(
   "/api/auth/*",
