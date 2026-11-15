@@ -1,5 +1,5 @@
 import { createMutation } from "@tanstack/solid-query";
-import { createFileRoute } from "@tanstack/solid-router";
+import { Link, createFileRoute } from "@tanstack/solid-router";
 import { Show } from "solid-js";
 
 import { Button } from "../components/button";
@@ -51,6 +51,12 @@ const Login = () => {
                         Discord sign-in could not be started. Try again.
                     </p>
                 </Show>
+
+                <p class="mt-6 mb-0 text-xs">
+                    <Link to="/privacy" class="text-muted hover:text-foreground">
+                        Privacy policy
+                    </Link>
+                </p>
             </section>
         </main>
     );
