@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as DashboardRouteImport } from './routes/_dashboard'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as DashboardIndexRouteImport } from './routes/_dashboard.index'
 import { Route as DashboardAdminRouteImport } from './routes/_dashboard.admin'
 import { Route as DashboardSettingsRouteImport } from './routes/_dashboard.settings'
@@ -36,6 +37,11 @@ const LoginRoute = LoginRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/': typeof DashboardIndexRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/admin': typeof DashboardAdminRouteWithChildren
   '/settings': typeof DashboardSettingsRoute
   '/install/guild': typeof InstallGuildRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/settings': typeof DashboardSettingsRoute
   '/install/guild': typeof InstallGuildRoute
   '/install/user': typeof InstallUserRoute
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/_dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/_dashboard/admin': typeof DashboardAdminRouteWithChildren
   '/_dashboard/settings': typeof DashboardSettingsRoute
   '/install/guild': typeof InstallGuildRoute
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/privacy'
+    | '/terms'
     | '/admin'
     | '/settings'
     | '/install/guild'
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/privacy'
+    | '/terms'
     | '/settings'
     | '/install/guild'
     | '/install/user'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/_dashboard'
     | '/login'
     | '/privacy'
+    | '/terms'
     | '/_dashboard/admin'
     | '/_dashboard/settings'
     | '/install/guild'
@@ -193,6 +205,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRouteWithChildren
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
   InstallGuildRoute: typeof InstallGuildRoute
   InstallUserRoute: typeof InstallUserRoute
   InstallIndexRoute: typeof InstallIndexRoute
@@ -221,6 +234,13 @@ declare module '@tanstack/solid-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_dashboard/': {
@@ -339,6 +359,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRouteWithChildren,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
   InstallGuildRoute: InstallGuildRoute,
   InstallUserRoute: InstallUserRoute,
   InstallIndexRoute: InstallIndexRoute,

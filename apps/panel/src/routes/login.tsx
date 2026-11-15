@@ -52,9 +52,12 @@ const Login = () => {
                     </p>
                 </Show>
 
-                <p class="mt-6 mb-0 text-xs">
+                <p class="mt-6 mb-0 flex justify-center gap-4 text-xs">
                     <Link to="/privacy" class="text-muted hover:text-foreground">
                         Privacy policy
+                    </Link>
+                    <Link to="/terms" class="text-muted hover:text-foreground">
+                        Terms of service
                     </Link>
                 </p>
             </section>
