@@ -161,11 +161,47 @@ impl Link {
     }
 }
 
+const ALT_FIXERS: &[(&str, &str)] = &[
+    ("fxtwitter.com", "twitter.com"),
+    ("fixupx.com", "x.com"),
+    ("vxtwitter.com", "twitter.com"),
+    ("fixvx.com", "x.com"),
+    ("twittpr.com", "twitter.com"),
+    ("ddinstagram.com", "instagram.com"),
+    ("kkinstagram.com", "instagram.com"),
+    ("instagramez.com", "instagram.com"),
+    ("fxstagram.com", "instagram.com"),
+    ("vxinstagram.com", "instagram.com"),
+    ("rxddit.com", "reddit.com"),
+    ("vxreddit.com", "reddit.com"),
+    ("redditez.com", "reddit.com"),
+    ("facebed.com", "facebook.com"),
+    ("facebookez.com", "facebook.com"),
+    ("fxspotify.com", "spotify.com"),
+    ("vxtiktok.com", "tiktok.com"),
+    ("tnktok.com", "tiktok.com"),
+    ("tiktxk.com", "tiktok.com"),
+    ("tfxktok.com", "tiktok.com"),
+    ("kktiktok.com", "tiktok.com"),
+    ("tiktokez.com", "tiktok.com"),
+];
+
 pub(crate) fn parse_links(content: &str) -> Vec<Link> {
+    links(content, false)
+}
+
+pub(crate) fn parse_links_with_alt_fixers(content: &str) -> Vec<Link> {
+    links(content, true)
+}
+
+fn links(content: &str, alt_fixers: bool) -> Vec<Link> {
     content
         .split_whitespace()
         .filter_map(|word| {
-            let (url, spoiler) = parse_url(word)?;
+            let (mut url, spoiler) = parse_url(word)?;
+            if alt_fixers && let Some(host) = native_host(&url) {
+                url.set_host(Some(&host)).ok()?;
+            }
             Some(Link {
                 platform: SocialPlatform::recognize(&url)?,
                 url,
@@ -192,6 +228,14 @@ pub(crate) fn retain_enabled_links(links: &mut Vec<Link>, disabled_platforms: &[
             .iter()
             .any(|platform| platform == link.platform.key())
     });
+}
+
+fn native_host(url: &Url) -> Option<String> {
+    let host = url.host_str()?;
+    ALT_FIXERS.iter().find_map(|(fixer, native)| {
+        let subdomain = host.strip_suffix(fixer)?;
+        (subdomain.is_empty() || subdomain.ends_with('.')).then(|| format!("{subdomain}{native}"))
+    })
 }
 
 fn parse_url(word: &str) -> Option<(Url, bool)> {
@@ -248,6 +292,46 @@ mod tests {
         assert!(!links[0].spoiler);
         assert!(links[1].spoiler);
         assert!(!links[2].spoiler);
+    }
+
+    #[test]
+    fn alt_fixer_links_become_platform_links_only_when_asked() {
+        for (fixer, native) in ALT_FIXERS {
+            let (host, path, platform) = match *native {
+                "twitter.com" | "x.com" => {
+                    (fixer.to_string(), "jack/status/20", SocialPlatform::Twitter)
+                }
+                "instagram.com" => (
+                    fixer.to_string(),
+                    "reel/DbCP6xzRzdo/",
+                    SocialPlatform::Instagram,
+                ),
+                "reddit.com" => (
+                    fixer.to_string(),
+                    "r/osugame/comments/1xm08ih",
+                    SocialPlatform::Reddit,
+                ),
+                "facebook.com" => (
+                    fixer.to_string(),
+                    "share/p/1DL7Uac7xc/",
+                    SocialPlatform::Facebook,
+                ),
+                "spotify.com" => (
+                    format!("open.{fixer}"),
+                    "track/11dFghVXANMlKmJXsNCbNl",
+                    SocialPlatform::Spotify,
+                ),
+                _ => (format!("vm.{fixer}"), "ZN88Qw7ns/", SocialPlatform::TikTok),
+            };
+            let link = format!("https://{host}/{path}");
+
+            let links = parse_links_with_alt_fixers(&link);
+            assert_eq!(links.len(), 1, "{link}");
+            assert_eq!(links[0].platform, platform, "{link}");
+            assert_eq!(links[0].url.as_str(), link.replace(fixer, native), "{link}");
+            assert!(parse_links(&link).is_empty(), "{link}");
+        }
+        assert!(parse_links_with_alt_fixers("https://notfxtwitter.com/jack/status/20").is_empty());
     }
 
     #[test]

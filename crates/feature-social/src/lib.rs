@@ -87,7 +87,7 @@ async fn embed(
             primary_translation_language(&ctx.interaction.locale).unwrap_or_else(|| "en".to_owned())
         }
     };
-    let mut links = source::parse_links(&link);
+    let mut links = source::parse_links_with_alt_fixers(&link);
     if spoiler == Some(true) {
         links.iter_mut().for_each(|link| link.spoiler = true);
     }
