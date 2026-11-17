@@ -4,6 +4,7 @@ import type { ComponentProps, JSX, ParentProps } from "solid-js";
 import { cn } from "../lib/utils";
 import { Button } from "./button";
 import { Field, FieldLabel, errorProps, fieldId, inputClass, invalidInputClass } from "./field";
+import { LanguageField as Language } from "./language-field";
 import { SelectField as Select } from "./select-field";
 import { Toggle } from "./toggle";
 
@@ -72,6 +73,22 @@ const SelectField = (props: FieldOptions & { children: JSX.Element }) => {
     );
 };
 
+const LanguageField = (props: FieldOptions) => {
+    const field = useFieldContext<string>();
+
+    return (
+        <Language
+            label={props.label}
+            description={props.description}
+            name={field().name}
+            value={field().state.value}
+            onChange={(value) => field().handleChange(value)}
+            onBlur={() => field().handleBlur()}
+            error={fieldError(field().state.meta.errors)}
+        />
+    );
+};
+
 const ToggleField = (props: FieldOptions) => {
     const field = useFieldContext<boolean>();
     return (
@@ -113,6 +130,6 @@ const SubmitButton = (props: ParentProps<{ class?: string }>) => {
 export const { useAppForm } = createFormHook({
     fieldContext,
     formContext,
-    fieldComponents: { TextField, TextareaField, SelectField, ToggleField },
+    fieldComponents: { TextField, TextareaField, SelectField, LanguageField, ToggleField },
     formComponents: { Form, SubmitButton },
 });

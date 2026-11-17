@@ -63,6 +63,19 @@ fn home_components(panel_url: Option<&str>) -> Vec<Value> {
                 "custom_id": social::PAGE_ID,
             },
         }),
+        json!({
+            "type": 9,
+            "components": [{
+                "type": 10,
+                "content": "### Translation language\nChoose the language `/embed` translates posts into.",
+            }],
+            "accessory": {
+                "type": 2,
+                "style": 2,
+                "label": "Open",
+                "custom_id": language::PAGE_ID,
+            },
+        }),
     ];
     if let Some(panel_url) = panel_url {
         components.push(json!({
@@ -87,6 +100,10 @@ pub async fn handle_interaction(
         home_components(data.panel_url.as_deref())
     } else if let Some(components) =
         social::handle_interaction(data, interaction, component).await?
+    {
+        components
+    } else if let Some(components) =
+        language::handle_interaction(data, interaction, component).await?
     {
         components
     } else {
@@ -167,12 +184,18 @@ mod tests {
     }
 
     #[test]
-    fn home_opens_social_page() {
+    fn home_opens_settings_pages() {
         let home = &home_components(Some("https://panel.example"))[0];
-        let section = &home["components"][1];
-        assert_eq!(section["accessory"]["custom_id"], social::PAGE_ID);
         assert_eq!(
-            home["components"][2]["components"][0]["url"],
+            home["components"][1]["accessory"]["custom_id"],
+            social::PAGE_ID
+        );
+        assert_eq!(
+            home["components"][2]["accessory"]["custom_id"],
+            language::PAGE_ID
+        );
+        assert_eq!(
+            home["components"][3]["components"][0]["url"],
             "https://panel.example/settings"
         );
     }

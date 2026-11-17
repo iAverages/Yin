@@ -64,7 +64,7 @@ static HTTP: LazyLock<Client> = LazyLock::new(|| {
         .expect("valid social embed HTTP client")
 });
 
-const LANGUAGES: &[(&str, &str)] = &[
+pub const LANGUAGES: &[(&str, &str)] = &[
     ("English", "en"),
     ("Japanese", "ja"),
     ("Korean", "ko"),
@@ -172,33 +172,31 @@ fn embed(ctx: &CommandContext) -> CommandFuture<'_> {
         let user_id = ctx.author().id;
         let language = match language {
             Some(language) => match TranslationLanguage::parse(&language) {
-                Some(language) => language.into_string(),
+                Some(language) => Some(language.into_string()),
                 None => {
                     return ctx
                         .error("Use a valid ISO language code, such as `en` or `pt-BR`.")
                         .await;
                 }
             },
-            None => ctx
-                .interaction
-                .locale
-                .as_deref()
-                .and_then(primary_translation_language)
-                .unwrap_or_else(|| "en".to_owned()),
+            None => None,
         };
         let work = async {
+            let users = UserSocialEmbedsRepository::new(&ctx.state.database);
+            let language = match language {
+                Some(language) => language,
+                None => default_language(
+                    users.translation_language(user_id.get()).await?,
+                    ctx.interaction.locale.as_deref().unwrap_or_default(),
+                ),
+            };
             let mut links = source::parse_links_with_alt_fixers(&link);
             if spoiler == Some(true) {
                 links.iter_mut().for_each(|link| link.spoiler = true);
             }
             match display {
                 Some(display) => links.iter_mut().for_each(|link| link.display = display),
-                None => source::apply_displays(
-                    &mut links,
-                    &UserSocialEmbedsRepository::new(&ctx.state.database)
-                        .displays(user_id.get())
-                        .await?,
-                ),
+                None => source::apply_displays(&mut links, &users.displays(user_id.get()).await?),
             }
             embed_components(
                 &ctx.state,
@@ -321,6 +319,14 @@ fn matching_languages(partial: &str) -> impl Iterator<Item = (&'static str, &'st
     LANGUAGES.iter().copied().filter(move |(name, code)| {
         name.to_lowercase().contains(&partial) || code.starts_with(&partial)
     })
+}
+
+fn default_language(saved: Option<String>, locale: &str) -> String {
+    saved
+        .and_then(|language| TranslationLanguage::parse(&language))
+        .map(TranslationLanguage::into_string)
+        .or_else(|| primary_translation_language(locale))
+        .unwrap_or_else(|| "en".to_owned())
 }
 
 fn refresh_media_definition() -> CommandDefinition {
@@ -998,6 +1004,14 @@ fn component_count(component: &Value) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn default_language_prefers_saved_language_then_client_locale() {
+        assert_eq!(default_language(Some("ja".to_owned()), "en-US"), "ja");
+        assert_eq!(default_language(None, "pt-BR"), "pt");
+        assert_eq!(default_language(Some("not valid".to_owned()), "fr"), "fr");
+        assert_eq!(default_language(None, ""), "en");
+    }
 
     #[test]
     fn finds_multiple_supported_links_in_message_order() {

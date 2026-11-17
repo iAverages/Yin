@@ -6,12 +6,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::AppState;
 use crate::auth::AuthSession;
-use crate::guilds::ApiError;
+use crate::guilds::{ApiError, validate_optional_translation_language};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserSettingsResponse {
     social_embeds: Vec<UserSocialEmbedSetting>,
+    translation_language: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -26,6 +27,7 @@ pub struct UserSocialEmbedSetting {
 #[serde(rename_all = "camelCase")]
 pub struct UpdateUserSocialEmbedsRequest {
     social_embeds: Vec<UserSocialEmbedSetting>,
+    translation_language: Option<String>,
 }
 
 pub async fn get_user_settings(
@@ -53,8 +55,12 @@ pub async fn update_user_social_embeds(
             Ok((platform, setting.enabled, display))
         })
         .collect::<Result<Vec<_>, ApiError>>()?;
+    let language = validate_optional_translation_language(request.translation_language.as_deref())?;
 
     let repository = UserSocialEmbedsRepository::new(&state.database);
+    repository
+        .set_translation_language(user_id, language.as_ref())
+        .await?;
     for (platform, enabled, display) in settings {
         repository.set_enabled(user_id, platform, enabled).await?;
         repository
@@ -88,6 +94,7 @@ async fn load_user_settings(
                     .to_owned(),
             })
             .collect(),
+        translation_language: repository.translation_language(user_id).await?,
     })
 }
 

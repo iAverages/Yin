@@ -164,6 +164,16 @@ impl Link {
 }
 
 const ALT_FIXERS: &[(&str, &str)] = &[
+    // abembed
+    ("abtwitter.com", "twitter.com"),
+    ("abfixx.com", "x.com"),
+    ("abinstagram.com", "instagram.com"),
+    ("abtiktok.com", "tiktok.com"),
+    ("abreddit.com", "reddit.com"),
+    ("abfacebook.com", "facebook.com"),
+    ("abspotify.com", "spotify.com"),
+    ("spqtify.com", "spotify.com"),
+    // other fixers
     ("fxtwitter.com", "twitter.com"),
     ("fixupx.com", "x.com"),
     ("vxtwitter.com", "twitter.com"),

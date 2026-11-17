@@ -12,6 +12,7 @@ export type UserSocialEmbedSetting = {
 
 export type UserSettings = {
     socialEmbeds: UserSocialEmbedSetting[];
+    translationLanguage: string | null;
 };
 
 export const userSettingsOptions = () => {
@@ -22,9 +23,9 @@ export const userSettingsOptions = () => {
     });
 };
 
-export const updateUserSocialEmbeds = (socialEmbeds: UserSocialEmbedSetting[]) => {
+export const updateUserSocialEmbeds = (settings: UserSettings) => {
     return apiFetch<UserSettings>("/me/settings/social", {
         method: "PUT",
-        body: JSON.stringify({ socialEmbeds }),
+        body: JSON.stringify(settings),
     });
 };

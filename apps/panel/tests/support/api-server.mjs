@@ -93,6 +93,7 @@ http.createServer(async (request, response) => {
                     { platform: "twitter", enabled: true, display: "media-only" },
                     { platform: "tiktok", enabled: true, display: "full" },
                 ],
+                translationLanguage: null,
             }),
         );
     }

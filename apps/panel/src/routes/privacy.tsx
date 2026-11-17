@@ -24,9 +24,9 @@ const Privacy = () => {
                 </p>
                 <p>
                     <strong>Your embed settings.</strong> Your Discord user ID, the platforms you've
-                    turned embeds off for, and how you want embeds shown. The first time Yin embeds
-                    one of your links it also saves your user ID, so the intro notice only shows
-                    once.
+                    turned embeds off for, how you want embeds shown, and your default translation
+                    language if you set one. The first time Yin embeds one of your links it also
+                    saves your user ID, so the intro notice only shows once.
                 </p>
                 <p>
                     <strong>Error logs.</strong> If a command fails, the log can include your user

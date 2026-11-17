@@ -63,15 +63,15 @@ const SocialEmbedsEditor = (props: { settings: Accessor<UserSettings> }) => {
     const form = useAppForm(() => ({
         defaultValues: formValues(props.settings()),
         onSubmit: async ({ value, formApi }) => {
-            const settings = await saveSettings(
-                mutation,
-                props.settings().socialEmbeds.map(({ platform, display }) => {
+            const settings = await saveSettings(mutation, {
+                socialEmbeds: props.settings().socialEmbeds.map(({ platform, display }) => {
                     const mode = value.platforms[platform];
                     return mode === "off"
                         ? { platform, enabled: false, display }
                         : { platform, enabled: true, display: mode };
                 }),
-            );
+                translationLanguage: value.translationLanguage.trim() || null,
+            });
             if (settings) formApi.reset(formValues(settings));
         },
     }));
@@ -115,6 +115,16 @@ const SocialEmbedsEditor = (props: { settings: Accessor<UserSettings> }) => {
                             )}
                         </For>
                     </div>
+                    <div class="mt-5 border-t border-line pt-5 sm:max-w-sm">
+                        <form.AppField name="translationLanguage">
+                            {(field) => (
+                                <field.LanguageField
+                                    label="Translation language"
+                                    description="ISO code /embed translates posts into. Leave blank to use your Discord language."
+                                />
+                            )}
+                        </form.AppField>
+                    </div>
                     <div class="mt-5 flex justify-end">
                         <form.SubmitButton>Save settings</form.SubmitButton>
                     </div>
@@ -155,6 +165,7 @@ const formValues = (settings: UserSettings) => ({
             enabled ? display : "off",
         ]),
     ) as Record<string, Mode>,
+    translationLanguage: settings.translationLanguage ?? "",
 });
 
 export const Route = createFileRoute("/_dashboard/settings")({

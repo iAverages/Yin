@@ -3,8 +3,8 @@
 `apps/panel/src/routes/_dashboard.tsx` is the authenticated, pathless layout for
 all dashboard routes: `/`, `/guilds/$guildId` (general settings, social embeds and
 custom commands), and `/settings`
-(the signed-in user's own `/settings` preferences: per-platform embeds and
-display). Personal settings are read and written through `/me/settings`, which the API
+(the signed-in user's own `/settings` preferences: per-platform embeds, display
+and default translation language). Personal settings are read and written through `/me/settings`, which the API
 keys by the linked Discord account ID, never the better-auth user ID. Add new dashboard routes beneath `_dashboard`; do not add
 another sidebar or duplicate the auth guard. The hidden `/admin` area also uses
 this shell, with an additional owner-only parent guard and independent API checks;

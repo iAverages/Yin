@@ -41,6 +41,7 @@ const userSettings: UserSettings = {
         { platform: "twitter", enabled: true, display: "full" },
         { platform: "tiktok", enabled: true, display: "full" },
     ],
+    translationLanguage: null,
 };
 
 const mockGuilds = async (page: Page) => {
@@ -86,7 +87,7 @@ test("the server renders actual dashboard content with JavaScript disabled", asy
         await page.goto("/guilds/103", { waitUntil: "domcontentloaded" });
         await expect(page.getByRole("heading", { name: "Night Shift", exact: true })).toBeVisible();
         await expect(page.getByRole("textbox", { name: /^Command prefix/ })).toHaveValue("?");
-        await expect(page.getByRole("textbox", { name: /^Translation language/ })).toHaveValue(
+        await expect(page.getByRole("combobox", { name: /^Translation language/ })).toHaveValue(
             "ja",
         );
         await expect(
@@ -152,7 +153,7 @@ test("SSR values are request-scoped and hydrate without fetching again", async (
                 await expect(prefix).toBeEnabled();
                 await expect(prefix).toHaveValue(index === 0 ? "?" : "");
                 await expect(
-                    page.getByRole("textbox", { name: /^Translation language/ }),
+                    page.getByRole("combobox", { name: /^Translation language/ }),
                 ).toHaveValue(index === 0 ? "ja" : "");
                 expect(apiRequests).toEqual([]);
             }),
@@ -745,11 +746,16 @@ test("settings save embed preferences for every platform", async ({ page }) => {
     const embeds = page.getByRole("region", { name: "Social embeds", exact: true });
     await embeds.getByRole("combobox", { name: "TikTok" }).selectOption("off");
     await embeds.getByRole("combobox", { name: "Twitter / X" }).selectOption("media-only");
+    const language = embeds.getByRole("combobox", { name: /^Translation language/ });
+    await embeds.getByRole("button", { name: "Show languages" }).click();
+    await page.getByRole("option", { name: "Korean" }).click();
+    await expect(language).toHaveValue("ko");
+    await language.fill(" pt-PT ");
     let saved: unknown;
     await page.route("**/me/settings/social", (route) => {
         expect(route.request().method()).toBe("PUT");
         saved = route.request().postDataJSON();
-        return route.fulfill({ json: { socialEmbeds: (saved as UserSettings).socialEmbeds } });
+        return route.fulfill({ json: saved });
     });
     await page.getByRole("button", { name: "Save settings", exact: true }).click();
     await expect(page.getByRole("region", { name: /^Notifications/ })).toContainText(
@@ -760,7 +766,9 @@ test("settings save embed preferences for every platform", async ({ page }) => {
             { platform: "twitter", enabled: true, display: "media-only" },
             { platform: "tiktok", enabled: false, display: "full" },
         ],
+        translationLanguage: "pt-PT",
     });
+    await expect(language).toHaveValue("pt-PT");
 });
 
 test("a save finishing after a guild switch updates only its original guild", async ({ page }) => {

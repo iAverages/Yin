@@ -391,7 +391,7 @@ fn validate_optional_prefix(prefix: Option<&str>) -> Result<Option<CommandPrefix
         .transpose()
 }
 
-fn validate_optional_translation_language(
+pub(crate) fn validate_optional_translation_language(
     language: Option<&str>,
 ) -> Result<Option<TranslationLanguage>, ApiError> {
     language

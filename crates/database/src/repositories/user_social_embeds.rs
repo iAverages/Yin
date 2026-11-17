@@ -1,3 +1,4 @@
+use crate::settings::TranslationLanguage;
 use crate::{Database, DatabaseError};
 
 pub struct UserSocialEmbedsRepository<'a> {
@@ -102,6 +103,35 @@ impl<'a> UserSocialEmbedsRepository<'a> {
                 .execute(self.database.pool())
                 .await?;
         }
+        Ok(())
+    }
+
+    pub async fn translation_language(
+        &self,
+        user_id: u64,
+    ) -> Result<Option<String>, DatabaseError> {
+        Ok(
+            sqlx::query_scalar("SELECT translation_language FROM user_settings WHERE user_id = ?")
+                .bind(user_id)
+                .fetch_optional(self.database.pool())
+                .await?
+                .flatten(),
+        )
+    }
+
+    pub async fn set_translation_language(
+        &self,
+        user_id: u64,
+        language: Option<&TranslationLanguage>,
+    ) -> Result<(), DatabaseError> {
+        sqlx::query(
+            "INSERT INTO user_settings (user_id, translation_language) VALUES (?, ?) \
+             ON DUPLICATE KEY UPDATE translation_language = VALUES(translation_language)",
+        )
+        .bind(user_id)
+        .bind(language.map(TranslationLanguage::as_str))
+        .execute(self.database.pool())
+        .await?;
         Ok(())
     }
 
@@ -295,6 +325,32 @@ mod tests {
 
         repository.reset(2, None).await.unwrap();
         assert!(repository.displays(2).await.unwrap().is_empty());
+    }
+
+    #[sqlx::test(migrations = "./migrations")]
+    #[ignore = "requires DATABASE_URL with permission to create test databases"]
+    async fn translation_language_persists_per_user_and_clears(pool: sqlx::MySqlPool) {
+        let database = Database { pool };
+        let repository = UserSocialEmbedsRepository::new(&database);
+        assert_eq!(repository.translation_language(1).await.unwrap(), None);
+
+        let language = TranslationLanguage::parse("pt-BR").unwrap();
+        repository
+            .set_translation_language(1, Some(&language))
+            .await
+            .unwrap();
+        repository
+            .set_translation_language(1, Some(&language))
+            .await
+            .unwrap();
+        assert_eq!(
+            repository.translation_language(1).await.unwrap().as_deref(),
+            Some("pt-br")
+        );
+        assert_eq!(repository.translation_language(2).await.unwrap(), None);
+
+        repository.set_translation_language(1, None).await.unwrap();
+        assert_eq!(repository.translation_language(1).await.unwrap(), None);
     }
 
     #[sqlx::test(migrations = "./migrations")]

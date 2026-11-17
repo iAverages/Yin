@@ -58,21 +58,42 @@ async fn user_settings_are_keyed_by_the_linked_discord_account(pool: MySqlPool) 
         platform(&body, "twitter"),
         json!({"platform": "twitter", "enabled": true, "display": "full"})
     );
+    assert_eq!(body["translationLanguage"], Value::Null);
 
     let (status, body) = send(
         &app,
         "PUT",
         "internal-id",
-        json!({"socialEmbeds": [
-            {"platform": "twitter", "enabled": true, "display": "media-only"},
-            {"platform": "tiktok", "enabled": false, "display": "full"},
-        ]}),
+        json!({
+            "socialEmbeds": [
+                {"platform": "twitter", "enabled": true, "display": "media-only"},
+                {"platform": "tiktok", "enabled": false, "display": "full"},
+            ],
+            "translationLanguage": " PT_BR ",
+        }),
     )
     .await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(platform(&body, "twitter")["display"], "media-only");
     assert_eq!(platform(&body, "tiktok")["enabled"], false);
+    assert_eq!(body["translationLanguage"], "pt-br");
     let repository = UserSocialEmbedsRepository::new(&db);
+    let (status, _) = send(
+        &app,
+        "PUT",
+        "internal-id",
+        json!({"socialEmbeds": [], "translationLanguage": "unknown"}),
+    )
+    .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(
+        repository
+            .translation_language(42)
+            .await
+            .unwrap()
+            .as_deref(),
+        Some("pt-br")
+    );
     assert_eq!(repository.disabled_platforms(42).await.unwrap(), ["tiktok"]);
     assert_eq!(
         repository.displays(42).await.unwrap(),
@@ -101,6 +122,7 @@ async fn user_settings_are_keyed_by_the_linked_discord_account(pool: MySqlPool) 
     }
     assert!(repository.displays(42).await.unwrap().is_empty());
     assert!(repository.disabled_platforms(42).await.unwrap().is_empty());
+    assert_eq!(repository.translation_language(42).await.unwrap(), None);
 
     for user in ["github-user", "unlinked-user"] {
         let (status, _) = send(&app, "GET", user, Value::Null).await;

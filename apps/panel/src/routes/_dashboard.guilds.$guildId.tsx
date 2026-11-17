@@ -116,10 +116,9 @@ const SettingsEditor = (props: { settings: Accessor<GuildSettings>; guildId: str
                                 </generalForm.AppField>
                                 <generalForm.AppField name="translationLanguage">
                                     {(field) => (
-                                        <field.TextField
+                                        <field.LanguageField
                                             label="Translation language"
                                             description="ISO code used by translated social embeds. Leave blank for English."
-                                            placeholder="en, ja, pt-BR"
                                         />
                                     )}
                                 </generalForm.AppField>
