@@ -2,6 +2,7 @@ mod post;
 mod source;
 
 use std::collections::VecDeque;
+use std::sync::atomic::Ordering;
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -33,6 +34,7 @@ const EMBED_API_RETRY_DELAY: Duration = Duration::from_secs(1);
 const EMBEDDED_MESSAGE_CACHE_LIMIT: usize = 100;
 const EMBEDDED_MESSAGE_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
 const FOLLOWUP_TOKEN_TTL: Duration = Duration::from_secs(15 * 60);
+const DEFER_AFTER: Duration = Duration::from_secs(2);
 const APP_USER_AGENT: &str = concat!("yin/", env!("CARGO_PKG_VERSION"));
 const DISCORD_USER_AGENT: &str = "Discordbot/2.0";
 const NOTICE_ID: &str = "social:notice";
@@ -71,7 +73,6 @@ async fn embed(
     #[max_length = 2000]
     text: Option<String>,
 ) -> Result<(), Error> {
-    ctx.defer_ephemeral().await?;
     let language = match language {
         Some(language) => match TranslationLanguage::parse(&language) {
             Some(language) => language.into_string(),
@@ -87,30 +88,41 @@ async fn embed(
             primary_translation_language(&ctx.interaction.locale).unwrap_or_else(|| "en".to_owned())
         }
     };
-    let mut links = source::parse_links_with_alt_fixers(&link);
-    if spoiler == Some(true) {
-        links.iter_mut().for_each(|link| link.spoiler = true);
-    }
-    match display {
-        Some(display) => links.iter_mut().for_each(|link| link.display = display),
-        None => source::apply_displays(
-            &mut links,
-            &UserSocialEmbedsRepository::new(&ctx.data.database)
-                .displays(ctx.interaction.user.id.get())
-                .await?,
-        ),
-    }
-    let mut components = match embed_components(
-        ctx.data,
-        ctx.serenity_context,
-        links,
-        ctx.interaction.user.id,
-        ctx.interaction.guild_id,
-        Some(language),
-        true,
-    )
-    .await
-    {
+    let work = async {
+        let mut links = source::parse_links_with_alt_fixers(&link);
+        if spoiler == Some(true) {
+            links.iter_mut().for_each(|link| link.spoiler = true);
+        }
+        match display {
+            Some(display) => links.iter_mut().for_each(|link| link.display = display),
+            None => source::apply_displays(
+                &mut links,
+                &UserSocialEmbedsRepository::new(&ctx.data.database)
+                    .displays(ctx.interaction.user.id.get())
+                    .await?,
+            ),
+        }
+        embed_components(
+            ctx.data,
+            ctx.serenity_context,
+            links,
+            ctx.interaction.user.id,
+            ctx.interaction.guild_id,
+            Some(language),
+            true,
+        )
+        .await
+    };
+    tokio::pin!(work);
+
+    let (result, deferred) = match tokio::time::timeout(DEFER_AFTER, &mut work).await {
+        Ok(result) => (result, false),
+        Err(_) => {
+            ctx.defer_ephemeral().await?;
+            (work.await, true)
+        }
+    };
+    let mut components = match result {
         Ok(components) => components,
         Err(error) => {
             let Some(unavailable) = error.downcast_ref::<PostUnavailable>() else {
@@ -130,19 +142,32 @@ async fn embed(
     if let Some(text) = text {
         components.insert(0, json!({"type": 10, "content": text}));
     }
+    if deferred {
+        components.insert(0, invoker_header(ctx.interaction.user.id));
+    }
 
-    ctx.serenity_context
-        .http
-        .delete_original_interaction_response(&ctx.interaction.token)
+    let http = &ctx.serenity_context.http;
+    let token = &ctx.interaction.token;
+    let mut batches = component_batches(components)?.into_iter();
+    if deferred {
+        http.delete_original_interaction_response(token).await?;
+    } else if let Some(components) = batches.next() {
+        http.create_interaction_response(
+            ctx.interaction.id,
+            token,
+            &json!({"type": 4, "data": create_payload(components)}),
+            vec![],
+        )
         .await?;
-
-    for components in component_batches(components)? {
-        let followup = ctx
-            .serenity_context
-            .http
-            .create_followup_message(&ctx.interaction.token, &create_payload(components), vec![])
+        ctx.has_sent_initial_response.store(true, Ordering::SeqCst);
+        let response = http.get_original_interaction_response(token).await?;
+        remember_followup_token(response.id, token, Instant::now());
+    }
+    for components in batches {
+        let followup = http
+            .create_followup_message(token, &create_payload(components), vec![])
             .await?;
-        remember_followup_token(followup.id, &ctx.interaction.token, Instant::now());
+        remember_followup_token(followup.id, token, Instant::now());
     }
 
     if UserSocialEmbedsRepository::new(&ctx.data.database)
@@ -741,6 +766,10 @@ fn keep_only_media(component: &mut Value) -> bool {
     }
     children.retain(is_media);
     true
+}
+
+fn invoker_header(user_id: UserId) -> Value {
+    json!({"type": 10, "content": format!("-# <@{user_id}> used `/embed`")})
 }
 
 fn create_payload(components: Vec<Value>) -> Value {
