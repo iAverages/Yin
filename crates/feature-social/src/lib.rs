@@ -48,8 +48,79 @@ static HTTP: LazyLock<Client> = LazyLock::new(|| {
         .expect("valid social embed HTTP client")
 });
 
+const LANGUAGES: &[(&str, &str)] = &[
+    ("English", "en"),
+    ("Japanese", "ja"),
+    ("Korean", "ko"),
+    ("Chinese (Simplified)", "zh-cn"),
+    ("Chinese (Traditional)", "zh-tw"),
+    ("Spanish", "es"),
+    ("Portuguese", "pt"),
+    ("French", "fr"),
+    ("German", "de"),
+    ("Italian", "it"),
+    ("Russian", "ru"),
+    ("Ukrainian", "uk"),
+    ("Polish", "pl"),
+    ("Dutch", "nl"),
+    ("Turkish", "tr"),
+    ("Arabic", "ar"),
+    ("Hindi", "hi"),
+    ("Indonesian", "id"),
+    ("Thai", "th"),
+    ("Vietnamese", "vi"),
+    ("Filipino", "tl"),
+    ("Swedish", "sv"),
+    ("Czech", "cs"),
+    ("Greek", "el"),
+    ("Hebrew", "he"),
+    ("Amharic", "am"),
+    ("Armenian", "hy"),
+    ("Basque", "eu"),
+    ("Bengali", "bn"),
+    ("Bulgarian", "bg"),
+    ("Catalan", "ca"),
+    ("Croatian", "hr"),
+    ("Danish", "da"),
+    ("Estonian", "et"),
+    ("Finnish", "fi"),
+    ("Georgian", "ka"),
+    ("Gujarati", "gu"),
+    ("Hungarian", "hu"),
+    ("Kannada", "kn"),
+    ("Latvian", "lv"),
+    ("Lithuanian", "lt"),
+    ("Malayalam", "ml"),
+    ("Marathi", "mr"),
+    ("Norwegian", "no"),
+    ("Persian", "fa"),
+    ("Romanian", "ro"),
+    ("Serbian", "sr"),
+    ("Slovak", "sk"),
+    ("Slovenian", "sl"),
+    ("Tamil", "ta"),
+    ("Telugu", "te"),
+    ("Urdu", "ur"),
+];
+
 pub fn commands() -> Vec<Command> {
     vec![embed(), refresh_media()]
+}
+
+async fn autocomplete_language(
+    _ctx: poise::ApplicationContext<'_, BotState, Error>,
+    partial: &str,
+) -> Vec<serenity::AutocompleteChoice> {
+    matching_languages(partial)
+        .map(|(name, code)| serenity::AutocompleteChoice::new(format!("{name} ({code})"), code))
+        .collect()
+}
+
+fn matching_languages(partial: &str) -> impl Iterator<Item = (&'static str, &'static str)> {
+    let partial = partial.trim().to_lowercase();
+    LANGUAGES.iter().copied().filter(move |(name, code)| {
+        name.to_lowercase().contains(&partial) || code.starts_with(&partial)
+    })
 }
 
 /// Send the social embed for a link
@@ -62,9 +133,9 @@ pub fn commands() -> Vec<Command> {
 async fn embed(
     ctx: poise::ApplicationContext<'_, BotState, Error>,
     #[description = "Link to embed"] link: String,
-    #[description = "Translation language, such as en, ja, pt-BR, or zh-Hant"] language: Option<
-        String,
-    >,
+    #[description = "Translation language, such as en, ja, pt-BR, or zh-Hant"]
+    #[autocomplete = "autocomplete_language"]
+    language: Option<String>,
     #[description = "Hide the embed behind a spoiler"] spoiler: Option<bool>,
     #[description = "How to display the embed. Defaults to your saved preference"] display: Option<
         SocialDisplay,
