@@ -170,6 +170,7 @@ fn embed(ctx: &CommandContext) -> CommandFuture<'_> {
             text,
         } = ctx.parse()?;
         let user_id = ctx.author().id;
+        let videos = source::video_links(&link);
         let language = match language {
             Some(language) => match TranslationLanguage::parse(&language) {
                 Some(language) => Some(language.into_string()),
@@ -227,8 +228,13 @@ fn embed(ctx: &CommandContext) -> CommandFuture<'_> {
                 return ctx.send(unavailable_embed(unavailable)).await;
             }
         };
+        components.extend(videos.iter().map(|(url, video_spoiler)| {
+            video_component(url, *video_spoiler || spoiler == Some(true))
+        }));
         if components.is_empty() {
-            return ctx.error("That is not a supported social link.").await;
+            return ctx
+                .error("That is not a supported social or .mp4 link.")
+                .await;
         }
         if let Some(text) = text {
             components.insert(0, json!({"type": 10, "content": text}));
@@ -950,6 +956,14 @@ fn keep_only_media(component: &mut Value) -> bool {
     }
     children.retain(is_media);
     true
+}
+
+fn video_component(url: &Url, spoiler: bool) -> Value {
+    json!({
+        "type": 17,
+        "spoiler": spoiler,
+        "components": [{"type": 12, "items": [{"media": {"url": url.as_str()}}]}],
+    })
 }
 
 fn invoker_header(user_id: Id<UserMarker>) -> Value {

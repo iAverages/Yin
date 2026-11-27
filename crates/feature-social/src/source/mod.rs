@@ -206,22 +206,35 @@ pub(crate) fn parse_links_with_alt_fixers(content: &str) -> Vec<Link> {
     links(content, true)
 }
 
+pub(crate) fn video_links(content: &str) -> Vec<(Url, bool)> {
+    content
+        .split_whitespace()
+        .filter(|word| link(word, true).is_none())
+        .filter_map(parse_url)
+        .filter(|(url, _)| {
+            matches!(url.scheme(), "https") && url.path().to_ascii_lowercase().ends_with(".mp4")
+        })
+        .collect()
+}
+
 fn links(content: &str, alt_fixers: bool) -> Vec<Link> {
     content
         .split_whitespace()
-        .filter_map(|word| {
-            let (mut url, spoiler) = parse_url(word)?;
-            if alt_fixers && let Some(host) = native_host(&url) {
-                url.set_host(Some(&host)).ok()?;
-            }
-            Some(Link {
-                platform: SocialPlatform::recognize(&url)?,
-                url,
-                spoiler,
-                display: SocialDisplay::Full,
-            })
-        })
+        .filter_map(|word| link(word, alt_fixers))
         .collect()
+}
+
+fn link(word: &str, alt_fixers: bool) -> Option<Link> {
+    let (mut url, spoiler) = parse_url(word)?;
+    if alt_fixers && let Some(host) = native_host(&url) {
+        url.set_host(Some(&host)).ok()?;
+    }
+    Some(Link {
+        platform: SocialPlatform::recognize(&url)?,
+        url,
+        spoiler,
+        display: SocialDisplay::Full,
+    })
 }
 
 pub(crate) fn apply_displays(links: &mut [Link], displays: &[(String, String)]) {
