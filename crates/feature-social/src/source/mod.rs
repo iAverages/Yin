@@ -207,10 +207,9 @@ pub(crate) fn parse_links_with_alt_fixers(content: &str) -> Vec<Link> {
 }
 
 pub(crate) fn video_links(content: &str) -> Vec<(Url, bool)> {
-    content
-        .split_whitespace()
-        .filter(|word| link(word, true).is_none())
-        .filter_map(parse_url)
+    words(content)
+        .filter(|(word, spoiler)| link(word, *spoiler, true).is_none())
+        .filter_map(|(word, spoiler)| Some((parse_url(word)?, spoiler)))
         .filter(|(url, _)| {
             matches!(url.scheme(), "https") && url.path().to_ascii_lowercase().ends_with(".mp4")
         })
@@ -218,14 +217,24 @@ pub(crate) fn video_links(content: &str) -> Vec<(Url, bool)> {
 }
 
 fn links(content: &str, alt_fixers: bool) -> Vec<Link> {
-    content
-        .split_whitespace()
-        .filter_map(|word| link(word, alt_fixers))
+    words(content)
+        .filter_map(|(word, spoiler)| link(word, spoiler, alt_fixers))
         .collect()
 }
 
-fn link(word: &str, alt_fixers: bool) -> Option<Link> {
-    let (mut url, spoiler) = parse_url(word)?;
+fn words(content: &str) -> impl Iterator<Item = (&str, bool)> {
+    let last = content.split("||").count() - 1;
+    content
+        .split("||")
+        .enumerate()
+        .flat_map(move |(index, segment)| {
+            let spoiler = index % 2 == 1 && index < last;
+            segment.split_whitespace().map(move |word| (word, spoiler))
+        })
+}
+
+fn link(word: &str, spoiler: bool, alt_fixers: bool) -> Option<Link> {
+    let mut url = parse_url(word)?;
     if alt_fixers && let Some(host) = native_host(&url) {
         url.set_host(Some(&host)).ok()?;
     }
@@ -263,17 +272,8 @@ fn native_host(url: &Url) -> Option<String> {
     })
 }
 
-fn parse_url(word: &str) -> Option<(Url, bool)> {
-    let word = word.trim_matches(|c: char| "<>()[]{}\"',.!?".contains(c));
-    let (word, spoiler) = match word
-        .strip_prefix("||")
-        .and_then(|word| word.strip_suffix("||"))
-    {
-        Some(word) => (word, true),
-        None => (word, false),
-    };
-    let url = Url::parse(word.trim_matches(|c: char| "<>()[]{}\"',.!?".contains(c))).ok()?;
-    Some((url, spoiler))
+fn parse_url(word: &str) -> Option<Url> {
+    Url::parse(word.trim_matches(|c: char| "<>()[]{}\"',.!?".contains(c))).ok()
 }
 
 #[cfg(test)]
@@ -317,6 +317,21 @@ mod tests {
         assert!(!links[0].spoiler);
         assert!(links[1].spoiler);
         assert!(!links[2].spoiler);
+    }
+
+    #[test]
+    fn spoilers_cover_every_link_between_the_bars() {
+        let links = parse_links(concat!(
+            "banner spoilers\n",
+            "|| https://x.com/jack/status/20?s=20 ||\n\n",
+            "||two https://x.com/jack/status/21 https://x.com/jack/status/22||\n",
+            "https://x.com/jack/status/23 unclosed || https://x.com/jack/status/24"
+        ));
+
+        assert_eq!(
+            links.iter().map(|link| link.spoiler).collect::<Vec<_>>(),
+            [true, true, true, false, false]
+        );
     }
 
     #[test]
